@@ -357,8 +357,10 @@ $("btnRecupera").onclick = async () => {
 let mappa, livelloBici, segnoIo;
 function preparaMappa() {
   if (mappa) return;
-  mappa = L.map("mappa", { zoomControl: false, attributionControl: true }).setView([CENTRO_LAT, CENTRO_LON], 14);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(mappa);
+  // solo Piacenza e dintorni: niente Milano o Cremona
+  const confini = L.latLngBounds([44.98, 9.58], [45.11, 9.81]);
+  mappa = L.map("mappa", { zoomControl: false, attributionControl: true, minZoom: 12, maxZoom: 19, maxBounds: confini, maxBoundsViscosity: 1 }).setView([CENTRO_LAT, CENTRO_LON], 14);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, minZoom: 12, bounds: confini, attribution: "© OpenStreetMap" }).addTo(mappa);
   livelloBici = L.layerGroup().addTo(mappa);
   disegnaBici();
 }
@@ -378,6 +380,7 @@ $("btnGps").onclick = () => {
   navigator.geolocation.getCurrentPosition(p => {
     const ll = [p.coords.latitude, p.coords.longitude];
     if (segnoIo) segnoIo.setLatLng(ll); else segnoIo = L.marker(ll, { icon: L.divIcon({ className: "", html: '<div class="io-mk"></div>', iconSize: [18, 18] }) }).addTo(mappa);
+    if (!mappa.options.maxBounds.contains(L.latLng(ll))) return avvisa("Sei fuori Piacenza: Bikefly per ora è solo in città 🚲");
     mappa.flyTo(ll, 16);
   }, () => avvisa("Posizione non disponibile: controlla i permessi"));
 };
@@ -617,7 +620,7 @@ function vai(pg) {
   vistaAttuale = pg;
   document.querySelectorAll(".vista").forEach(v => v.classList.toggle("nascosto", v.id !== "pg-" + pg));
   document.querySelectorAll("nav.barra button").forEach(b => b.classList.toggle("attiva", b.dataset.pg === pg));
-  if (pg === "mappa") setTimeout(() => mappa?.invalidateSize(), 50);
+  if (pg === "mappa") setTimeout(() => mappa?.invalidateSize(), 60);
   if (pg === "noleggi") disegnaNoleggi();
   if (pg === "profilo") disegnaProfilo();
   consiglioHome();
@@ -636,7 +639,16 @@ function mostraVista() {
   const dentro = !!utente;
   $("accesso").classList.toggle("nascosto", dentro);
   $("app").classList.toggle("nascosto", !dentro);
-  if (dentro) { preparaMappa(); vai(vistaAttuale); }
+  if (dentro) {
+    vai(vistaAttuale);
+    // la mappa si prepara solo quando è visibile, così conosce la sua grandezza
+    requestAnimationFrame(() => {
+      const nuova = !mappa;
+      preparaMappa();
+      mappa.invalidateSize();
+      if (nuova) mappa.setView([CENTRO_LAT, CENTRO_LON], 14);
+    });
+  }
 }
 
 // ---------------- dati in tempo reale ----------------
