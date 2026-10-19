@@ -1,0 +1,290 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>Regole Firebase</title><style>body{margin:0;background:#071226;color:#F3F6FB;font-family:system-ui,sans-serif;padding:20px}
+button{position:sticky;top:12px;width:100%;padding:18px;border:0;border-radius:99px;background:linear-gradient(90deg,#00D2A0,#3B8BFF);color:#fff;font-size:18px;font-weight:800}
+pre{white-space:pre-wrap;word-break:break-word;font-size:11px;background:#0E1E3C;padding:14px;border-radius:14px;margin-top:16px}</style></head>
+<body><button id="b">📋 Copia tutte le regole</button><pre id="r">rules_version = &#x27;2&#x27;;
+// Regole di sicurezza di Bikefly (beta 13.5): da incollare in Firebase → Firestore Database → Regole
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function accesso() { return request.auth != null; }
+    function io() { return request.auth.uid; }
+    // email verificata (gli account Google lo sono già)
+    function verificato() {
+      return request.auth.token.email_verified == true
+        || request.auth.token.firebase.sign_in_provider == &#x27;google.com&#x27;;
+    }
+    function admin() { return accesso() &amp;&amp; exists(/databases/$(database)/documents/admin/$(io())); }
+    function bandito() { return exists(/databases/$(database)/documents/banditi/$(io())); }
+    // entrato nella beta chiusa con un codice invito (gli admin sempre)
+    function ammesso() {
+      return admin() || (exists(/databases/$(database)/documents/utenti/$(io()))
+        &amp;&amp; get(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;ammesso&#x27;, false) == true);
+    }
+    // chi può scrivere contenuti: dentro, verificato, invitato e non bloccato
+    function scrittore() { return accesso() &amp;&amp; verificato() &amp;&amp; !bandito() &amp;&amp; ammesso(); }
+    function testo(x, max) { return x is string &amp;&amp; x.size() &lt;= max; }
+    function fotoOk(x) { return x == null || (x is string &amp;&amp; x.size() &lt;= 150000); }
+    function cambiati() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    function utenteDopo() { return getAfter(/databases/$(database)/documents/utenti/$(io())).data; }
+
+    // Admin e utenti bloccati: si gestiscono dalla console (o dal pannello admin)
+    match /admin/{uid} {
+      allow read: if accesso() &amp;&amp; io() == uid;
+    }
+    match /banditi/{uid} {
+      allow read: if accesso() &amp;&amp; io() == uid;
+      allow write: if admin();
+    }
+
+    // Profili: ognuno scrive solo il suo. I punti non possono saltare di colpo.
+    match /utenti/{uid} {
+      allow read: if accesso();
+      allow delete: if accesso() &amp;&amp; io() == uid;
+      allow create: if accesso() &amp;&amp; io() == uid &amp;&amp; profiloValido()
+        &amp;&amp; request.resource.data.get(&#x27;punti&#x27;, 0) &lt;= 1500
+        &amp;&amp; (request.resource.data.get(&#x27;ammesso&#x27;, false) == false || invitoUsato())
+        &amp;&amp; (request.resource.data.get(&#x27;mioCodice&#x27;, null) == null || mioCodiceOk())
+        &amp;&amp; (request.resource.data.get(&#x27;creato&#x27;, null) == null || request.resource.data.creato == request.time);
+      allow update: if accesso() &amp;&amp; io() == uid &amp;&amp; profiloValido()
+        &amp;&amp; puntiOnesti() &amp;&amp; tempoOnesto(&#x27;ultimaBici&#x27;, 60) &amp;&amp; tempoOnesto(&#x27;ultimoPost&#x27;, 30)
+        // si entra solo consumando un invito, e non si torna indietro
+        &amp;&amp; (!(&#x27;ammesso&#x27; in cambiati()) || (request.resource.data.ammesso == true &amp;&amp; resource.data.get(&#x27;ammesso&#x27;, false) == false &amp;&amp; invitoUsato()))
+        &amp;&amp; (!(&#x27;invitatoDa&#x27; in cambiati()) || (&#x27;ammesso&#x27; in cambiati()))
+        // il proprio codice si crea una volta sola
+        &amp;&amp; (!(&#x27;mioCodice&#x27; in cambiati()) || (resource.data.get(&#x27;mioCodice&#x27;, null) == null &amp;&amp; mioCodiceOk()))
+        // la data di iscrizione si scrive una volta sola, con l&#x27;ora del server
+        &amp;&amp; (!(&#x27;creato&#x27; in cambiati()) || (resource.data.get(&#x27;creato&#x27;, null) == null &amp;&amp; request.resource.data.creato == request.time));
+
+      function invitoUsato() {
+        let c = request.resource.data.invitatoDa;
+        return c is string
+          &amp;&amp; getAfter(/databases/$(database)/documents/inviti/$(c)).data.usi == get(/databases/$(database)/documents/inviti/$(c)).data.usi + 1;
+      }
+      function mioCodiceOk() {
+        return getAfter(/databases/$(database)/documents/inviti/$(request.resource.data.mioCodice)).data.proprietario == io();
+      }
+
+      function profiloValido() {
+        let d = request.resource.data;
+        return testo(d.get(&#x27;nome&#x27;, &#x27;&#x27;), 30)
+          &amp;&amp; (d.get(&#x27;scuola&#x27;, null) == null || testo(d.scuola, 60))
+          &amp;&amp; d.get(&#x27;punti&#x27;, 0) is int &amp;&amp; d.get(&#x27;punti&#x27;, 0) &gt;= 0
+          &amp;&amp; d.get(&#x27;km&#x27;, 0) is number &amp;&amp; d.get(&#x27;km&#x27;, 0) &gt;= 0
+          &amp;&amp; (d.get(&#x27;foto&#x27;, null) == null || (d.foto is string &amp;&amp; d.foto.size() &lt;= 150000));
+      }
+      // al massimo +250 punti e +60 km ogni 10 minuti
+      function puntiOnesti() {
+        let d = request.resource.data;
+        let vecchi = resource.data.get(&#x27;punti&#x27;, 0);
+        let prima = resource.data.get(&#x27;aggPunti&#x27;, timestamp.value(0));
+        return d.get(&#x27;punti&#x27;, 0) &lt;= vecchi
+          || (d.get(&#x27;punti&#x27;, 0) - vecchi &lt;= 250
+              &amp;&amp; d.get(&#x27;km&#x27;, 0) - resource.data.get(&#x27;km&#x27;, 0) &lt;= 60
+              &amp;&amp; d.get(&#x27;aggPunti&#x27;, null) == request.time
+              &amp;&amp; request.time &gt; prima + duration.value(10, &#x27;m&#x27;));
+      }
+      // ultimaBici / ultimoPost: solo l&#x27;ora del server e con una pausa minima
+      function tempoOnesto(campo, secondi) {
+        return !(campo in cambiati())
+          || (request.resource.data[campo] == request.time
+              &amp;&amp; request.time &gt; resource.data.get(campo, timestamp.value(0)) + duration.value(secondi, &#x27;s&#x27;));
+      }
+    }
+
+    // Codici invito: ognuno ne ha uno con 3 usi, gli admin possono crearne di più grandi
+    match /inviti/{codice} {
+      allow get: if accesso();
+      allow list, delete: if admin();
+      allow create: if accesso() &amp;&amp; request.resource.data.proprietario == io() &amp;&amp; request.resource.data.usi == 0
+        &amp;&amp; request.resource.data.max is int
+        &amp;&amp; ((admin() &amp;&amp; request.resource.data.max &lt;= 1000)
+          || (request.resource.data.max == 3
+              &amp;&amp; getAfter(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;mioCodice&#x27;, null) == codice
+              &amp;&amp; getAfter(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;ammesso&#x27;, false) == true));
+      allow update: if accesso()
+        &amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;usi&#x27;])
+        &amp;&amp; request.resource.data.usi == resource.data.usi + 1
+        &amp;&amp; request.resource.data.usi &lt;= resource.data.max
+        &amp;&amp; resource.data.proprietario != io()
+        &amp;&amp; getAfter(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;invitatoDa&#x27;, null) == codice
+        &amp;&amp; getAfter(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;ammesso&#x27;, false) == true
+        &amp;&amp; !(exists(/databases/$(database)/documents/utenti/$(io()))
+             &amp;&amp; get(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;ammesso&#x27;, false) == true);
+    }
+
+    // Recensioni in due direzioni: una per noleggio concluso e per persona
+    match /recensioni/{id} {
+      allow read: if accesso();
+      allow create: if scrittore() &amp;&amp; recensioneOnesta(id);
+      allow delete: if admin();
+
+      function recensioneOnesta(id) {
+        let d = request.resource.data;
+        let n = get(/databases/$(database)/documents/noleggi/$(d.noleggio)).data;
+        return d.da == io() &amp;&amp; id == d.noleggio + &#x27;_&#x27; + io()
+          &amp;&amp; d.voto is int &amp;&amp; d.voto &gt;= 1 &amp;&amp; d.voto &lt;= 5
+          &amp;&amp; testo(d.testo, 300) &amp;&amp; testo(d.daNome, 30)
+          &amp;&amp; d.quando == request.time
+          &amp;&amp; n.fase == &#x27;CONCLUSO&#x27;
+          &amp;&amp; ((n.clienteUid == io() &amp;&amp; d.a == n.proprietarioUid &amp;&amp; d.ruoloA == &#x27;proprietario&#x27;)
+            || (n.proprietarioUid == io() &amp;&amp; d.a == n.clienteUid &amp;&amp; d.ruoloA == &#x27;cliente&#x27;));
+      }
+    }
+
+    // Foto profilo (separate, così la classifica resta leggera)
+    match /foto_utenti/{uid} {
+      allow read: if accesso();
+      allow write: if accesso() &amp;&amp; io() == uid &amp;&amp; fotoOk(request.resource.data.get(&#x27;foto&#x27;, null));
+      allow delete: if accesso() &amp;&amp; io() == uid;
+    }
+
+    // Bici: tutti le vedono; solo il proprietario le modifica; voti uno a testa
+    match /bici/{id} {
+      allow read: if true;
+      allow create: if scrittore() &amp;&amp; biciValida()
+        &amp;&amp; request.resource.data.proprietarioUid == io()
+        &amp;&amp; request.resource.data.sommaVoti == 0 &amp;&amp; request.resource.data.numVoti == 0
+        &amp;&amp; request.resource.data.rubata == false
+        // una bici al minuto (l&#x27;ora la mette il server)
+        &amp;&amp; utenteDopo().get(&#x27;ultimaBici&#x27;, null) == request.time;
+      allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; (
+        (resource.data.proprietarioUid == io()
+          &amp;&amp; cambiati().hasOnly([&#x27;disponibile&#x27;, &#x27;rubata&#x27;, &#x27;prezzo&#x27;, &#x27;soloFidati&#x27;, &#x27;proprietarioNome&#x27;, &#x27;cauzione&#x27;, &#x27;lucchetto&#x27;, &#x27;casco&#x27;])
+          &amp;&amp; (!(&#x27;prezzo&#x27; in cambiati()) || (request.resource.data.prezzo is number
+              &amp;&amp; request.resource.data.prezzo &gt;= 2 &amp;&amp; request.resource.data.prezzo &lt;= 15))
+          &amp;&amp; (!(&#x27;cauzione&#x27; in cambiati()) || (request.resource.data.cauzione is number
+              &amp;&amp; request.resource.data.cauzione &gt;= 30 &amp;&amp; request.resource.data.cauzione &lt;= 200))
+          &amp;&amp; testo(request.resource.data.proprietarioNome, 30))
+        || votoOnesto()
+      );
+      allow delete: if (accesso() &amp;&amp; resource.data.proprietarioUid == io()) || admin();
+
+      function biciValida() {
+        let d = request.resource.data;
+        return testo(d.nome, 40) &amp;&amp; d.nome.size() &gt; 0
+          &amp;&amp; testo(d.descrizione, 600)
+          &amp;&amp; testo(d.proprietarioNome, 30)
+          &amp;&amp; d.prezzo is number &amp;&amp; d.prezzo &gt;= 2 &amp;&amp; d.prezzo &lt;= 15
+          &amp;&amp; d.tipo in [&#x27;CITY&#x27;, &#x27;MOUNTAIN&#x27;, &#x27;CORSA&#x27;, &#x27;EBIKE&#x27;, &#x27;MONOPATTINO&#x27;]
+          &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) is number &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) &gt;= 30 &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) &lt;= 200
+          &amp;&amp; d.get(&#x27;lucchetto&#x27;, false) == true
+          &amp;&amp; (d.get(&#x27;prezzoMese&#x27;, null) == null || (d.prezzoMese is number &amp;&amp; d.prezzoMese &gt; 0 &amp;&amp; d.prezzoMese &lt;= 1000))
+          &amp;&amp; fotoOk(d.get(&#x27;foto&#x27;, null));
+      }
+      function votoOnesto() {
+        let voto = /databases/$(database)/documents/bici/$(id)/voti/$(io());
+        return resource.data.proprietarioUid != io()
+          &amp;&amp; cambiati().hasOnly([&#x27;sommaVoti&#x27;, &#x27;numVoti&#x27;])
+          &amp;&amp; request.resource.data.numVoti == resource.data.numVoti + 1
+          &amp;&amp; !exists(voto)
+          &amp;&amp; getAfter(voto).data.voto == request.resource.data.sommaVoti - resource.data.sommaVoti;
+      }
+
+      match /voti/{uid} {
+        allow read: if true;
+        allow create: if scrittore() &amp;&amp; io() == uid
+          &amp;&amp; request.resource.data.voto is int
+          &amp;&amp; request.resource.data.voto &gt;= 1 &amp;&amp; request.resource.data.voto &lt;= 5;
+      }
+    }
+
+    // Social: tutti vedono i giri; un like a testa
+    match /post/{id} {
+      allow read: if true;
+      allow create: if scrittore()
+        &amp;&amp; request.resource.data.autoreUid == io()
+        &amp;&amp; request.resource.data.likes == 0
+        &amp;&amp; testo(request.resource.data.autoreNome, 30)
+        &amp;&amp; testo(request.resource.data.titolo, 60)
+        &amp;&amp; testo(request.resource.data.testo, 500)
+        &amp;&amp; fotoOk(request.resource.data.get(&#x27;foto&#x27;, null))
+        // un post ogni 30 secondi
+        &amp;&amp; utenteDopo().get(&#x27;ultimoPost&#x27;, null) == request.time;
+      allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; likeOnesto();
+      allow delete: if (accesso() &amp;&amp; resource.data.autoreUid == io()) || admin();
+
+      function likeOnesto() {
+        let cuore = /databases/$(database)/documents/post/$(id)/like/$(io());
+        return cambiati().hasOnly([&#x27;likes&#x27;])
+          &amp;&amp; ((request.resource.data.likes == resource.data.likes + 1 &amp;&amp; !exists(cuore) &amp;&amp; existsAfter(cuore))
+           || (request.resource.data.likes == resource.data.likes - 1 &amp;&amp; exists(cuore) &amp;&amp; !existsAfter(cuore)));
+      }
+
+      match /like/{uid} {
+        allow read: if true;
+        allow create, delete: if accesso() &amp;&amp; io() == uid;
+      }
+    }
+
+    // Segnalazioni: tutti possono segnalare, solo gli admin le leggono
+    match /segnalazioni/{id} {
+      allow create: if accesso() &amp;&amp; request.resource.data.daUid == io()
+        &amp;&amp; request.resource.data.tipo in [&#x27;post&#x27;, &#x27;bici&#x27;]
+        &amp;&amp; testo(request.resource.data.doc, 60)
+        &amp;&amp; testo(request.resource.data.motivo, 300);
+      allow read, delete: if admin();
+    }
+
+    // Noleggi: li vedono e li modificano solo chi noleggia e il proprietario
+    match /noleggi/{id} {
+      function partecipante() {
+        return resource.data.clienteUid == io() || resource.data.proprietarioUid == io();
+      }
+      function partecipanteDi(noleggio) {
+        let n = get(/databases/$(database)/documents/noleggi/$(noleggio)).data;
+        return n.clienteUid == io() || n.proprietarioUid == io();
+      }
+      // il prezzo deve tornare con quello della bici (niente noleggi a 0 €)
+      function prezzoOnesto() {
+        let d = request.resource.data;
+        let b = get(/databases/$(database)/documents/bici/$(d.biciDoc)).data;
+        let ore = d.durataMs;
+        let mese = b.get(&#x27;prezzoMese&#x27;, null);
+        return d.prezzo is number &amp;&amp; d.prezzo &lt;= 1100
+          &amp;&amp; d.commissione is number &amp;&amp; d.commissione &gt;= 0.86
+          &amp;&amp; (
+            (ore == 18000000 &amp;&amp; d.prezzo &gt;= b.prezzo)
+            || (ore == 3600000 &amp;&amp; d.prezzo &gt;= 1.5 &amp;&amp; d.prezzo &gt;= b.prezzo * 0.4 - 0.26)
+            || (ore == 7200000 &amp;&amp; d.prezzo &gt;= 2.5 &amp;&amp; d.prezzo &gt;= b.prezzo * 0.6 - 0.26)
+            || (ore == 604800000 &amp;&amp; mese != null &amp;&amp; d.prezzo &gt;= mese * 0.35 - 0.26)
+            || (ore == 2592000000 &amp;&amp; mese != null &amp;&amp; d.prezzo &gt;= mese)
+          );
+      }
+      allow read: if accesso() &amp;&amp; partecipante();
+      allow create: if scrittore() &amp;&amp; request.resource.data.clienteUid == io()
+        &amp;&amp; request.resource.data.fase == &#x27;IN_ATTESA&#x27;
+        &amp;&amp; request.resource.data.codiceOk == false
+        // il proprietario è davvero quello della bici, e non puoi noleggiare la tua
+        &amp;&amp; request.resource.data.proprietarioUid == get(/databases/$(database)/documents/bici/$(request.resource.data.biciDoc)).data.proprietarioUid
+        &amp;&amp; request.resource.data.proprietarioUid != io()
+        &amp;&amp; testo(request.resource.data.clienteNome, 30)
+        &amp;&amp; prezzoOnesto();
+      allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; partecipante()
+        // nessuno può cambiare chi sono il cliente e il proprietario, né la bici
+        &amp;&amp; request.resource.data.clienteUid == resource.data.clienteUid
+        &amp;&amp; request.resource.data.proprietarioUid == resource.data.proprietarioUid
+        &amp;&amp; request.resource.data.biciDoc == resource.data.biciDoc
+        // solo il proprietario conferma il codice di consegna
+        &amp;&amp; (resource.data.proprietarioUid == io()
+            || !cambiati().hasAny([&#x27;codiceOk&#x27;]))
+        // si parte solo dopo il codice giusto
+        &amp;&amp; (request.resource.data.fase != &#x27;IN_CORSO&#x27; || request.resource.data.codiceOk == true);
+
+      // Chat del noleggio
+      match /messaggi/{m} {
+        allow read: if accesso() &amp;&amp; partecipanteDi(id);
+        allow create: if scrittore() &amp;&amp; partecipanteDi(id)
+          &amp;&amp; request.resource.data.daUid == io()
+          &amp;&amp; testo(request.resource.data.testo, 1000);
+      }
+
+      // Codice di consegna segreto: lo vede solo il proprietario
+      match /privato/{p} {
+        allow read, write: if accesso()
+          &amp;&amp; get(/databases/$(database)/documents/noleggi/$(id)).data.proprietarioUid == io();
+      }
+    }
+  }
+}
+</pre>
+<script>document.getElementById("b").onclick=async()=>{const t=document.getElementById("r").textContent;try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}document.getElementById("b").textContent="✅ Copiate! Ora incollale su Firebase"}</script></body></html>
