@@ -179,6 +179,19 @@ h2.titolo{font-size:34px;margin-bottom:16px}
   </div>
 </section>
 
+<!-- ================= INVITO ================= -->
+<section id="invito" class="nascosto" style="position:fixed;inset:0;overflow-y:auto;z-index:49;padding:calc(var(--su) + 60px) 24px 40px;background:radial-gradient(120% 60% at 15% 10%,rgba(124,92,255,.3),transparent 60%),var(--notte)">
+  <div style="max-width:420px;margin:0 auto;text-align:center">
+    <div style="font-size:76px">🎟️</div>
+    <h1 style="font-size:36px;margin:12px 0">Bikefly è su invito</h1>
+    <p class="nota" style="font-size:16px">Per ora entra solo chi riceve un codice da un amico. Ognuno ne ha 3 da regalare: così restiamo tra persone di fiducia.</p>
+    <input class="campo" id="codiceInvito" maxlength="12" autocapitalize="characters" placeholder="Codice invito" style="margin-top:24px;text-align:center;font-size:22px;font-weight:800;letter-spacing:.15em">
+    <button class="btn primo" id="btnInvito" style="margin-top:14px">Entra</button>
+    <div id="erroreInvito" class="errore nascosto"></div>
+    <button class="link" id="esciInvito" style="color:var(--nebbia)">Esci</button>
+  </div>
+</section>
+
 <!-- ================= APP ================= -->
 <div id="app" class="nascosto">
   <div id="pg-mappa" class="vista" style="position:absolute;inset:0">
@@ -199,12 +212,24 @@ h2.titolo{font-size:34px;margin-bottom:16px}
       <label class="carica" id="caricaFoto"><span id="testoFoto">📸<br>Tocca per aggiungere una foto</span><input type="file" accept="image/*" id="fileFoto" class="nascosto"></label>
       <label class="etichetta" for="biciNome">Nome della bici</label><input class="campo" id="biciNome" maxlength="40" placeholder="Es. City bike azzurra">
       <label class="etichetta" for="biciTipo">Tipo</label>
-      <select class="campo" id="biciTipo"><option value="CITY">🚲 City</option><option value="MOUNTAIN">🚵 Mountain</option><option value="CORSA">🚴 Corsa</option><option value="EBIKE">⚡ E-bike</option></select>
+      <select class="campo" id="biciTipo"><option value="CITY">🚲 City</option><option value="MOUNTAIN">🚵 Mountain</option><option value="CORSA">🚴 Corsa</option><option value="EBIKE">⚡ E-bike</option><option value="MONOPATTINO">🛴 Monopattino</option></select>
       <label class="etichetta" for="biciZona">Quartiere</label><select class="campo" id="biciZona"></select>
       <label class="etichetta" for="biciPrezzo">Prezzo per 5 ore: <b id="prezzoTesto">5 €</b></label>
-      <input type="range" id="biciPrezzo" min="1" max="15" step="0.5" value="5" style="width:100%;accent-color:#00D2A0">
+      <input type="range" id="biciPrezzo" min="2" max="15" step="0.5" value="5" style="width:100%;accent-color:#00D2A0">
       <p class="nota" id="guadagnoTesto"></p>
+      <label class="etichetta" for="biciCauzione">Cauzione: <b id="cauzioneTesto">30 €</b></label>
+      <input type="range" id="biciCauzione" min="30" max="200" step="5" value="30" style="width:100%;accent-color:#3B8BFF">
+      <p class="nota">La decidi tu (minimo 30 €). In beta si lascia in contanti al ritiro e la ridai alla restituzione.</p>
+      <label class="casella"><input type="checkbox" id="biciLucchetto"><span>🔒 Do il lucchetto insieme alla bici (obbligatorio)</span></label>
+      <label class="casella" style="margin-top:10px"><input type="checkbox" id="biciCasco"><span>🪖 Presto anche il casco</span></label>
+      <div id="rigaMonopattino" class="nascosto">
+        <p class="nota" style="margin-top:12px"><b>Il monopattino per legge ha bisogno di:</b></p>
+        <label class="casella" style="margin-top:8px"><input type="checkbox" id="biciTarghino"><span>Contrassegno (targhino)</span></label>
+        <label class="casella" style="margin-top:8px"><input type="checkbox" id="biciAssicurazione"><span>Assicurazione obbligatoria</span></label>
+        <p class="nota" style="margin-top:8px">Il casco va sempre dato insieme al monopattino.</p>
+      </div>
       <label class="etichetta" for="biciDesc">Descrizione</label><textarea class="campo" id="biciDesc" maxlength="600" placeholder="Com'è, cosa ha (cestino, luci, lucchetto…)"></textarea>
+      <label class="casella"><input type="checkbox" id="biciConsenso"><span>Ho almeno 18 anni, oppure un genitore è d'accordo, e accetto i <a href="../termini.html" target="_blank">termini</a>.</span></label>
       <button class="btn primo" style="margin-top:18px" id="btnPubblica">Pubblica la bici</button>
     </form>
   </div>
@@ -234,7 +259,7 @@ h2.titolo{font-size:34px;margin-bottom:16px}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, updateProfile, signOut, reload } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, where, orderBy, setDoc, updateDoc, addDoc, getDoc, writeBatch, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, where, orderBy, setDoc, updateDoc, addDoc, getDoc, getDocs, writeBatch, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ---------------- costanti (le stesse dell'app Android) ----------------
 const COMMISSIONE = 0.86, CAUZIONE = 30;
@@ -245,7 +270,8 @@ const ZONE = [
   ["Infrangibile", 45.0400, 9.7060], ["Farnesiana", 45.0360, 9.7220], ["Barriera Genova", 45.0440, 9.6870],
   ["Besurica", 45.0440, 9.6550], ["Galleana", 45.0350, 9.6760]
 ];
-const TIPI = { CITY: ["City", "🚲"], MOUNTAIN: ["Mountain", "🚵"], CORSA: ["Corsa", "🚴"], EBIKE: ["E-bike", "⚡"] };
+const TIPI = { CITY: ["City", "🚲"], MOUNTAIN: ["Mountain", "🚵"], CORSA: ["Corsa", "🚴"], EBIKE: ["E-bike", "⚡"], MONOPATTINO: ["Monopattino", "🛴"] };
+const MENSILE_ATTIVO = false, PAGAMENTI_ATTIVI = false;
 const ORA = 3600000;
 const DURATE = [
   { id: "ORA1", nome: "1 ora", ms: ORA, lunga: false },
@@ -393,7 +419,11 @@ $("velo").onclick = chiudiFoglio;
 function apriBici(id) {
   const b = bici.find(x => x.id === id); if (!b) return;
   const mia = b.proprietarioUid === utente.uid;
-  const durate = DURATE.filter(d => prezzoPer(b, d) != null);
+  const durate = DURATE.filter(d => prezzoPer(b, d) != null && (MENSILE_ATTIVO || !d.lunga));
+  const cauzione = b.cauzione || CAUZIONE;
+  const bloccata = b.soloFidati === 1 ? !(mieRecensioniCliente().length && mediaCliente() >= 4.5)
+    : b.soloFidati === 3 ? !(mieRecensioniCliente().length || miei.some(n => n.fase === "CONCLUSO"))
+    : b.soloFidati === 2;
   let scelta = durate.find(d => d.id === "ORE5") || durate[0];
   const media = b.numVoti ? (b.sommaVoti / b.numVoti).toFixed(1).replace(".", ",") : null;
   const attivo = miei.find(n => n.biciDoc === b.id && ["IN_ATTESA", "ACCETTATO", "IN_CORSO"].includes(n.fase));
@@ -404,10 +434,13 @@ function apriBici(id) {
       <span class="chip">${TIPI[b.tipo]?.[1] || "🚲"} ${TIPI[b.tipo]?.[0] || "Bici"}</span>
       <span class="chip">📍 ${esc(b.zona)}</span>
       ${media ? `<span class="chip">⭐ ${media} (${b.numVoti})</span>` : ""}
+      <span class="chip">🛡️ Cauzione ${euro(cauzione)}</span>
+      ${b.lucchetto !== false ? `<span class="chip">🔒 Lucchetto</span>` : ""}
+      ${b.casco ? `<span class="chip">🪖 Casco</span>` : ""}
     </div>
     <p class="nota" style="margin:8px 0 2px">${mia ? "È la tua bici" : "Di " + esc(b.proprietarioNome) + " · 📩 email verificata"}</p>
     ${b.descrizione ? `<p style="margin:10px 0;line-height:1.5">${esc(b.descrizione)}</p>` : ""}
-    ${mia ? `<button class="btn vetro" id="fdChiudi">Chiudi</button>` : b.soloFidati ? `<p class="banner">🤝 Questa bici è riservata agli amici fidati del proprietario: si noleggia dall'app Android.</p>` : attivo ? `<button class="btn vetro" id="fdNoleggi">Hai già una richiesta: vai ai Noleggi</button>` : `
+    ${mia ? `<button class="btn vetro" id="fdChiudi">Chiudi</button>` : bloccata ? `<p class="banner">🔒 ${b.soloFidati === 1 ? "Il proprietario la presta solo a chi ha 4,5★ o più." : b.soloFidati === 3 ? "Il proprietario la presta solo a chi ha già fatto un noleggio." : "Questa bici è riservata: si noleggia dall'app Android."}</p>` : attivo ? `<button class="btn vetro" id="fdNoleggi">Hai già una richiesta: vai ai Noleggi</button>` : `
       <label class="etichetta">Per quanto?</label>
       <div class="durate" id="fdDurate">${durate.map(d => `<button data-d="${d.id}" class="${d === scelta ? "scelta" : ""}"><b>${euro(prezzoPer(b, d))}</b>${d.nome}</button>`).join("")}</div>
       <div class="totale" id="fdTotale"></div>
@@ -418,7 +451,9 @@ function apriBici(id) {
   const totale = () => {
     if (!$("fdTotale")) return;
     const p = prezzoPer(b, scelta), c = commissionePer(p, scelta);
-    $("fdTotale").innerHTML = `<div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>Commissione Bikefly</span><span>${euro(c)}</span></div><div class="riga tra"><span>Cauzione (solo bloccata)</span><span>${euro(CAUZIONE)}</span></div><div class="riga tra"><span>Totale</span><span>${euro(p + c)}</span></div>`;
+    $("fdTotale").innerHTML = PAGAMENTI_ATTIVI
+      ? `<div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>Commissione Bikefly</span><span>${euro(c)}</span></div><div class="riga tra"><span>Cauzione (solo bloccata)</span><span>${euro(cauzione)}</span></div><div class="riga tra"><span>Totale</span><span>${euro(p + c)}</span></div>`
+      : `<p style="color:#8DBBFF;font-weight:700;font-size:14px">🔜 Pagamenti in arrivo: in beta chiusa non si paga nell'app</p><div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>🛡️ Cauzione in contanti</span><span>${euro(cauzione)}</span></div><p class="nota">La lasci al proprietario al ritiro: te la ridà quando riporti la bici integra. 💡 Fate la consegna in un posto pubblico.${b.casco ? "" : b.tipo === "MONOPATTINO" ? " 🪖 Casco obbligatorio." : " 🪖 Casco non incluso."}</p>`;
   };
   totale();
   $("fdChiudi") && ($("fdChiudi").onclick = chiudiFoglio);
@@ -468,10 +503,11 @@ function disegnaNoleggi() {
       if (n.fase === "IN_CORSO") { const pass = Date.now() - (n.inizioMs || Date.now()); azioni = `<p class="nota">⏱️ In giro da ${tempo(pass)} · ti restano ${tempo(n.durataMs - pass)}</p><button class="btn primo" data-a="restituisci" data-id="${n.id}">Restituisci la bici</button>`; }
       if (n.fase === "CONCLUSO" && !n.voto) azioni = `<p class="nota">Com'è andata?</p><div class="stelle">${[1, 2, 3, 4, 5].map(s => `<button data-a="voto" data-v="${s}" data-id="${n.id}" aria-label="${s} stelle">⭐</button>`).join("")}</div>`;
     } else {
-      if (n.fase === "IN_ATTESA") azioni = `<p class="nota">${esc(altro)} vuole la tua bici per ${DURATE.find(d => d.ms === n.durataMs)?.nome || tempo(n.durataMs)}.</p><div class="riga"><button class="btn primo" data-a="accetta" data-id="${n.id}">Accetta</button><button class="btn vetro" data-a="rifiuta" data-id="${n.id}">Rifiuta</button></div>`;
+      if (n.fase === "IN_ATTESA") azioni = `<p class="nota">${esc(altro)} vuole la tua bici per ${DURATE.find(d => d.ms === n.durataMs)?.nome || tempo(n.durataMs)}.</p><button class="btn vetro piccolo" data-a="profilo" data-uid="${n.clienteUid}" data-id="${n.id}">👤 Vedi il profilo di ${esc(altro)}</button><div class="riga"><button class="btn primo" data-a="accetta" data-id="${n.id}">Accetta</button><button class="btn vetro" data-a="rifiuta" data-id="${n.id}">Rifiuta</button></div>`;
       if (n.fase === "ACCETTATO") azioni = n.codiceOk ? `<p class="nota">✅ Codice confermato: ${esc(altro)} può partire.</p>` : `<p class="nota">Quando consegni la bici, di' questo codice a ${esc(altro)}:</p><div class="codice">${codici[n.id] || "····"}</div><p class="nota">Tieni aperta questa pagina: il codice si controlla da qui.</p>`;
       if (n.fase === "IN_CORSO") azioni = `<p class="nota">🚴 ${esc(altro)} sta pedalando da ${tempo(Date.now() - (n.inizioMs || Date.now()))}.</p>`;
-      if (n.fase === "CONCLUSO") azioni = `<p class="nota">Hai guadagnato circa ${euro((n.prezzo || b.prezzo || 0) - (n.commissione || COMMISSIONE))} 💰</p>`;
+      if (n.fase === "CONCLUSO") azioni = recensiti.has(n.id) ? `<p class="nota">✅ Hai votato ${esc(altro)}</p>`
+        : `<p class="nota">Com'è andata con ${esc(altro)}? Il tuo voto aiuta gli altri proprietari.</p><div class="stelle">${[1, 2, 3, 4, 5].map(s => `<button data-a="votacliente" data-v="${s}" data-id="${n.id}" aria-label="${s} stelle">⭐</button>`).join("")}</div>`;
     }
     const chat = ["IN_ATTESA", "ACCETTATO", "IN_CORSO"].includes(n.fase) ? `<button class="btn vetro piccolo" data-a="chat" data-id="${n.id}">💬 Chat con ${esc(altro)}</button>` : "";
     return `<div class="card"><span class="stato s-${n.fase}">${nomeFase[n.fase] || n.fase}</span>
@@ -507,9 +543,16 @@ $("listaNoleggi").addEventListener("click", async ev => {
         lotto.set(doc(db, "bici", n.biciDoc, "voti", utente.uid), { voto: v });
         lotto.update(doc(db, "bici", n.biciDoc), { sommaVoti: increment(v), numVoti: increment(1) });
         await lotto.commit().catch(async () => { await updateDoc(ref, { voto: v }); });
+        await setDoc(doc(db, "recensioni", id + "_" + utente.uid), { noleggio: id, da: utente.uid, daNome: (utente.displayName || "").slice(0, 30), a: n.proprietarioUid, ruoloA: "proprietario", voto: v, testo: "", quando: serverTimestamp() }).catch(() => {});
         avvisa("Grazie per il voto! ⭐"); break;
       }
       case "chat": apriChat(id); break;
+      case "profilo": apriProfilo(el.dataset.uid); break;
+      case "votacliente": {
+        const n = suoi.find(x => x.id === id);
+        await setDoc(doc(db, "recensioni", id + "_" + utente.uid), { noleggio: id, da: utente.uid, daNome: (utente.displayName || "").slice(0, 30), a: n.clienteUid, ruoloA: "cliente", voto: +el.dataset.v, testo: "", quando: serverTimestamp() });
+        avvisa("Grazie per il voto! ⭐"); break;
+      }
     }
   } catch (e) { avvisa("Non riuscito: " + (e.code || "riprova")); }
 });
@@ -555,6 +598,8 @@ $("biciZona").innerHTML = ZONE.map(z => `<option>${z[0]}</option>`).join("");
 let fotoBase64 = null;
 function aggiornaPrezzo() { const p = +$("biciPrezzo").value; $("prezzoTesto").textContent = euro(p); $("guadagnoTesto").textContent = "Ricevi circa " + euro(Math.max(0, p - COMMISSIONE)) + " per ogni noleggio da 5 ore."; }
 $("biciPrezzo").oninput = aggiornaPrezzo; aggiornaPrezzo();
+$("biciCauzione").oninput = () => $("cauzioneTesto").textContent = euro(+$("biciCauzione").value);
+$("biciTipo").onchange = () => $("rigaMonopattino").classList.toggle("nascosto", $("biciTipo").value !== "MONOPATTINO");
 $("fileFoto").onchange = () => {
   const f = $("fileFoto").files[0]; if (!f) return;
   const img = new Image();
@@ -574,7 +619,12 @@ $("moduloBici").onsubmit = async ev => {
   ev.preventDefault();
   if (!verificato()) return avvisa("Prima verifica la tua email (Profilo)");
   const nome = $("biciNome").value.trim();
+  const mono = $("biciTipo").value === "MONOPATTINO";
+  if (!fotoBase64) return avvisa("Aggiungi una foto della bici");
   if (!nome) return avvisa("Dai un nome alla bici");
+  if (!$("biciLucchetto").checked) return avvisa("Il lucchetto è obbligatorio");
+  if (mono && (!$("biciTarghino").checked || !$("biciAssicurazione").checked)) return avvisa("Per il monopattino servono targhino e assicurazione");
+  if (!$("biciConsenso").checked) return avvisa("Conferma l'età e i termini");
   const btn = $("btnPubblica"); btn.disabled = true; btn.textContent = "Pubblico…";
   try {
     const ref = doc(collection(db, "bici"));
@@ -584,11 +634,12 @@ $("moduloBici").onsubmit = async ev => {
       zona: $("biciZona").value, scartoX: Math.random() * 0.06 - 0.03, scartoY: Math.random() * 0.04 - 0.02,
       prezzo: +$("biciPrezzo").value, prezzoMese: null, kit: false, soloFidati: 0, colore: COLORI[Math.floor(Math.random() * COLORI.length)],
       disponibile: true, rubata: false, sommaVoti: 0, numVoti: 0, proprietarioUid: utente.uid, proprietarioNome: (utente.displayName || "").slice(0, 30),
-      foto: fotoBase64, creato: Date.now()
+      foto: fotoBase64, creato: Date.now(),
+      cauzione: +$("biciCauzione").value, lucchetto: true, casco: $("biciCasco").checked || mono
     });
     lotto.set(doc(db, "utenti", utente.uid), { ultimaBici: serverTimestamp() }, { merge: true });
     await lotto.commit();
-    $("moduloBici").reset(); fotoBase64 = null; aggiornaPrezzo();
+    $("moduloBici").reset(); fotoBase64 = null; aggiornaPrezzo(); $("cauzioneTesto").textContent = "30 €"; $("rigaMonopattino").classList.add("nascosto");
     $("caricaFoto").firstElementChild.outerHTML = `<span id="testoFoto">📸<br>Tocca per aggiungere una foto</span>`;
     avvisa("La tua bici è sulla mappa! 🎉"); vai("mappa");
   } catch (e) { avvisa("Non pubblicata: aspetta un minuto tra una bici e l'altra"); }
@@ -602,16 +653,79 @@ function disegnaProfilo() {
     ${verificato() ? "" : `<div class="banner"><b>📩 Verifica la tua email</b><span class="nota">Apri il link che ti abbiamo mandato a ${esc(utente.email)}. Senza verifica non puoi noleggiare, prestare o scrivere.</span><div class="riga"><button class="btn vetro piccolo" id="pfRimanda">Rimanda mail</button><button class="btn primo piccolo" id="pfVerificato">Ho verificato</button></div></div>`}
     <div class="card"><div class="riga"><div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--menta),var(--cielo));display:grid;place-items:center;font-family:Bricolage;font-size:24px;font-weight:800;overflow:hidden">${utente.photoURL ? `<img src="${esc(utente.photoURL)}" alt="" style="width:100%;height:100%;object-fit:cover" referrerpolicy="no-referrer">` : esc((utente.displayName || "?")[0].toUpperCase())}</div>
       <div><h3>${esc(utente.displayName || "Senza nome")}</h3><p class="nota">${esc(utente.email || "")}</p><p class="nota">${verificato() ? "✅ Email verificata" : "📩 Email da verificare"}</p></div></div></div>
+    ${profiloMio.mioCodice ? `<div class="card" style="background:linear-gradient(135deg,#7C5CFF,#3B8BFF)"><h3>🎟️ I tuoi inviti</h3><p style="font-size:14px">Puoi invitare ancora ${Math.max(0, invito.max - invito.usi)} amici di fiducia.</p><div class="codice" id="mioCodice">${esc(profiloMio.mioCodice)}</div><button class="btn bianco" id="pfInvita">Manda l'invito</button><p style="font-size:12px;opacity:.85">Usati ${invito.usi} su ${invito.max}</p></div>` : ""}
+    ${sonoAdmin ? `<div class="card"><h3>🛡️ Admin</h3><button class="btn vetro piccolo" id="pfCodice">Crea codice da 20 inviti</button><div id="pfCodiceNuovo" class="codice nascosto"></div></div>` : ""}
     <div class="card"><h3>Le tue bici</h3>${mie.length ? mie.map(b => `<div class="riga tra"><span>${TIPI[b.tipo]?.[1] || "🚲"} ${esc(b.nome)} · ${euro(b.prezzo)}</span><button class="btn vetro piccolo" data-disp="${b.id}">${b.disponibile !== false ? "Disponibile" : "Non disponibile"}</button></div>`).join("") : `<p class="nota">Non hai ancora pubblicato bici.</p>`}</div>
     <div class="card"><h3>Installa Bikefly</h3><p class="nota">Su iPhone: tocca <b>Condividi</b> ↑ e poi <b>"Aggiungi alla schermata Home"</b>. Su Android puoi scaricare <a href="../bikefly.apk" style="color:var(--menta);font-weight:700">l'app completa</a>, con Fly, il social e tutto il resto.</p></div>
     <button class="btn vetro" id="pfEsci">Esci</button>`;
   $("pfEsci").onclick = () => signOut(auth);
+  $("pfInvita") && ($("pfInvita").onclick = async () => {
+    const testo = "Ti invito su Bikefly, l'app per noleggiare e prestare bici a Piacenza 🚲\nIl mio codice invito: " + profiloMio.mioCodice + "\nhttps://bikef993-droid.github.io/bikefly/";
+    try { if (navigator.share) await navigator.share({ text: testo }); else { await navigator.clipboard.writeText(testo); avvisa("Invito copiato 📋"); } } catch (e) {}
+  });
+  $("pfCodice") && ($("pfCodice").onclick = async () => {
+    const c = nuovoCodice();
+    try { await setDoc(doc(db, "inviti", c), { proprietario: utente.uid, usi: 0, max: 20, creato: serverTimestamp() }); const el = $("pfCodiceNuovo"); el.textContent = c; el.classList.remove("nascosto"); }
+    catch (e) { avvisa("Codice non creato"); }
+  });
   $("pfRimanda") && ($("pfRimanda").onclick = () => sendEmailVerification(utente).then(() => avvisa("Mail inviata 📩")).catch(() => avvisa("Aspetta qualche minuto prima di chiederne un'altra")));
   $("pfVerificato") && ($("pfVerificato").onclick = async () => { await reload(utente); await utente.getIdToken(true); utente = auth.currentUser; avvisa(verificato() ? "Email verificata! ✅" : "Non risulta ancora: apri il link nella mail"); disegnaProfilo(); });
   document.querySelectorAll("[data-disp]").forEach(el => el.onclick = async () => {
     const b = bici.find(x => x.id === el.dataset.disp);
     await updateDoc(doc(db, "bici", b.id), { disponibile: b.disponibile === false }).catch(() => avvisa("Non riuscito"));
   });
+}
+
+// ---------------- fiducia: inviti, recensioni, profili ----------------
+let profiloMio = { caricato: false }, sonoAdmin = false, invito = { usi: 0, max: 3 }, mieRecensioni = [], recensiti = new Set(), ascoltoInvito = null;
+const mieRecensioniCliente = () => mieRecensioni.filter(r => r.ruoloA === "cliente");
+const mediaCliente = () => { const l = mieRecensioniCliente(); return l.length ? l.reduce((a, r) => a + r.voto, 0) / l.length : 0; };
+function nuovoCodice() { const L = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let c = "BF"; for (let i = 0; i < 5; i++) c += L[Math.floor(Math.random() * L.length)]; return c; }
+async function creaMioCodice() {
+  const c = nuovoCodice(), lotto = writeBatch(db);
+  lotto.set(doc(db, "inviti", c), { proprietario: utente.uid, usi: 0, max: 3, creato: serverTimestamp() });
+  lotto.set(doc(db, "utenti", utente.uid), { mioCodice: c }, { merge: true });
+  await lotto.commit().catch(() => {});
+}
+function erroreInvito(t) { const el = $("erroreInvito"); el.textContent = "⚠️ " + t; el.classList.toggle("nascosto", !t); }
+$("btnInvito").onclick = async () => {
+  const codice = $("codiceInvito").value.trim().toUpperCase().replace(/[\s-]/g, "");
+  if (codice.length < 5) return erroreInvito("Il codice è troppo corto");
+  const btn = $("btnInvito"); btn.disabled = true; btn.textContent = "Un attimo…";
+  try {
+    const d = await getDoc(doc(db, "inviti", codice));
+    if (!d.exists()) erroreInvito("Codice non valido: controlla le lettere");
+    else if ((d.data().usi || 0) >= (d.data().max || 0)) erroreInvito("Questo codice ha finito gli inviti: chiedine un altro");
+    else if (d.data().proprietario === utente.uid) erroreInvito("Non puoi usare il tuo codice");
+    else {
+      const lotto = writeBatch(db);
+      lotto.update(doc(db, "inviti", codice), { usi: increment(1) });
+      lotto.set(doc(db, "utenti", utente.uid), { ammesso: true, invitatoDa: codice }, { merge: true });
+      await lotto.commit(); erroreInvito(""); avvisa("Benvenuto su Bikefly! 🎉");
+    }
+  } catch (e) { erroreInvito("Codice non accettato: riprova"); }
+  btn.disabled = false; btn.textContent = "Entra";
+};
+$("esciInvito").onclick = () => signOut(auth);
+
+async function apriProfilo(uid) {
+  apriFoglio(`<p class="nota" style="text-align:center;padding:30px">Carico il profilo…</p>`);
+  try {
+    const [u, f] = await Promise.all([getDoc(doc(db, "utenti", uid)), getDoc(doc(db, "foto_utenti", uid)).catch(() => null)]);
+    const rs = await getDocs(query(collection(db, "recensioni"), where("a", "==", uid)));
+    const lista = rs.docs.map(d => d.data()).sort((a, b) => (b.quando?.seconds || 0) - (a.quando?.seconds || 0));
+    const cli = lista.filter(r => r.ruoloA === "cliente"), media = cli.length ? (cli.reduce((a, r) => a + r.voto, 0) / cli.length).toFixed(1).replace(".", ",") : "–";
+    const nome = u.data()?.nome || "?", creato = u.data()?.creato?.toDate?.();
+    const foto = f?.data()?.foto;
+    apriFoglio(`<div style="text-align:center">
+      <div style="width:86px;height:86px;margin:0 auto;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--menta),var(--cielo));display:grid;place-items:center;font-family:Bricolage;font-size:34px;font-weight:800">${foto ? `<img src="data:image/jpeg;base64,${foto}" style="width:100%;height:100%;object-fit:cover" alt="">` : esc(nome[0] || "?")}</div>
+      <h2 style="margin-top:10px">${esc(nome)}</h2>
+      ${creato ? `<p class="nota">Su Bikefly da ${creato.toLocaleDateString("it-IT", { month: "long", year: "numeric" })}</p>` : ""}
+      <div class="riga" style="justify-content:center;margin:14px 0"><span class="chip">⭐ ${media} come cliente</span><span class="chip">🚲 ${cli.length} noleggi votati</span></div></div>
+      ${lista.length ? lista.slice(0, 20).map(r => `<div class="card" style="gap:4px"><b>${"★".repeat(r.voto)}${"☆".repeat(5 - r.voto)} · ${esc(r.daNome)}</b>${r.testo ? `<span class="nota">${esc(r.testo)}</span>` : ""}</div>`).join("") : `<p class="nota" style="text-align:center">Ancora nessuna recensione: è nuovo su Bikefly.</p>`}
+      <button class="btn vetro" id="chiudiProfilo">Chiudi</button>`);
+    $("chiudiProfilo").onclick = chiudiFoglio;
+  } catch (e) { apriFoglio(`<p class="nota" style="text-align:center;padding:30px">Profilo non disponibile</p>`); }
 }
 
 // ---------------- navigazione ----------------
@@ -637,7 +751,9 @@ $("chiudiHome").onclick = () => { homeChiuso = true; try { localStorage.setItem(
 
 function mostraVista() {
   const dentro = !!utente;
+  const serveInvito = dentro && profiloMio.caricato && !profiloMio.ammesso && !sonoAdmin;
   $("accesso").classList.toggle("nascosto", dentro);
+  $("invito").classList.toggle("nascosto", !serveInvito);
   $("app").classList.toggle("nascosto", !dentro);
   if (dentro) {
     vai(vistaAttuale);
@@ -661,7 +777,23 @@ onSnapshot(collection(db, "bici"), s => {
 onAuthStateChanged(auth, u => {
   utente = u;
   ascolti.forEach(f => f()); ascolti = []; miei = []; suoi = []; codici = {}; giaVisti = false;
+  profiloMio = { caricato: false }; sonoAdmin = false; mieRecensioni = []; recensiti = new Set(); ascoltoInvito?.(); ascoltoInvito = null;
   if (u) {
+    ascolti.push(onSnapshot(doc(db, "utenti", u.uid), d => {
+      const dati = d.data() || {};
+      const prima = profiloMio.mioCodice;
+      profiloMio = { caricato: true, ammesso: dati.ammesso === true, mioCodice: dati.mioCodice || null };
+      if (!dati.creato) setDoc(doc(db, "utenti", u.uid), { creato: serverTimestamp() }, { merge: true }).catch(() => {});
+      if (profiloMio.ammesso && !profiloMio.mioCodice) creaMioCodice();
+      if (profiloMio.mioCodice && profiloMio.mioCodice !== prima) {
+        ascoltoInvito?.();
+        ascoltoInvito = onSnapshot(doc(db, "inviti", profiloMio.mioCodice), i => { invito = { usi: i.data()?.usi || 0, max: i.data()?.max || 3 }; if (vistaAttuale === "profilo") disegnaProfilo(); }, () => {});
+      }
+      mostraVista();
+    }, () => { profiloMio = { caricato: true }; mostraVista(); }));
+    ascolti.push(onSnapshot(doc(db, "admin", u.uid), d => { sonoAdmin = d.exists(); mostraVista(); }, () => {}));
+    ascolti.push(onSnapshot(query(collection(db, "recensioni"), where("a", "==", u.uid)), s => { mieRecensioni = s.docs.map(d => d.data()); }, () => {}));
+    ascolti.push(onSnapshot(query(collection(db, "recensioni"), where("da", "==", u.uid)), s => { recensiti = new Set(s.docs.map(d => d.data().noleggio)); disegnaNoleggi(); }, () => {}));
     ascolti.push(onSnapshot(query(collection(db, "noleggi"), where("clienteUid", "==", u.uid)), s => { miei = s.docs.map(d => ({ id: d.id, ...d.data() })); disegnaNoleggi(); }, () => {}));
     ascolti.push(onSnapshot(query(collection(db, "noleggi"), where("proprietarioUid", "==", u.uid)), s => {
       const prima = new Set(suoi.filter(n => n.fase === "IN_ATTESA").map(n => n.id));
