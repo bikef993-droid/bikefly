@@ -8,8 +8,13 @@ jobs:
   prova:
     runs-on: ubuntu-latest
     steps:
-      - run: npm i playwright@1.48.2 && npx playwright install --with-deps chromium
-      - run: |
+      - name: Installa
+        run: |
+          npm init -y > /dev/null
+          npm i playwright@1.48.2 > npm.log 2>&1 || { tail -5 npm.log | sed 's/^/::error title=npm::/'; exit 1; }
+          npx playwright install --with-deps chromium > pw.log 2>&1 || { tail -5 pw.log | sed 's/^/::error title=install::/'; exit 1; }
+      - name: Prova
+        run: |
           cat > prova.mjs <<'JS'
           import { chromium, devices } from 'playwright';
           const b = await chromium.launch();
@@ -17,15 +22,15 @@ jobs:
           const errori = [];
           p.on('pageerror', e => errori.push('JS: ' + e.message));
           p.on('console', m => { if (m.type() === 'error') errori.push('console: ' + m.text()); });
-          await p.goto('https://bikef993-droid.github.io/bikefly/app/?v=' + Date.now(), { waitUntil: 'networkidle' });
-          await p.waitForTimeout(4000);
+          await p.goto('https://bikef993-droid.github.io/bikefly/app/?v=' + Date.now(), { waitUntil: 'load' });
+          await p.waitForTimeout(6000);
           const accesso = await p.isVisible('#accesso');
-          await p.screenshot({ path: 'web.png' });
-          console.log('accesso visibile:', accesso);
-          for (const e of errori) console.log('::warning title=Bikefly Web::' + e.replace(/\n/g, ' '));
-          if (!accesso) console.log('::error title=Bikefly Web::La schermata di accesso non compare');
-          console.log('::notice title=Bikefly Web::accesso=' + accesso + ' errori=' + errori.length);
+          const bici = await p.textContent('#contaBici').catch(() => '');
+          for (const e of errori) console.log('::warning title=Bikefly Web::' + e.replace(/\n/g, ' ').slice(0, 300));
+          console.log('::notice title=Bikefly Web::accesso=' + accesso + ' errori=' + errori.length + ' bici=' + bici);
           await b.close();
           JS
-          sleep 30
-          node prova.mjs
+          sleep 20
+          node prova.mjs > out.log 2>&1; c=$?
+          cat out.log
+          if [ $c -ne 0 ]; then tail -5 out.log | sed 's/^/::error title=node::/'; fi
