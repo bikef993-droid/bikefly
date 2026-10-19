@@ -134,6 +134,10 @@ h2.titolo{font-size:34px;margin-bottom:16px}
 .banner{background:rgba(255,210,63,.14);border:1px solid rgba(255,210,63,.4);border-radius:18px;padding:14px;margin-bottom:14px;display:grid;gap:10px}
 .carica{width:100%;aspect-ratio:16/10;border-radius:20px;border:2px dashed rgba(255,255,255,.25);display:grid;place-items:center;text-align:center;color:var(--nebbia);overflow:hidden;cursor:pointer}
 .carica img{width:100%;height:100%;object-fit:cover}
+#home{position:absolute;left:12px;right:12px;bottom:calc(var(--giu) + 92px);z-index:21;background:var(--latte);color:var(--notte);border-radius:20px;padding:14px 44px 14px 16px;font-size:14px;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+#home b{font-size:15px}
+#home button{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(7,18,38,.08);color:var(--notte);font-size:16px}
+#home::after{content:"";position:absolute;bottom:-8px;left:50%;margin-left:-8px;border:8px solid transparent;border-top-color:var(--latte);border-bottom:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -207,6 +211,7 @@ h2.titolo{font-size:34px;margin-bottom:16px}
 
   <div id="pg-profilo" class="vista pagina nascosto"><h2 class="titolo">Profilo</h2><div id="profilo"></div></div>
 
+  <div id="home" class="nascosto" role="note"><b>📲 Mettila nella schermata Home</b><br>Tocca <b>Condividi</b> <span aria-hidden="true">⬆️</span> qui sotto in Safari, poi <b>"Aggiungi alla schermata Home"</b>. Bikefly diventa un'icona come un'app.<button id="chiudiHome" aria-label="Chiudi">✕</button></div>
   <nav class="barra" aria-label="Sezioni">
     <button data-pg="mappa" class="attiva"><span>🗺️</span>Mappa</button>
     <button data-pg="noleggi"><span>🔑</span>Noleggi<i class="puntino nascosto" id="puntino"></i></button>
@@ -615,9 +620,17 @@ function vai(pg) {
   if (pg === "mappa") setTimeout(() => mappa?.invalidateSize(), 50);
   if (pg === "noleggi") disegnaNoleggi();
   if (pg === "profilo") disegnaProfilo();
+  consiglioHome();
 }
 document.querySelectorAll("nav.barra button").forEach(b => b.onclick = () => vai(b.dataset.pg));
 setInterval(() => { if (vistaAttuale === "noleggi" && [...miei].some(n => n.fase === "IN_CORSO")) disegnaNoleggi(); }, 30000);
+
+// su iPhone, se non è già nella schermata Home, spiega come aggiungerla
+const suIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const giaInstallata = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+let homeChiuso = false; try { homeChiuso = localStorage.getItem("home_chiuso") === "1"; } catch (e) {}
+function consiglioHome() { $("home").classList.toggle("nascosto", !(suIphone && !giaInstallata && !homeChiuso && utente && vistaAttuale === "mappa")); }
+$("chiudiHome").onclick = () => { homeChiuso = true; try { localStorage.setItem("home_chiuso", "1"); } catch (e) {} consiglioHome(); };
 
 function mostraVista() {
   const dentro = !!utente;

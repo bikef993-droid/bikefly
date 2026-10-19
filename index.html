@@ -128,6 +128,20 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
 footer{border-top:1px solid rgba(255,255,255,.08);padding:34px 0 48px;color:var(--nebbia);font-size:15px}
 footer .muro{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
+/* avviso per chi arriva da iPhone */
+.iphone{display:none;position:sticky;top:6px;z-index:15;margin:10px auto 0;max-width:1120px;padding:0 16px}
+.iphone a{display:flex;align-items:center;gap:12px;text-decoration:none;background:var(--latte);color:var(--notte);border-radius:20px;padding:14px 16px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.iphone a span{font-size:26px}
+.iphone a small{display:block;font-weight:500;color:#41536F;font-size:14px}
+body.ios .iphone{display:block}
+body.ios .scarica:not(.vetro){order:2}
+body.ios .finale .muro{display:flex;flex-direction:column;align-items:center}
+body.ios .scarica.vetro{background:var(--latte);color:var(--notte);border:0;margin:40px 0 0;order:1}
+body.ios .scarica:not(.vetro){background:transparent;color:var(--latte);border:2px solid rgba(243,246,251,.35);margin-top:12px}
+body.ios .finale .intro{order:0}
+body.ios .finale h2{order:-1}
+body.ios .installa{order:3}
+
 /* comparsa delle sezioni */
 .compare{opacity:0;transform:translateY(30px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.2,1)}
 .compare.vis{opacity:1;transform:none}
@@ -149,6 +163,8 @@ footer .muro{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 </style>
 </head>
 <body>
+
+<div class="iphone"><a href="app/"><span>📱</span><div>Hai un iPhone? Usa Bikefly Web<small>Funziona nel browser, con le stesse bici dell'app. Tocca qui.</small></div></a></div>
 
 <div class="strada" aria-hidden="true"><i id="avanza"></i>
   <svg id="bicina" viewBox="0 0 34 22"><circle cx="7" cy="15" r="6" fill="none" stroke="#00D2A0" stroke-width="2.5"/><circle cx="27" cy="15" r="6" fill="none" stroke="#3B8BFF" stroke-width="2.5"/><path d="M7 15 13 5h8l6 10M13 5l6 10" fill="none" stroke="#F3F6FB" stroke-width="2.2" stroke-linejoin="round"/></svg>
@@ -286,6 +302,8 @@ footer .muro{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 </footer>
 
 <script>
+// iPhone e iPad: mostra la strada giusta (Bikefly Web)
+if (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) { document.body.classList.add("ios"); const sp = document.querySelector(".scarica-piccolo"); sp.textContent = "Apri Bikefly Web"; sp.href = "app/"; }
 // strada in alto: la bicina avanza con lo scorrimento
 const avanza=document.getElementById('avanza'),bicina=document.getElementById('bicina');
 function strada(){const h=document.documentElement,p=h.scrollTop/((h.scrollHeight-h.clientHeight)||1),x=Math.min(Math.max(p,0),1)*100;avanza.style.width=x+'%';bicina.style.left='calc('+x+'% + '+(x<3?17:0)+'px)';}
