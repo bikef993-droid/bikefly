@@ -3,7 +3,7 @@
 button{position:sticky;top:12px;width:100%;padding:18px;border:0;border-radius:99px;background:linear-gradient(90deg,#00D2A0,#3B8BFF);color:#fff;font-size:18px;font-weight:800}
 pre{white-space:pre-wrap;word-break:break-word;font-size:11px;background:#0E1E3C;padding:14px;border-radius:14px;margin-top:16px}</style></head>
 <body><button id="b">📋 Copia tutte le regole</button><pre id="r">rules_version = &#x27;2&#x27;;
-// Regole di sicurezza di Bikefly (beta 13.5): da incollare in Firebase → Firestore Database → Regole
+// Regole di sicurezza di Bikefly (beta 13.7): da incollare in Firebase → Firestore Database → Regole
 service cloud.firestore {
   match /databases/{database}/documents {
     function accesso() { return request.auth != null; }
@@ -14,7 +14,15 @@ service cloud.firestore {
         || request.auth.token.firebase.sign_in_provider == &#x27;google.com&#x27;;
     }
     function admin() { return accesso() &amp;&amp; exists(/databases/$(database)/documents/admin/$(io())); }
-    function bandito() { return exists(/databases/$(database)/documents/banditi/$(io())); }
+    // bloccato dagli admin, oppure in pausa dopo 3 segnalazioni da persone diverse
+    function bandito() {
+      return exists(/databases/$(database)/documents/banditi/$(io())) || sospeso();
+    }
+    function sospeso() {
+      return exists(/databases/$(database)/documents/segnalati/$(io()))
+        &amp;&amp; get(/databases/$(database)/documents/segnalati/$(io())).data.get(&#x27;conteggio&#x27;, 0) &gt;= 3
+        &amp;&amp; get(/databases/$(database)/documents/segnalati/$(io())).data.get(&#x27;riattivato&#x27;, false) != true;
+    }
     // entrato nella beta chiusa con un codice invito (gli admin sempre)
     function ammesso() {
       return admin() || (exists(/databases/$(database)/documents/utenti/$(io()))
@@ -131,6 +139,36 @@ service cloud.firestore {
       }
     }
 
+    // Persone segnalate: ognuno conta una volta sola; gli admin riattivano
+    match /segnalati/{uid} {
+      allow read: if accesso() &amp;&amp; (io() == uid || admin());
+      allow list: if admin();
+      allow create: if accesso() &amp;&amp; io() != uid
+        &amp;&amp; request.resource.data.keys().hasOnly([&#x27;conteggio&#x27;])
+        &amp;&amp; request.resource.data.conteggio == 1
+        &amp;&amp; !exists(/databases/$(database)/documents/segnalati/$(uid)/da/$(io()))
+        &amp;&amp; existsAfter(/databases/$(database)/documents/segnalati/$(uid)/da/$(io()));
+      allow update: if accesso() &amp;&amp; (
+        (io() != uid
+          &amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;conteggio&#x27;])
+          &amp;&amp; request.resource.data.conteggio == resource.data.get(&#x27;conteggio&#x27;, 0) + 1
+          &amp;&amp; !exists(/databases/$(database)/documents/segnalati/$(uid)/da/$(io()))
+          &amp;&amp; existsAfter(/databases/$(database)/documents/segnalati/$(uid)/da/$(io())))
+        || (admin() &amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;conteggio&#x27;, &#x27;riattivato&#x27;])));
+      match /da/{chi} {
+        allow create: if accesso() &amp;&amp; io() == chi &amp;&amp; chi != uid;
+        allow read: if admin();
+      }
+    }
+
+    // Crash dell&#x27;app: chiunque sia dentro li invia, solo gli admin li leggono
+    match /crash/{id} {
+      allow create: if accesso() &amp;&amp; request.resource.data.uid == io()
+        &amp;&amp; testo(request.resource.data.testo, 8000)
+        &amp;&amp; request.resource.data.keys().hasOnly([&#x27;testo&#x27;, &#x27;versione&#x27;, &#x27;telefono&#x27;, &#x27;android&#x27;, &#x27;leggero&#x27;, &#x27;uid&#x27;, &#x27;quando&#x27;]);
+      allow read, delete: if admin();
+    }
+
     // Foto profilo (separate, così la classifica resta leggera)
     match /foto_utenti/{uid} {
       allow read: if accesso();
@@ -149,7 +187,7 @@ service cloud.firestore {
         &amp;&amp; utenteDopo().get(&#x27;ultimaBici&#x27;, null) == request.time;
       allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; (
         (resource.data.proprietarioUid == io()
-          &amp;&amp; cambiati().hasOnly([&#x27;disponibile&#x27;, &#x27;rubata&#x27;, &#x27;prezzo&#x27;, &#x27;soloFidati&#x27;, &#x27;proprietarioNome&#x27;, &#x27;cauzione&#x27;, &#x27;lucchetto&#x27;, &#x27;casco&#x27;])
+          &amp;&amp; cambiati().hasOnly([&#x27;disponibile&#x27;, &#x27;rubata&#x27;, &#x27;prezzo&#x27;, &#x27;soloFidati&#x27;, &#x27;proprietarioNome&#x27;, &#x27;cauzione&#x27;, &#x27;lucchetto&#x27;, &#x27;casco&#x27;, &#x27;orari&#x27;, &#x27;latRitiro&#x27;, &#x27;lonRitiro&#x27;])
           &amp;&amp; (!(&#x27;prezzo&#x27; in cambiati()) || (request.resource.data.prezzo is number
               &amp;&amp; request.resource.data.prezzo &gt;= 2 &amp;&amp; request.resource.data.prezzo &lt;= 15))
           &amp;&amp; (!(&#x27;cauzione&#x27; in cambiati()) || (request.resource.data.cauzione is number
@@ -168,6 +206,9 @@ service cloud.firestore {
           &amp;&amp; d.tipo in [&#x27;CITY&#x27;, &#x27;MOUNTAIN&#x27;, &#x27;CORSA&#x27;, &#x27;EBIKE&#x27;, &#x27;MONOPATTINO&#x27;]
           &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) is number &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) &gt;= 30 &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) &lt;= 200
           &amp;&amp; d.get(&#x27;lucchetto&#x27;, false) == true
+          &amp;&amp; d.get(&#x27;orari&#x27;, []) is list &amp;&amp; d.get(&#x27;orari&#x27;, []).size() &lt;= 4
+          &amp;&amp; (d.get(&#x27;latRitiro&#x27;, null) == null || (d.latRitiro is number &amp;&amp; d.latRitiro &gt; 44.9 &amp;&amp; d.latRitiro &lt; 45.2))
+          &amp;&amp; (d.get(&#x27;lonRitiro&#x27;, null) == null || (d.lonRitiro is number &amp;&amp; d.lonRitiro &gt; 9.5 &amp;&amp; d.lonRitiro &lt; 9.9))
           &amp;&amp; (d.get(&#x27;prezzoMese&#x27;, null) == null || (d.prezzoMese is number &amp;&amp; d.prezzoMese &gt; 0 &amp;&amp; d.prezzoMese &lt;= 1000))
           &amp;&amp; fotoOk(d.get(&#x27;foto&#x27;, null));
       }
@@ -250,7 +291,11 @@ service cloud.firestore {
             || (ore == 2592000000 &amp;&amp; mese != null &amp;&amp; d.prezzo &gt;= mese)
           );
       }
-      allow read: if accesso() &amp;&amp; partecipante();
+      allow read: if accesso() &amp;&amp; (partecipante() || admin());
+      // gli admin decidono le liti sui danni (solo stato e importo)
+      allow update: if admin() &amp;&amp; resource.data.statoDanno == 3
+        &amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;statoDanno&#x27;, &#x27;importoDanno&#x27;])
+        &amp;&amp; request.resource.data.statoDanno == 4;
       allow create: if scrittore() &amp;&amp; request.resource.data.clienteUid == io()
         &amp;&amp; request.resource.data.fase == &#x27;IN_ATTESA&#x27;
         &amp;&amp; request.resource.data.codiceOk == false
@@ -276,6 +321,15 @@ service cloud.firestore {
         allow create: if scrittore() &amp;&amp; partecipanteDi(id)
           &amp;&amp; request.resource.data.daUid == io()
           &amp;&amp; testo(request.resource.data.testo, 1000);
+      }
+
+      // Foto del ritiro e della restituzione: la prova nelle liti
+      match /foto/{tipo} {
+        allow read: if accesso() &amp;&amp; (partecipanteDi(id) || admin());
+        allow create, update: if accesso() &amp;&amp; partecipanteDi(id) &amp;&amp; !bandito()
+          &amp;&amp; tipo in [&#x27;consegna&#x27;, &#x27;restituzione&#x27;]
+          &amp;&amp; request.resource.data.da == io()
+          &amp;&amp; fotoOk(request.resource.data.foto) &amp;&amp; request.resource.data.foto != null;
       }
 
       // Codice di consegna segreto: lo vede solo il proprietario
