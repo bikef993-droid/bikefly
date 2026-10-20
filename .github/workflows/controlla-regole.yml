@@ -1,0 +1,15 @@
+name: Controlla regole online
+on: workflow_dispatch
+jobs:
+  prova:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prova a iscriversi alla lista d'attesa
+        run: |
+          K=AIzaSyCMpYlrzCp6QgxvDzV7qqTDPJH4NFvkT9w
+          P=projects/bikefly-6078c/databases/(default)/documents
+          E="prova-regole-$(date +%s)@bikefly.test"
+          R=$(curl -s -X POST "https://firestore.googleapis.com/v1/projects/bikefly-6078c/databases/(default)/documents:commit?key=$K" -H "Content-Type: application/json" \
+            -d "{\"writes\":[{\"update\":{\"name\":\"$P/attesa/$E\",\"fields\":{\"email\":{\"stringValue\":\"$E\"}}},\"currentDocument\":{\"exists\":false},\"updateTransforms\":[{\"fieldPath\":\"quando\",\"setToServerValue\":\"REQUEST_TIME\"}]}]}")
+          echo "$R"
+          if echo "$R" | grep -q commitTime; then echo "::notice::REGOLE NUOVE ATTIVE ($E)"; else echo "::warning::REGOLE VECCHIE: $(echo $R | tr '\n' ' ' | cut -c1-200)"; fi
