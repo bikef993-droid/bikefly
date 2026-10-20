@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Qualcosa sta arrivando a Piacenza</title>
+<meta name="description" content="1 dicembre. Piacenza. Su due ruote. Entra tra i primi.">
+<meta property="og:title" content="Qualcosa sta arrivando a Piacenza">
+<meta property="og:description" content="1 dicembre. Su due ruote. Entra tra i primi.">
+<meta name="theme-color" content="#04091A">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='18' cy='32' r='12' fill='none' stroke='%2300D2A0' stroke-width='6'/%3E%3Ccircle cx='46' cy='32' r='12' fill='none' stroke='%233B8BFF' stroke-width='6'/%3E%3C/svg%3E">
+<style>
+@font-face{font-family:"Bricolage Grotesque";src:url(../font/Bricolage.ttf) format("truetype");font-weight:200 800;font-display:swap}
+@font-face{font-family:Figtree;src:url(../font/Figtree.ttf) format("truetype");font-weight:300 900;font-display:swap}
+:root{--buio:#04091A;--notte:#071226;--latte:#F3F6FB;--nebbia:#8496B3;--menta:#00D2A0;--cielo:#3B8BFF;--sole:#FFD23F}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--buio)}
+body{color:var(--latte);font-family:Figtree,system-ui,sans-serif;font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100svh}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--sole);outline-offset:3px;border-radius:8px}
+
+/* grana e alone */
+body::before{content:"";position:fixed;inset:-50%;background:radial-gradient(circle at 50% 38%,rgba(0,210,160,.10),transparent 32%),radial-gradient(circle at 62% 42%,rgba(59,139,255,.10),transparent 30%);pointer-events:none;animation:respira 9s ease-in-out infinite alternate}
+@keyframes respira{to{transform:scale(1.08) translateY(-1%)}}
+
+.muro{max-width:720px;margin:0 auto;padding:max(28px,env(safe-area-inset-top)) 16px 40px;position:relative;text-align:center}
+
+/* le due ruote: l'unico indizio visivo */
+.ruote{width:min(300px,72vw);margin:6vh auto 0;display:block;overflow:visible}
+.ruote .r{fill:none;stroke-width:7;stroke-linecap:round;transform-box:fill-box;transform-origin:center}
+.ruote .a{stroke:var(--menta);stroke-dasharray:150 30;animation:gira 7s linear infinite;filter:drop-shadow(0 0 10px rgba(0,210,160,.7))}
+.ruote .b{stroke:var(--cielo);stroke-dasharray:120 40;animation:gira 7s linear infinite;filter:drop-shadow(0 0 10px rgba(59,139,255,.7))}
+.ruote .raggi{stroke:rgba(243,246,251,.16);stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:gira 7s linear infinite}
+.ruote .terra{stroke:rgba(243,246,251,.10);stroke-width:2;stroke-dasharray:4 10;animation:scorre 1.4s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+@keyframes scorre{to{stroke-dashoffset:-28}}
+
+.dove{margin-top:4vh;font-size:13px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--nebbia)}
+.dove b{color:var(--menta);font-weight:800}
+h1{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-weight:800;letter-spacing:-.03em;line-height:.98;font-size:clamp(42px,11vw,84px);margin-top:14px;text-wrap:balance}
+h1 em{font-style:normal;background:linear-gradient(90deg,var(--menta),var(--cielo));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sotto{margin:16px auto 0;max-width:30ch;text-wrap:balance;color:var(--nebbia);font-size:clamp(17px,4.4vw,20px)}
+
+/* conto alla rovescia */
+.conto{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:34px auto 0;max-width:460px}
+.conto div{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:14px 4px 10px}
+.conto b{display:block;font-family:"Bricolage Grotesque",Figtree,sans-serif;font-weight:800;font-size:clamp(30px,9vw,46px);line-height:1;font-variant-numeric:tabular-nums}
+.conto span{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--nebbia)}
+
+/* iscrizione */
+form{margin:30px auto 0;max-width:460px;display:flex;gap:8px;flex-wrap:wrap}
+input{flex:1 1 220px;min-width:0;font:inherit;font-size:17px;color:var(--latte);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:15px 20px}
+input::placeholder{color:#6F82A0}
+input:focus{outline:none;border-color:var(--menta);box-shadow:0 0 0 4px rgba(0,210,160,.18)}
+button{flex:1 0 auto;font:inherit;font-weight:800;font-size:17px;border:0;border-radius:99px;padding:15px 24px;cursor:pointer;color:#04140F;background:linear-gradient(90deg,var(--menta),#3BE0B9);transition:transform .15s}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.6}
+.nota{font-size:13.5px;color:var(--nebbia);margin:12px auto 0;max-width:40ch}
+.esito{min-height:24px;margin-top:12px;font-weight:700}
+.esito.ok{color:var(--menta)}
+.esito.no{color:#FF8A8A}
+
+/* indizi */
+.indizi{margin:9vh auto 0;max-width:460px;display:grid;gap:10px;text-align:left}
+.indizi h2{font-size:13px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--nebbia);text-align:center;margin-bottom:6px}
+.indizio{display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);opacity:0;transform:translateY(16px);transition:opacity .7s,transform .7s}
+.indizio.visto{opacity:1;transform:none}
+.indizio i{font-style:normal;font-family:"Bricolage Grotesque",Figtree,sans-serif;font-weight:800;font-size:22px;color:var(--menta);width:28px;flex:none}
+.indizio:nth-child(3) i{color:var(--cielo)}
+.indizio:nth-child(4) i{color:var(--sole)}
+
+/* arrivato */
+.arrivato{display:none;margin:30px auto 0}
+.arrivato a{display:inline-block;font-weight:800;font-size:19px;text-decoration:none;padding:16px 28px;border-radius:99px;color:#04140F;background:linear-gradient(90deg,var(--menta),var(--cielo))}
+body.via .conto,body.via form,body.via .nota{display:none}
+body.via .arrivato{display:block}
+
+footer{margin-top:9vh;font-size:13px;color:#5E7090}
+footer a{color:var(--nebbia)}
+
+@media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}.indizio{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<main class="muro">
+  <svg class="ruote" viewBox="0 0 300 140" aria-hidden="true">
+    <line class="terra" x1="0" y1="132" x2="300" y2="132"/>
+    <g class="raggi"><line x1="80" y1="34" x2="80" y2="126"/><line x1="34" y1="80" x2="126" y2="80"/><line x1="47" y1="47" x2="113" y2="113"/><line x1="113" y1="47" x2="47" y2="113"/></g>
+    <g class="raggi"><line x1="220" y1="34" x2="220" y2="126"/><line x1="174" y1="80" x2="266" y2="80"/><line x1="187" y1="47" x2="253" y2="113"/><line x1="253" y1="47" x2="187" y2="113"/></g>
+    <circle class="r a" cx="80" cy="80" r="46"/>
+    <circle class="r b" cx="220" cy="80" r="46"/>
+  </svg>
+
+  <p class="dove"><b>Piacenza</b> · 01.12.2026</p>
+  <h1>Qualcosa sta <em>arrivando.</em></h1>
+  <p class="sotto">Su due ruote. E stavolta conviene anche a te.</p>
+
+  <div class="conto" role="timer" aria-live="off" aria-label="Tempo al lancio">
+    <div><b id="g">--</b><span>giorni</span></div>
+    <div><b id="o">--</b><span>ore</span></div>
+    <div><b id="m">--</b><span>min</span></div>
+    <div><b id="s">--</b><span>sec</span></div>
+  </div>
+
+  <form id="f" novalidate>
+    <label for="email" style="position:absolute;left:-9999px">La tua email</label>
+    <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="la-tua@email.it" required maxlength="100">
+    <button id="vai" type="submit">Entra tra i primi</button>
+  </form>
+  <p class="nota">I primi iscritti ricevono un codice invito il giorno del lancio. Una sola email, niente spam.</p>
+  <p class="esito" id="esito" role="status"></p>
+
+  <div class="arrivato"><a href="../">È arrivato. Scopri cos'è →</a></div>
+
+  <section class="indizi" aria-label="Indizi">
+    <h2>Tre indizi</h2>
+    <div class="indizio"><i>1</i><span>Probabilmente ce l'hai in cantina. Ferma.</span></div>
+    <div class="indizio"><i>2</i><span>Potrebbe pagarti la pizza del sabato.</span></div>
+    <div class="indizio"><i>3</i><span>È nato qui, a Piacenza.</span></div>
+  </section>
+
+  <footer>
+    Usiamo la tua email solo per avvisarti del lancio. Per cancellarla scrivi a <a href="mailto:bikef993@gmail.com">bikef993@gmail.com</a>.
+  </footer>
+</main>
+
+<script>
+// 1 dicembre 2026, mezzanotte a Piacenza (UTC+1 in inverno)
+const LANCIO = Date.UTC(2026, 10, 30, 23, 0, 0);
+const due = n => String(n).padStart(2, "0");
+function tic() {
+  const r = LANCIO - Date.now();
+  if (r <= 0) { document.body.classList.add("via"); return; }
+  const t = Math.floor(r / 1000);
+  g.textContent = due(Math.floor(t / 86400));
+  o.textContent = due(Math.floor(t % 86400 / 3600));
+  m.textContent = due(Math.floor(t % 3600 / 60));
+  s.textContent = due(t % 60);
+  setTimeout(tic, 1000 - Date.now() % 1000);
+}
+tic();
+
+// indizi che compaiono scorrendo
+const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach((e, i) => {
+  if (e.isIntersecting) { setTimeout(() => e.target.classList.add("visto"), i * 160); io.unobserve(e.target); }
+}), { threshold: .4 }) : null;
+document.querySelectorAll(".indizio").forEach(el => io ? io.observe(el) : el.classList.add("visto"));
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+const db = getFirestore(initializeApp({
+  apiKey: "AIzaSyCMpYlrzCp6QgxvDzV7qqTDPJH4NFvkT9w",
+  authDomain: "bikefly-6078c.firebaseapp.com",
+  projectId: "bikefly-6078c",
+  appId: "1:174756937342:web:9f382bd80727420577222f"
+}));
+const f = document.getElementById("f"), campo = document.getElementById("email"),
+      vai = document.getElementById("vai"), esito = document.getElementById("esito");
+const scrivi = (t, ok) => { esito.textContent = t; esito.className = "esito " + (ok ? "ok" : "no"); };
+let fatto = false;
+try { fatto = localStorage.getItem("attesa_ok") === "1"; } catch (e) {}
+if (fatto) scrivi("✓ Sei già in lista. Ci vediamo il 1 dicembre.", true);
+
+f.addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const email = campo.value.trim().toLowerCase();
+  if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(email)) { scrivi("Controlla l'email: sembra sbagliata.", false); campo.focus(); return; }
+  vai.disabled = true; vai.textContent = "…";
+  try {
+    await setDoc(doc(db, "attesa", email), { email, quando: serverTimestamp() });
+    scrivi("✓ Ci sei. Il 1 dicembre ti arriva il codice.", true);
+  } catch (e) {
+    // se l'email è già iscritta le regole bloccano la seconda scrittura: va bene così
+    if (String(e.code || "").includes("permission")) scrivi("✓ Ci sei già. Il 1 dicembre ti arriva il codice.", true);
+    else { scrivi("Connessione assente: riprova tra poco.", false); vai.disabled = false; vai.textContent = "Entra tra i primi"; return; }
+  }
+  try { localStorage.setItem("attesa_ok", "1"); } catch (e) {}
+  campo.value = ""; vai.textContent = "Fatto ✓";
+});
+</script>
+</body>
+</html>
