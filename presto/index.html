@@ -149,7 +149,7 @@ document.querySelectorAll(".indizio").forEach(el => io ? io.observe(el) : el.cla
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 const db = getFirestore(initializeApp({
   apiKey: "AIzaSyCMpYlrzCp6QgxvDzV7qqTDPJH4NFvkT9w",
   authDomain: "bikefly-6078c.firebaseapp.com",
@@ -159,6 +159,14 @@ const db = getFirestore(initializeApp({
 const f = document.getElementById("f"), campo = document.getElementById("email"),
       vai = document.getElementById("vai"), esito = document.getElementById("esito");
 const scrivi = (t, ok) => { esito.textContent = t; esito.className = "esito " + (ok ? "ok" : "no"); };
+// contatore anonimo: una visita per telefono al giorno, e da dove arriva (?da=wa WhatsApp, ?da=v volantino)
+(() => {
+  const oggi = new Date().toISOString().slice(0, 10);
+  try { if (localStorage.getItem("visto_presto") === oggi) return; localStorage.setItem("visto_presto", oggi); } catch (e) {}
+  const da = new URLSearchParams(location.search).get("da");
+  const fonte = da === "wa" ? "whatsapp" : da === "v" ? "volantino" : "altro";
+  setDoc(doc(db, "statistiche", "presto"), { totale: increment(1), [fonte]: increment(1) }, { merge: true }).catch(() => {});
+})();
 let fatto = false;
 try { fatto = localStorage.getItem("attesa_ok") === "1"; } catch (e) {}
 if (fatto) scrivi("✓ Sei già in lista. Ci vediamo il 1 dicembre.", true);
