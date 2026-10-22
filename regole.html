@@ -104,7 +104,7 @@ service cloud.firestore {
   match /recensioni/{id} {
    allow read: if accesso();
    allow create: if scrittore() &amp;&amp; recensioneOnesta(id);
-   allow delete: if admin();
+   allow delete: if admin() || (accesso() &amp;&amp; resource.data.da == io());
    function recensioneOnesta(id) {
     let d = request.resource.data;
     let n = get(/databases/$(database)/documents/noleggi/$(d.noleggio)).data;
@@ -175,6 +175,9 @@ service cloud.firestore {
    allow update: if soloBadge() &amp;&amp; (admin() || (pionierePermesso() &amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;pioniere&#x27;])));
    allow delete: if admin();
   }
+  match /codiciPionieri/{email} {
+   allow read, write: if admin();
+  }
   match /attesa/{email} {
    allow create: if email.size() &lt;= 100
     &amp;&amp; email.matches(&#x27;^[a-z0-9._%+-]+@[a-z0-9.-]+[.][a-z]{2,}$&#x27;)
@@ -203,10 +206,16 @@ service cloud.firestore {
        &amp;&amp; request.resource.data.prezzo &gt;= 2 &amp;&amp; request.resource.data.prezzo &lt;= 15))
      &amp;&amp; (!(&#x27;cauzione&#x27; in cambiati()) || (request.resource.data.cauzione is number
        &amp;&amp; request.resource.data.cauzione &gt;= 30 &amp;&amp; request.resource.data.cauzione &lt;= 200))
-     &amp;&amp; testo(request.resource.data.proprietarioNome, 30))
+     &amp;&amp; testo(request.resource.data.proprietarioNome, 30)
+     &amp;&amp; posizioneOk(request.resource.data))
     || votoOnesto()
    );
    allow delete: if (accesso() &amp;&amp; resource.data.proprietarioUid == io()) || admin();
+   function posizioneOk(d) {
+    return (d.get(&#x27;latRitiro&#x27;, null) == null || (d.latRitiro is number &amp;&amp; d.latRitiro &gt; 44.9 &amp;&amp; d.latRitiro &lt; 45.2))
+     &amp;&amp; (d.get(&#x27;lonRitiro&#x27;, null) == null || (d.lonRitiro is number &amp;&amp; d.lonRitiro &gt; 9.38 &amp;&amp; d.lonRitiro &lt; 9.9))
+     &amp;&amp; d.get(&#x27;orari&#x27;, []) is list &amp;&amp; d.get(&#x27;orari&#x27;, []).size() &lt;= 4;
+   }
    function biciValida() {
     let d = request.resource.data;
     return testo(d.nome, 40) &amp;&amp; d.nome.size() &gt; 0
@@ -217,8 +226,7 @@ service cloud.firestore {
      &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) is number &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) &gt;= 30 &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) &lt;= 200
      &amp;&amp; d.get(&#x27;lucchetto&#x27;, false) == true
      &amp;&amp; d.get(&#x27;orari&#x27;, []) is list &amp;&amp; d.get(&#x27;orari&#x27;, []).size() &lt;= 4
-     &amp;&amp; (d.get(&#x27;latRitiro&#x27;, null) == null || (d.latRitiro is number &amp;&amp; d.latRitiro &gt; 44.9 &amp;&amp; d.latRitiro &lt; 45.2))
-     &amp;&amp; (d.get(&#x27;lonRitiro&#x27;, null) == null || (d.lonRitiro is number &amp;&amp; d.lonRitiro &gt; 9.5 &amp;&amp; d.lonRitiro &lt; 9.9))
+     &amp;&amp; posizioneOk(d)
      &amp;&amp; (d.get(&#x27;prezzoMese&#x27;, null) == null || (d.prezzoMese is number &amp;&amp; d.prezzoMese &gt; 0 &amp;&amp; d.prezzoMese &lt;= 1000))
      &amp;&amp; fotoOk(d.get(&#x27;foto&#x27;, null));
    }
@@ -313,6 +321,7 @@ service cloud.firestore {
     allow create: if scrittore() &amp;&amp; partecipanteDi(id)
      &amp;&amp; request.resource.data.daUid == io()
      &amp;&amp; testo(request.resource.data.testo, 1000);
+    allow delete: if accesso() &amp;&amp; resource.data.daUid == io();
    }
    match /foto/{tipo} {
     allow read: if accesso() &amp;&amp; (partecipanteDi(id) || admin());

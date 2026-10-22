@@ -290,8 +290,11 @@ const KM_LON = 111.32 * Math.cos(CENTRO_LAT * Math.PI / 180);
 const ZONE = [
   ["Centro storico", 45.0526, 9.6934], ["Stazione", 45.0459, 9.7058], ["Lungo Po", 45.0582, 9.6905],
   ["Infrangibile", 45.0400, 9.7060], ["Farnesiana", 45.0360, 9.7220], ["Barriera Genova", 45.0440, 9.6870],
-  ["Besurica", 45.0440, 9.6550], ["Galleana", 45.0350, 9.6760]
+  ["Besurica", 45.0440, 9.6550], ["Galleana", 45.0350, 9.6760],
+  ["San Nicolò", 45.0560, 9.6110], ["Rottofreno", 45.0570, 9.5490], ["Sarmato", 45.0590, 9.4920], ["Castel San Giovanni", 45.0600, 9.4340]
 ];
+// da Castel San Giovanni a Piacenza e dintorni (gli stessi confini delle regole Firebase)
+const CONFINI = [[44.97, 9.39], [45.12, 9.82]];
 const TIPI = { CITY: ["City", "🚲"], MOUNTAIN: ["Mountain", "🚵"], CORSA: ["Corsa", "🚴"], EBIKE: ["E-bike", "⚡"], MONOPATTINO: ["Monopattino", "🛴"] };
 const MENSILE_ATTIVO = false, PAGAMENTI_ATTIVI = false;
 const ORA = 3600000;
@@ -424,7 +427,7 @@ let mappa, livelloBici, segnoIo;
 function preparaMappa() {
   if (mappa) return;
   // solo Piacenza e dintorni: niente Milano o Cremona
-  const confini = L.latLngBounds([44.98, 9.58], [45.11, 9.81]);
+  const confini = L.latLngBounds(CONFINI);
   mappa = L.map("mappa", { zoomControl: false, attributionControl: true, minZoom: 12, maxZoom: 19, maxBounds: confini, maxBoundsViscosity: 1 }).setView([CENTRO_LAT, CENTRO_LON], 14);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, minZoom: 12, bounds: confini, attribution: "© OpenStreetMap" }).addTo(mappa);
   livelloBici = L.layerGroup().addTo(mappa);
@@ -446,7 +449,7 @@ $("btnGps").onclick = () => {
   navigator.geolocation.getCurrentPosition(p => {
     const ll = [p.coords.latitude, p.coords.longitude];
     if (segnoIo) segnoIo.setLatLng(ll); else segnoIo = L.marker(ll, { icon: L.divIcon({ className: "", html: '<div class="io-mk"></div>', iconSize: [18, 18] }) }).addTo(mappa);
-    if (!mappa.options.maxBounds.contains(L.latLng(ll))) return avvisa("Sei fuori Piacenza: Bikefly per ora è solo in città 🚲");
+    if (!mappa.options.maxBounds.contains(L.latLng(ll))) return avvisa("Sei fuori zona: Bikefly per ora è tra Piacenza e Castel San Giovanni 🚲");
     mappa.flyTo(ll, 16);
   }, () => avvisa("Posizione non disponibile: controlla i permessi"));
 };
@@ -734,14 +737,14 @@ $("biciOrari").onclick = ev => {
 disegnaOrari();
 function preparaMappaRitiro() {
   if (mappaRitiro) { mappaRitiro.invalidateSize(); return; }
-  const confini = L.latLngBounds([44.98, 9.58], [45.11, 9.81]);
+  const confini = L.latLngBounds(CONFINI);
   const z = ZONE.find(z => z[0] === $("biciZona").value) || ZONE[0];
   mappaRitiro = L.map("mappaRitiro", { zoomControl: false, minZoom: 12, maxZoom: 19, maxBounds: confini, maxBoundsViscosity: 1 }).setView([z[1], z[2]], 15);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, minZoom: 12, attribution: "© OpenStreetMap" }).addTo(mappaRitiro);
   mappaRitiro.on("click", e => scegliRitiro(e.latlng.lat, e.latlng.lng));
 }
 function scegliRitiro(lat, lon) {
-  if (lat <= 44.9 || lat >= 45.2 || lon <= 9.5 || lon >= 9.9) return avvisa("Scegli un punto dentro Piacenza");
+  if (lat <= 44.9 || lat >= 45.2 || lon <= 9.38 || lon >= 9.9) return avvisa("Scegli un punto nella zona di Piacenza");
   puntoRitiro = [lat, lon];
   const icona = L.divIcon({ className: "", html: '<span class="ritiro-mk">📍</span>', iconSize: [0, 0] });
   if (segnoRitiro) segnoRitiro.setLatLng(puntoRitiro); else segnoRitiro = L.marker(puntoRitiro, { icon: icona }).addTo(mappaRitiro);
@@ -812,7 +815,7 @@ function disegnaProfilo() {
     <div class="card"><div class="riga"><div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--menta),var(--cielo));display:grid;place-items:center;font-family:Bricolage;font-size:24px;font-weight:800;overflow:hidden">${utente.photoURL ? `<img src="${esc(utente.photoURL)}" alt="" style="width:100%;height:100%;object-fit:cover" referrerpolicy="no-referrer">` : esc((utente.displayName || "?")[0].toUpperCase())}</div>
       <div><h3>${esc(utente.displayName || "Senza nome")}</h3>${rigaBadge(mieiBadge)}<p class="nota">${esc(utente.email || "")}</p><p class="nota">${verificato() ? "✅ Email verificata" : "📩 Email da verificare"}</p></div></div></div>
     ${profiloMio.mioCodice ? `<div class="card" style="background:linear-gradient(135deg,#7C5CFF,#3B8BFF)"><h3>🎟️ I tuoi inviti</h3><p style="font-size:14px">Puoi invitare ancora ${Math.max(0, invito.max - invito.usi)} amici di fiducia.</p><div class="codice" id="mioCodice">${esc(profiloMio.mioCodice)}</div><button class="btn bianco" id="pfInvita">Manda l'invito</button><p style="font-size:12px;opacity:.85">Usati ${invito.usi} su ${invito.max}</p></div>` : ""}
-    ${sonoAdmin ? `<div class="card"><h3>🛡️ Admin</h3><button class="btn vetro piccolo" id="pfCodice">Crea codice da 20 inviti</button><div id="pfCodiceNuovo" class="codice nascosto"></div></div>` : ""}
+    ${sonoAdmin ? `<div class="card"><h3>🛡️ Admin</h3><button class="btn vetro piccolo" id="pfCodice">Crea codice da 20 inviti</button><div id="pfCodiceNuovo" class="codice nascosto"></div><button class="btn primo piccolo" id="pfPionieri">🎟️ Codici per i Pionieri</button><p class="nota">Crea un codice invito per ogni email della lista d'attesa e prepara le email da mandare.</p></div>` : ""}
     <div class="card"><h3>Le tue bici</h3>${mie.length ? mie.map(b => `<div class="riga tra"><span>${TIPI[b.tipo]?.[1] || "🚲"} ${esc(b.nome)} · ${euro(b.prezzo)}</span><button class="btn vetro piccolo" data-disp="${b.id}">${b.disponibile !== false ? "Disponibile" : "Non disponibile"}</button></div>`).join("") : `<p class="nota">Non hai ancora pubblicato bici.</p>`}</div>
     <div class="card"><h3>Installa Bikefly</h3><p class="nota">Su iPhone: tocca <b>Condividi</b> ↑ e poi <b>"Aggiungi alla schermata Home"</b>. Su Android puoi scaricare <a href="../bikefly.apk" style="color:var(--menta);font-weight:700">l'app completa</a>, con Fly, il social e tutto il resto.</p></div>
     <button class="btn vetro" id="pfEsci">Esci</button>`;
@@ -826,6 +829,7 @@ function disegnaProfilo() {
     try { await setDoc(doc(db, "inviti", c), { proprietario: utente.uid, usi: 0, max: 20, creato: serverTimestamp() }); const el = $("pfCodiceNuovo"); el.textContent = c; el.classList.remove("nascosto"); }
     catch (e) { avvisa("Codice non creato"); }
   });
+  $("pfPionieri") && ($("pfPionieri").onclick = codiciPionieri);
   $("pfRimanda") && ($("pfRimanda").onclick = () => sendEmailVerification(utente).then(() => avvisa("Mail inviata 📩")).catch(() => avvisa("Aspetta qualche minuto prima di chiederne un'altra")));
   $("pfVerificato") && ($("pfVerificato").onclick = async () => { await reload(utente); await utente.getIdToken(true); utente = auth.currentUser; avvisa(verificato() ? "Email verificata! ✅" : "Non risulta ancora: apri il link nella mail"); disegnaProfilo(); });
   document.querySelectorAll("[data-disp]").forEach(el => el.onclick = async () => {
@@ -838,6 +842,34 @@ function disegnaProfilo() {
 const BADGE = [["fondatore", "🏅 Fondatore"], ["pioniere", "🚀 Pioniere"], ["ambasciatore", "🎓 Ambasciatore"]];
 let mieiBadge = {};
 const rigaBadge = (b, centro) => { const l = BADGE.filter(x => b?.[x[0]] === true); return l.length ? `<div class="badge" style="${centro ? "justify-content:center;margin-top:6px" : "margin-top:6px"}">${l.map(x => `<span>${x[1]}</span>`).join("")}</div>` : ""; };
+
+// ---------------- codici invito per i Pionieri (lancio del 1 dicembre) ----------------
+const testoInvitoPioniere = c => `Ciao! 🚀\n\nEri tra i primi a iscriverti: sei un PIONIERE di Bikefly, l'app per noleggiare e prestare bici a Piacenza.\n\nIl tuo codice invito personale: ${c}\n\nAndroid: scarica l'app da https://bikef993-droid.github.io/bikefly/bikefly.apk\niPhone: apri https://bikef993-droid.github.io/bikefly/app/\n\nEntra con QUESTA email e sul profilo ti comparirà il badge 🚀 Pioniere.\n\nConviene a tutti.\nIl team Bikefly`;
+async function codiciPionieri() {
+  apriFoglio(`<p class="nota" style="text-align:center;padding:30px">Preparo i codici…</p>`);
+  try {
+    const [lista, fatti] = await Promise.all([getDocs(collection(db, "attesa")), getDocs(collection(db, "codiciPionieri"))]);
+    const codici = Object.fromEntries(fatti.docs.map(d => [d.id, d.data().codice]));
+    const email = lista.docs.map(d => d.id).filter(e => !e.endsWith(".test")).sort();
+    for (const e of email) {
+      if (codici[e]) continue;
+      const c = nuovoCodice();
+      const lotto = writeBatch(db);
+      lotto.set(doc(db, "inviti", c), { proprietario: utente.uid, usi: 0, max: 1, creato: serverTimestamp() });
+      lotto.set(doc(db, "codiciPionieri", e), { codice: c });
+      await lotto.commit();
+      codici[e] = c;
+    }
+    const oggetto = encodeURIComponent("🚀 Il tuo codice da Pioniere di Bikefly");
+    apriFoglio(`<h2 style="margin-bottom:6px">🎟️ Pionieri: ${email.length}</h2>
+      <p class="nota" style="margin-bottom:12px">Ogni codice vale per una persona. Tocca ✉️ per aprire l'email già scritta, poi premi Invia.</p>
+      ${email.map(e => `<div class="riga tra" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="font-size:13px;word-break:break-all">${esc(e)}<br><b>${esc(codici[e])}</b></span><a class="btn vetro piccolo" href="mailto:${encodeURIComponent(e)}?subject=${oggetto}&body=${encodeURIComponent(testoInvitoPioniere(codici[e]))}">✉️</a></div>`).join("") || `<p class="nota">La lista d'attesa è vuota.</p>`}
+      <button class="btn vetro" id="copiaPionieri" style="margin-top:14px">📋 Copia la lista</button>
+      <button class="link" id="chiudiPionieri" style="color:var(--nebbia)">Chiudi</button>`);
+    $("chiudiPionieri").onclick = chiudiFoglio;
+    $("copiaPionieri").onclick = () => navigator.clipboard.writeText(email.map(e => e + " " + codici[e]).join("\n")).then(() => avvisa("Lista copiata 📋")).catch(() => avvisa("Copia non riuscita"));
+  } catch (e) { apriFoglio(`<p class="nota" style="text-align:center;padding:30px">Non riuscito: ${esc(e.code || "riprova")}</p>`); }
+}
 
 // ---------------- fiducia: inviti, recensioni, profili ----------------
 let profiloMio = { caricato: false }, sonoAdmin = false, invito = { usi: 0, max: 3 }, mieRecensioni = [], recensiti = new Set(), ascoltoInvito = null;
