@@ -60,28 +60,52 @@ form .btn{flex:1 0 auto;width:auto;margin-top:0;padding:0 22px}
 .esito.ok{color:var(--menta)}.esito.no{color:#FF8A8A}
 footer{margin-top:40px;font-size:12.5px;color:#5E7090;text-align:center}
 footer a{color:var(--nebbia)}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ingresso: il titolo sale parola per parola, poi compare il resto */
+.parola{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.08em}
+.parola>span{display:inline-block}
+.arrivo .parola>span{animation:sale .75s cubic-bezier(.2,.8,.2,1) both}
+.arrivo .parola:nth-child(2)>span{animation-delay:.08s}.arrivo .parola:nth-child(3)>span{animation-delay:.16s}.arrivo .parola:nth-child(4)>span{animation-delay:.24s}.arrivo .parola:nth-child(5)>span{animation-delay:.32s}.arrivo .parola:nth-child(6)>span{animation-delay:.42s}.arrivo .parola:nth-child(7)>span{animation-delay:.52s}
+@keyframes sale{from{transform:translateY(105%)}to{transform:none}}
+.arrivo .dopo{animation:appare .6s ease-out .75s both}
+@keyframes appare{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* la bici scelta fa un saltello */
+.scelte button.si span{animation:salto .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes salto{40%{transform:translateY(-6px) rotate(-8deg) scale(1.15)}}
+
+/* ruote nel risultato: girano più veloci quando guadagni di più */
+.ruotine{display:block;width:120px;height:44px;margin:0 auto 6px;overflow:visible}
+.ruotine circle{fill:none;stroke-width:4;stroke-linecap:round}
+.ruotine .a{stroke:var(--menta);stroke-dasharray:44 10}
+.ruotine .b{stroke:var(--cielo);stroke-dasharray:36 14}
+.ruotine line{stroke:rgba(243,246,251,.22);stroke-width:1}
+.risultato.brilla{animation:brilla .7s ease-out}
+@keyframes brilla{30%{box-shadow:0 0 0 1px rgba(0,210,160,.5),0 0 48px rgba(0,210,160,.28)}}
+.scintilla{position:fixed;width:8px;height:8px;border-radius:50%;pointer-events:none;z-index:9;animation:vola .9s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes vola{to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <main class="muro">
-  <p class="dove"><b>Piacenza</b> · 01.12.2026</p>
-  <h1>Quanto vale la bici che hai <em>in cantina?</em></h1>
-  <p class="sotto">Ferma, impolverata, dimenticata. Scopri in 10 secondi quanto potrebbe farti guadagnare ogni mese.</p>
+  <p class="dove dopo"><b>Piacenza</b> · 01.12.2026</p>
+  <h1><span class="parola"><span>Quanto</span></span> <span class="parola"><span>vale</span></span> <span class="parola"><span>la</span></span> <span class="parola"><span>bici</span></span> <span class="parola"><span>che</span></span> <span class="parola"><span>hai</span></span> <span class="parola"><span><em>in cantina?</em></span></span></h1>
+  <p class="sotto dopo">Ferma, impolverata, dimenticata. Scopri in 10 secondi quanto potrebbe farti guadagnare ogni mese.</p>
 
-  <section class="passo" aria-labelledby="t1">
+  <section class="passo dopo" aria-labelledby="t1">
     <h2 id="t1">1 · Che bici hai?</h2>
     <div class="scelte" id="tipi" role="radiogroup" aria-labelledby="t1"></div>
   </section>
 
-  <section class="passo" aria-labelledby="t2">
+  <section class="passo dopo" aria-labelledby="t2">
     <h2 id="t2">2 · Quanto la presteresti?</h2>
     <div class="riga"><span>Volte a settimana</span><b id="volteTesto">2</b></div>
     <input type="range" id="volte" min="1" max="7" step="1" value="2" aria-labelledby="t2">
     <p class="nota">Ogni volta per qualche ora, solo quando decidi tu.</p>
   </section>
 
-  <section class="risultato" aria-live="polite">
+  <section class="risultato dopo" id="risultato" aria-live="polite">
+    <svg class="ruotine" viewBox="0 0 120 44" aria-hidden="true"><g id="rA"><line x1="30" y1="4" x2="30" y2="40"/><line x1="12" y1="22" x2="48" y2="22"/><circle class="a" cx="30" cy="22" r="18"/></g><g id="rB"><line x1="90" y1="4" x2="90" y2="40"/><line x1="72" y1="22" x2="108" y2="22"/><circle class="b" cx="90" cy="22" r="18"/></g></svg>
     <p>La tua bici potrebbe farti guadagnare</p>
     <div class="soldi"><span id="mese">—</span><small> € al mese</small></div>
     <div class="anno">cioè <b id="anno">—</b> € in un anno</div>
@@ -113,6 +137,46 @@ const TIPI = [
   { id: "ebike", nome: "E-bike", emoji: "⚡", prezzo: 12, nota: "la più richiesta" }
 ];
 const COMMISSIONE = 0.86, SETTIMANE = 4.33;
+const calmo = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (!calmo) document.body.classList.add("arrivo");
+let mostrato = 0, velocita = 0, voluta = 0;
+// il numero "conta" fino al nuovo valore
+function contaFino(v) {
+  if (calmo) { mostrato = v; $("mese").textContent = euro(v); $("anno").textContent = euro(v * 12); return; }
+  const da = mostrato, t0 = performance.now(), dur = 550;
+  (function passo(ora) {
+    const p = Math.min(1, (ora - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    mostrato = da + (v - da) * e;
+    $("mese").textContent = euro(mostrato); $("anno").textContent = euro(mostrato * 12);
+    if (p < 1) requestAnimationFrame(passo);
+  })(t0);
+  if (!window.primoCalcolo) { window.primoCalcolo = true; return; }   // al caricamento niente bagliore
+  const r = $("risultato"); r.classList.remove("brilla"); void r.offsetWidth; r.classList.add("brilla");
+}
+// ruotine: più guadagni, più girano
+(() => {
+  let ang = 0, prima = performance.now();
+  function gira(ora) {
+    const dt = ora - prima; prima = ora;
+    velocita += (voluta - velocita) * 0.06;
+    ang += velocita * dt;
+    $("rA").setAttribute("transform", `rotate(${ang} 30 22)`);
+    $("rB").setAttribute("transform", `rotate(${ang} 90 22)`);
+    requestAnimationFrame(gira);
+  }
+  if (!calmo) requestAnimationFrame(gira);
+})();
+function scintille(btn) {
+  if (calmo) return;
+  const r = btn.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let i = 0; i < 18; i++) {
+    const d = document.createElement("i"), a = Math.PI * 2 * i / 18, v = 60 + Math.random() * 70;
+    d.className = "scintilla";
+    d.style.cssText = `left:${cx}px;top:${cy}px;background:${i % 2 ? "#00D2A0" : "#3B8BFF"};--dx:${Math.cos(a) * v}px;--dy:${Math.sin(a) * v}px`;
+    document.body.appendChild(d); setTimeout(() => d.remove(), 1000);
+  }
+}
+window.scintille = scintille;
 let scelto = TIPI[0];
 const $ = id => document.getElementById(id);
 const euro = n => Math.round(n).toLocaleString("it-IT");
@@ -125,8 +189,8 @@ function calcola() {
   $("volteTesto").textContent = volte;
   const netto = scelto.prezzo - COMMISSIONE;
   const mese = netto * volte * SETTIMANE;
-  $("mese").textContent = euro(mese);
-  $("anno").textContent = euro(mese * 12);
+  contaFino(mese);
+  voluta = 0.05 + mese / 400;   // gradi al millisecondo
   $("dettaglio").textContent = `${scelto.nome} a ${scelto.prezzo} € per 5 ore, prestata ${volte} ${volte === 1 ? "volta" : "volte"} a settimana. La cauzione la decidi tu e torna sempre indietro.`;
   return Math.round(mese);
 }
@@ -159,6 +223,7 @@ $("condividi").onclick = async () => {
   try {
     const blob = await immagine(mese);
     const file = new File([blob], "la-mia-bici.png", { type: "image/png" });
+    scintille($("condividi"));
     if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: testo }); return; }
     if (navigator.share) { await navigator.share({ text: testo }); return; }
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "la-mia-bici.png"; a.click();
@@ -192,6 +257,7 @@ f.addEventListener("submit", async ev => {
   try {
     await setDoc(doc(db, "attesa", email), { email, quando: serverTimestamp() });
     scrivi("✓ Ci sei. Il 1 dicembre ti arriva il codice.", true);
+    window.scintille?.(vai);
   } catch (e) {
     if (String(e.code || "").includes("permission")) scrivi("✓ Ci sei già. Il 1 dicembre ti arriva il codice.", true);
     else { scrivi("Connessione assente: riprova tra poco.", false); vai.disabled = false; vai.textContent = "Avvisami"; return; }
