@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quanto vale la tua bici in cantina?</title>
+<meta name="description" content="Hai una bici ferma? Scopri quanto potresti guadagnarci ogni mese a Piacenza.">
+<meta property="og:title" content="Quanto vale la bici che hai in cantina?">
+<meta property="og:description" content="Scoprilo in 10 secondi. Piacenza, 1 dicembre.">
+<meta name="theme-color" content="#04091A">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='18' cy='32' r='12' fill='none' stroke='%2300D2A0' stroke-width='6'/%3E%3Ccircle cx='46' cy='32' r='12' fill='none' stroke='%233B8BFF' stroke-width='6'/%3E%3C/svg%3E">
+<style>
+@font-face{font-family:"Bricolage Grotesque";src:url(../font/Bricolage.ttf) format("truetype");font-weight:200 800;font-display:swap}
+@font-face{font-family:Figtree;src:url(../font/Figtree.ttf) format("truetype");font-weight:300 900;font-display:swap}
+:root{--buio:#04091A;--latte:#F3F6FB;--nebbia:#8496B3;--menta:#00D2A0;--cielo:#3B8BFF;--sole:#FFD23F}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--buio)}
+body{color:var(--latte);font-family:Figtree,system-ui,sans-serif;font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100svh}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--sole);outline-offset:3px;border-radius:8px}
+body::before{content:"";position:fixed;inset:-50%;background:radial-gradient(circle at 40% 30%,rgba(0,210,160,.10),transparent 30%),radial-gradient(circle at 62% 40%,rgba(59,139,255,.10),transparent 30%);pointer-events:none}
+.muro{max-width:560px;margin:0 auto;padding:max(28px,env(safe-area-inset-top)) 16px 48px;position:relative}
+.dove{font-size:13px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--nebbia);text-align:center}
+.dove b{color:var(--menta)}
+h1{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-weight:800;letter-spacing:-.03em;line-height:1;font-size:clamp(38px,10vw,58px);margin-top:12px;text-align:center;text-wrap:balance}
+h1 em{font-style:normal;background:linear-gradient(90deg,var(--menta),var(--cielo));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sotto{text-align:center;color:var(--nebbia);margin-top:12px;text-wrap:balance}
+.passo{margin-top:30px}
+.passo h2{font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--nebbia);margin-bottom:10px}
+.scelte{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.scelte button{display:flex;align-items:center;gap:10px;padding:14px;border-radius:16px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.10);font-weight:700;text-align:left;cursor:pointer;transition:transform .15s}
+.scelte button span{font-size:26px}
+.scelte button small{display:block;font-weight:500;font-size:12.5px;color:var(--nebbia)}
+.scelte button.si{border-color:var(--menta);background:rgba(0,210,160,.12)}
+.scelte button:active{transform:scale(.97)}
+.riga{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.riga b{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-size:22px}
+input[type=range]{width:100%;accent-color:#00D2A0;height:28px}
+.nota{font-size:13px;color:var(--nebbia);margin-top:6px}
+.risultato{margin-top:32px;border-radius:24px;padding:24px 20px;text-align:center;background:linear-gradient(160deg,rgba(0,210,160,.16),rgba(59,139,255,.16));border:1px solid rgba(255,255,255,.12)}
+.risultato p{color:var(--nebbia);font-weight:600}
+.soldi{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-weight:800;font-size:clamp(64px,20vw,96px);line-height:1;margin:8px 0 4px;letter-spacing:-.03em}
+.soldi small{font-size:.35em;color:var(--nebbia);font-weight:700;letter-spacing:0}
+.anno{font-weight:700}
+.anno b{color:var(--menta)}
+.dettaglio{font-size:13px;color:var(--nebbia);margin-top:12px;line-height:1.45}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;border:0;border-radius:99px;font-weight:800;font-size:17px;cursor:pointer;margin-top:14px;transition:transform .15s}
+.btn:active{transform:scale(.97)}
+.btn.primo{color:#04140F;background:linear-gradient(90deg,var(--menta),#3BE0B9)}
+.btn.vetro{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:var(--latte)}
+.chiamata{margin-top:30px;text-align:center}
+.chiamata h3{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-size:26px;letter-spacing:-.02em;line-height:1.1}
+.chiamata p{color:var(--nebbia);margin-top:8px}
+form{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+form input{flex:1 1 220px;min-width:0;font-size:17px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:15px 20px}
+form input:focus{outline:none;border-color:var(--menta)}
+form .btn{flex:1 0 auto;width:auto;margin-top:0;padding:0 22px}
+.esito{min-height:24px;margin-top:10px;font-weight:700}
+.esito.ok{color:var(--menta)}.esito.no{color:#FF8A8A}
+footer{margin-top:40px;font-size:12.5px;color:#5E7090;text-align:center}
+footer a{color:var(--nebbia)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main class="muro">
+  <p class="dove"><b>Piacenza</b> · 01.12.2026</p>
+  <h1>Quanto vale la bici che hai <em>in cantina?</em></h1>
+  <p class="sotto">Ferma, impolverata, dimenticata. Scopri in 10 secondi quanto potrebbe farti guadagnare ogni mese.</p>
+
+  <section class="passo" aria-labelledby="t1">
+    <h2 id="t1">1 · Che bici hai?</h2>
+    <div class="scelte" id="tipi" role="radiogroup" aria-labelledby="t1"></div>
+  </section>
+
+  <section class="passo" aria-labelledby="t2">
+    <h2 id="t2">2 · Quanto la presteresti?</h2>
+    <div class="riga"><span>Volte a settimana</span><b id="volteTesto">2</b></div>
+    <input type="range" id="volte" min="1" max="7" step="1" value="2" aria-labelledby="t2">
+    <p class="nota">Ogni volta per qualche ora, solo quando decidi tu.</p>
+  </section>
+
+  <section class="risultato" aria-live="polite">
+    <p>La tua bici potrebbe farti guadagnare</p>
+    <div class="soldi"><span id="mese">—</span><small> € al mese</small></div>
+    <div class="anno">cioè <b id="anno">—</b> € in un anno</div>
+    <p class="dettaglio" id="dettaglio"></p>
+    <button class="btn primo" id="condividi">📲 Condividi il risultato</button>
+  </section>
+
+  <section class="chiamata">
+    <h3>Il 1 dicembre a Piacenza si potrà fare davvero.</h3>
+    <p>Lascia l'email: chi si iscrive prima diventa <b style="color:var(--latte)">🚀 Pioniere</b> e riceve il codice invito per primo.</p>
+    <form id="f" novalidate>
+      <label for="email" style="position:absolute;left:-9999px">La tua email</label>
+      <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="la-tua@email.it" maxlength="100">
+      <button class="btn primo" id="vai" type="submit">Avvisami</button>
+    </form>
+    <p class="esito" id="esito" role="status"></p>
+    <a class="btn vetro" href="../presto/" style="text-decoration:none">👀 Cosa arriva il 1 dicembre?</a>
+  </section>
+
+  <footer>Stima indicativa: dipende da quante persone chiedono la tua bici nella tua zona. Usiamo la tua email solo per avvisarti del lancio; per cancellarla scrivi a <a href="mailto:bikef993@gmail.com">bikef993@gmail.com</a>.</footer>
+</main>
+
+<script>
+// prezzi consigliati per 5 ore (tra 2 e 15 €) e commissione per chi presta
+const TIPI = [
+  { id: "city", nome: "City bike", emoji: "🚲", prezzo: 5, nota: "la classica" },
+  { id: "mtb", nome: "Mountain bike", emoji: "🚵", prezzo: 6, nota: "per sterrati" },
+  { id: "corsa", nome: "Da corsa", emoji: "🚴", prezzo: 7, nota: "leggera e veloce" },
+  { id: "ebike", nome: "E-bike", emoji: "⚡", prezzo: 12, nota: "la più richiesta" }
+];
+const COMMISSIONE = 0.86, SETTIMANE = 4.33;
+let scelto = TIPI[0];
+const $ = id => document.getElementById(id);
+const euro = n => Math.round(n).toLocaleString("it-IT");
+
+function disegnaTipi() {
+  $("tipi").innerHTML = TIPI.map(t => `<button type="button" role="radio" aria-checked="${t === scelto}" class="${t === scelto ? "si" : ""}" data-id="${t.id}"><span aria-hidden="true">${t.emoji}</span><div>${t.nome}<small>${t.nota}</small></div></button>`).join("");
+}
+function calcola() {
+  const volte = +$("volte").value;
+  $("volteTesto").textContent = volte;
+  const netto = scelto.prezzo - COMMISSIONE;
+  const mese = netto * volte * SETTIMANE;
+  $("mese").textContent = euro(mese);
+  $("anno").textContent = euro(mese * 12);
+  $("dettaglio").textContent = `${scelto.nome} a ${scelto.prezzo} € per 5 ore, prestata ${volte} ${volte === 1 ? "volta" : "volte"} a settimana. La cauzione la decidi tu e torna sempre indietro.`;
+  return Math.round(mese);
+}
+$("tipi").onclick = e => { const b = e.target.closest("[data-id]"); if (!b) return; scelto = TIPI.find(t => t.id === b.dataset.id); disegnaTipi(); calcola(); };
+$("volte").oninput = calcola;
+disegnaTipi(); calcola();
+
+// immagine per le storie (1080x1920), da condividere su Instagram o WhatsApp
+function immagine(mese) {
+  const c = document.createElement("canvas"); c.width = 1080; c.height = 1920;
+  const g = c.getContext("2d");
+  g.fillStyle = "#04091A"; g.fillRect(0, 0, 1080, 1920);
+  const alone = (x, y, col) => { const r = g.createRadialGradient(x, y, 0, x, y, 520); r.addColorStop(0, col); r.addColorStop(1, "rgba(4,9,26,0)"); g.fillStyle = r; g.fillRect(0, 0, 1080, 1920); };
+  alone(380, 520, "rgba(0,210,160,.28)"); alone(700, 560, "rgba(59,139,255,.28)");
+  g.lineWidth = 22; g.lineCap = "round";
+  g.strokeStyle = "#00D2A0"; g.beginPath(); g.arc(370, 560, 150, -0.6, 4.6); g.stroke();
+  g.strokeStyle = "#3B8BFF"; g.beginPath(); g.arc(710, 560, 150, 0.6, 5.6); g.stroke();
+  g.textAlign = "center";
+  g.fillStyle = "#8496B3"; g.font = "700 40px Figtree, sans-serif"; g.fillText("LA MIA BICI IN CANTINA VALE", 540, 900);
+  g.fillStyle = "#F3F6FB"; g.font = "800 260px 'Bricolage Grotesque', sans-serif"; g.fillText(euro(mese) + " €", 540, 1160);
+  g.fillStyle = "#8496B3"; g.font = "700 56px Figtree, sans-serif"; g.fillText("al mese", 540, 1250);
+  g.fillStyle = "#00D2A0"; g.font = "800 48px Figtree, sans-serif"; g.fillText("E la tua quanto vale? 👀", 540, 1480);
+  g.fillStyle = "#8496B3"; g.font = "600 36px Figtree, sans-serif"; g.fillText("Piacenza · 01.12.2026", 540, 1560);
+  g.fillText("bikef993-droid.github.io/bikefly/quanto", 540, 1720);
+  return new Promise(ok => c.toBlob(ok, "image/png"));
+}
+$("condividi").onclick = async () => {
+  const mese = calcola();
+  const testo = `La mia bici in cantina potrebbe farmi guadagnare ${euro(mese)} € al mese 👀 E la tua? https://bikef993-droid.github.io/bikefly/quanto/?da=wa`;
+  try {
+    const blob = await immagine(mese);
+    const file = new File([blob], "la-mia-bici.png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: testo }); return; }
+    if (navigator.share) { await navigator.share({ text: testo }); return; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "la-mia-bici.png"; a.click();
+  } catch (e) { /* condivisione annullata */ }
+};
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getFirestore, doc, setDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+const db = getFirestore(initializeApp({
+  apiKey: "AIzaSyCMpYlrzCp6QgxvDzV7qqTDPJH4NFvkT9w",
+  authDomain: "bikefly-6078c.firebaseapp.com",
+  projectId: "bikefly-6078c",
+  appId: "1:174756937342:web:9f382bd80727420577222f"
+}));
+// stesso contatore anonimo del teaser (una visita per telefono al giorno)
+(() => {
+  const oggi = new Date().toISOString().slice(0, 10);
+  try { if (localStorage.getItem("visto_quanto") === oggi) return; localStorage.setItem("visto_quanto", oggi); } catch (e) {}
+  const da = new URLSearchParams(location.search).get("da");
+  const fonte = da === "wa" ? "whatsapp" : da === "v" ? "volantino" : "altro";
+  setDoc(doc(db, "statistiche", "presto"), { totale: increment(1), [fonte]: increment(1) }, { merge: true }).catch(() => {});
+})();
+const f = document.getElementById("f"), campo = document.getElementById("email"), vai = document.getElementById("vai"), esito = document.getElementById("esito");
+const scrivi = (t, ok) => { esito.textContent = t; esito.className = "esito " + (ok ? "ok" : "no"); };
+f.addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const email = campo.value.trim().toLowerCase();
+  if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(email)) { scrivi("Controlla l'email: sembra sbagliata.", false); campo.focus(); return; }
+  vai.disabled = true; vai.textContent = "…";
+  try {
+    await setDoc(doc(db, "attesa", email), { email, quando: serverTimestamp() });
+    scrivi("✓ Ci sei. Il 1 dicembre ti arriva il codice.", true);
+  } catch (e) {
+    if (String(e.code || "").includes("permission")) scrivi("✓ Ci sei già. Il 1 dicembre ti arriva il codice.", true);
+    else { scrivi("Connessione assente: riprova tra poco.", false); vai.disabled = false; vai.textContent = "Avvisami"; return; }
+  }
+  try { localStorage.setItem("attesa_ok", "1"); } catch (e) {}
+  campo.value = ""; vai.textContent = "Fatto ✓";
+});
+</script>
+</body>
+</html>
