@@ -28,13 +28,37 @@ body::before{content:"";position:fixed;inset:-50%;background:radial-gradient(cir
 
 /* le due ruote: l'unico indizio visivo */
 .ruote{width:min(300px,72vw);margin:6vh auto 0;display:block;overflow:visible}
-.ruote .r{fill:none;stroke-width:7;stroke-linecap:round;transform-box:fill-box;transform-origin:center}
-.ruote .a{stroke:var(--menta);stroke-dasharray:150 30;animation:gira 7s linear infinite;filter:drop-shadow(0 0 10px rgba(0,210,160,.7))}
-.ruote .b{stroke:var(--cielo);stroke-dasharray:120 40;animation:gira 7s linear infinite;filter:drop-shadow(0 0 10px rgba(59,139,255,.7))}
-.ruote .raggi{stroke:rgba(243,246,251,.16);stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:gira 7s linear infinite}
-.ruote .terra{stroke:rgba(243,246,251,.10);stroke-width:2;stroke-dasharray:4 10;animation:scorre 1.4s linear infinite}
-@keyframes gira{to{transform:rotate(360deg)}}
-@keyframes scorre{to{stroke-dashoffset:-28}}
+.ruote .r{fill:none;stroke-width:7;stroke-linecap:round}
+.ruote .a{stroke:var(--menta);stroke-dasharray:150 30;filter:drop-shadow(0 0 10px rgba(0,210,160,.7))}
+.ruote .b{stroke:var(--cielo);stroke-dasharray:120 40;filter:drop-shadow(0 0 10px rgba(59,139,255,.7))}
+.ruote .raggi{stroke:rgba(243,246,251,.18);stroke-width:1.5}
+.ruote .terra{stroke:rgba(243,246,251,.14);stroke-width:2;stroke-dasharray:4 10}
+.ruote .faro{fill:url(#faro);opacity:0}
+.arrivo .ruote .faro{animation:lampo 1.1s ease-out 1.25s both}
+@keyframes lampo{30%{opacity:1}to{opacity:0}}
+
+/* ingresso: le ruote arrivano, poi si accende il titolo */
+.parola{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.08em}
+.parola>span{display:inline-block}
+.dopo{opacity:1}
+.arrivo .parola>span{animation:sale .8s cubic-bezier(.2,.8,.2,1) both}
+.arrivo .parola:nth-child(1)>span{animation-delay:1.35s}
+.arrivo .parola:nth-child(2)>span{animation-delay:1.45s}
+.arrivo .parola:nth-child(3)>span{animation-delay:1.6s}
+@keyframes sale{from{transform:translateY(105%)}to{transform:none}}
+.arrivo h1 em{background-size:220% 100%;animation:luce 1.6s ease-out 1.7s both}
+@keyframes luce{from{background-position:100% 0}to{background-position:0 0}}
+.arrivo .dopo{animation:appare .7s ease-out 2s both}
+.arrivo .dove{animation:appare .7s ease-out 1.2s both}
+@keyframes appare{from{opacity:0}to{opacity:1}}
+
+/* cifre che cambiano */
+.conto b.cambia{animation:cifra .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes cifra{from{transform:translateY(-35%);opacity:0;filter:blur(3px)}to{transform:none;opacity:1;filter:none}}
+
+/* scintille quando ti iscrivi */
+.scintilla{position:fixed;width:8px;height:8px;border-radius:50%;pointer-events:none;z-index:9;animation:vola .9s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes vola{to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
 
 .dove{margin-top:4vh;font-size:13px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--nebbia)}
 .dove b{color:var(--menta);font-weight:800}
@@ -64,8 +88,9 @@ button:disabled{opacity:.6}
 /* indizi */
 .indizi{margin:9vh auto 0;max-width:460px;display:grid;gap:10px;text-align:left}
 .indizi h2{font-size:13px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--nebbia);text-align:center;margin-bottom:6px}
-.indizio{display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);opacity:0;transform:translateY(16px);transition:opacity .7s,transform .7s}
-.indizio.visto{opacity:1;transform:none}
+.indizio{display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);transition:border-color .6s}
+.indizio.visto{border-color:rgba(0,210,160,.35)}
+.indizio span{font-variant-ligatures:none}
 .indizio i{font-style:normal;font-family:"Bricolage Grotesque",Figtree,sans-serif;font-weight:800;font-size:22px;color:var(--menta);width:28px;flex:none}
 .indizio:nth-child(3) i{color:var(--cielo)}
 .indizio:nth-child(4) i{color:var(--sole)}
@@ -79,36 +104,38 @@ body.via .arrivato{display:block}
 footer{margin-top:9vh;font-size:13px;color:#5E7090}
 footer a{color:var(--nebbia)}
 
-@media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}.indizio{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <main class="muro">
   <svg class="ruote" viewBox="0 0 300 140" aria-hidden="true">
-    <line class="terra" x1="0" y1="132" x2="300" y2="132"/>
-    <g class="raggi"><line x1="80" y1="34" x2="80" y2="126"/><line x1="34" y1="80" x2="126" y2="80"/><line x1="47" y1="47" x2="113" y2="113"/><line x1="113" y1="47" x2="47" y2="113"/></g>
-    <g class="raggi"><line x1="220" y1="34" x2="220" y2="126"/><line x1="174" y1="80" x2="266" y2="80"/><line x1="187" y1="47" x2="253" y2="113"/><line x1="253" y1="47" x2="187" y2="113"/></g>
-    <circle class="r a" cx="80" cy="80" r="46"/>
-    <circle class="r b" cx="220" cy="80" r="46"/>
+    <defs><radialGradient id="faro" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F3F6FB" stop-opacity=".55"/><stop offset="1" stop-color="#F3F6FB" stop-opacity="0"/></radialGradient></defs>
+    <line class="terra" id="terra" x1="-400" y1="132" x2="700" y2="132"/>
+    <g id="bici">
+      <ellipse class="faro" cx="292" cy="80" rx="70" ry="38"/>
+      <g id="ruotaA"><g class="raggi"><line x1="80" y1="34" x2="80" y2="126"/><line x1="34" y1="80" x2="126" y2="80"/><line x1="47" y1="47" x2="113" y2="113"/><line x1="113" y1="47" x2="47" y2="113"/></g><circle class="r a" cx="80" cy="80" r="46"/></g>
+      <g id="ruotaB"><g class="raggi"><line x1="220" y1="34" x2="220" y2="126"/><line x1="174" y1="80" x2="266" y2="80"/><line x1="187" y1="47" x2="253" y2="113"/><line x1="253" y1="47" x2="187" y2="113"/></g><circle class="r b" cx="220" cy="80" r="46"/></g>
+    </g>
   </svg>
 
   <p class="dove"><b>Piacenza</b> · 01.12.2026</p>
-  <h1>Qualcosa sta <em>arrivando.</em></h1>
-  <p class="sotto">Su due ruote. E stavolta conviene anche a te.</p>
+  <h1><span class="parola"><span>Qualcosa</span></span> <span class="parola"><span>sta</span></span> <span class="parola"><span><em>arrivando.</em></span></span></h1>
+  <p class="sotto dopo">Su due ruote. E stavolta conviene anche a te.</p>
 
-  <div class="conto" role="timer" aria-live="off" aria-label="Tempo al lancio">
+  <div class="conto dopo" role="timer" aria-live="off" aria-label="Tempo al lancio">
     <div><b id="g">--</b><span>giorni</span></div>
     <div><b id="o">--</b><span>ore</span></div>
     <div><b id="m">--</b><span>min</span></div>
     <div><b id="s">--</b><span>sec</span></div>
   </div>
 
-  <form id="f" novalidate>
+  <form id="f" class="dopo" novalidate>
     <label for="email" style="position:absolute;left:-9999px">La tua email</label>
     <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="la-tua@email.it" required maxlength="100">
     <button id="vai" type="submit">Entra tra i primi</button>
   </form>
-  <p class="nota">Chi si iscrive prima del 1 dicembre diventa <b style="color:var(--latte)">🚀 Pioniere</b>: un badge per sempre e il codice invito per primo. Una sola email, niente spam.</p>
+  <p class="nota dopo">Chi si iscrive prima del 1 dicembre diventa <b style="color:var(--latte)">🚀 Pioniere</b>: un badge per sempre e il codice invito per primo. Una sola email, niente spam.</p>
   <p class="esito" id="esito" role="status"></p>
 
   <div class="arrivato"><a href="../">È arrivato. Scopri cos'è →</a></div>
@@ -126,26 +153,84 @@ footer a{color:var(--nebbia)}
 </main>
 
 <script>
+const calmo = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (!calmo) document.body.classList.add("arrivo");
+
 // 1 dicembre 2026, mezzanotte a Piacenza (UTC+1 in inverno)
 const LANCIO = Date.UTC(2026, 10, 30, 23, 0, 0);
 const due = n => String(n).padStart(2, "0");
+function metti(el, v) {
+  if (el.textContent === v) return;
+  el.textContent = v;
+  if (calmo) return;
+  el.classList.remove("cambia"); void el.offsetWidth; el.classList.add("cambia");
+}
 function tic() {
   const r = LANCIO - Date.now();
   if (r <= 0) { document.body.classList.add("via"); return; }
   const t = Math.floor(r / 1000);
-  g.textContent = due(Math.floor(t / 86400));
-  o.textContent = due(Math.floor(t % 86400 / 3600));
-  m.textContent = due(Math.floor(t % 3600 / 60));
-  s.textContent = due(t % 60);
+  metti(g, due(Math.floor(t / 86400)));
+  metti(o, due(Math.floor(t % 86400 / 3600)));
+  metti(m, due(Math.floor(t % 3600 / 60)));
+  metti(s, due(t % 60));
   setTimeout(tic, 1000 - Date.now() % 1000);
 }
 tic();
 
-// indizi che compaiono scorrendo
-const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach((e, i) => {
-  if (e.isIntersecting) { setTimeout(() => e.target.classList.add("visto"), i * 160); io.unobserve(e.target); }
-}), { threshold: .4 }) : null;
-document.querySelectorAll(".indizio").forEach(el => io ? io.observe(el) : el.classList.add("visto"));
+// le ruote: arrivano rotolando da sinistra, poi girano piano e seguono lo scorrimento
+(() => {
+  const bici = document.getElementById("bici"), A = document.getElementById("ruotaA"), B = document.getElementById("ruotaB"), terra = document.getElementById("terra");
+  const R = 46, PARTENZA = -420, DURATA = 1300, inizio = performance.now();
+  const frena = x => 1 - Math.pow(1 - x, 3);
+  function disegna(adesso) {
+    const p = calmo ? 1 : Math.min(1, (adesso - inizio) / DURATA);
+    const x = PARTENZA * (1 - frena(p));
+    const strada = -x + (adesso - inizio) * 0.012 + scrollY * 0.5;   // quanta strada hanno fatto
+    const gradi = strada / R * 180 / Math.PI;
+    bici.setAttribute("transform", `translate(${x} 0)`);
+    A.setAttribute("transform", `rotate(${gradi} 80 80)`);
+    B.setAttribute("transform", `rotate(${gradi} 220 80)`);
+    terra.style.strokeDashoffset = strada.toFixed(1);
+    if (!calmo) requestAnimationFrame(disegna);
+  }
+  requestAnimationFrame(disegna);
+})();
+
+// indizi: arrivano "criptati" e si decifrano quando li guardi
+const SEGNI = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#%&@$0123456789";
+function decifra(el) {
+  const vero = el.dataset.vero, durata = 900, t0 = performance.now();
+  (function passo(adesso) {
+    const p = Math.min(1, (adesso - t0) / durata), fatti = Math.floor(vero.length * p);
+    el.textContent = vero.slice(0, fatti) + [...vero.slice(fatti)].map(c => c === " " ? " " : SEGNI[Math.floor(Math.random() * SEGNI.length)]).join("");
+    if (p < 1) requestAnimationFrame(passo); else el.textContent = vero;
+  })(t0);
+}
+document.querySelectorAll(".indizio span").forEach(s => { s.dataset.vero = s.textContent; });
+const io = "IntersectionObserver" in window && !calmo ? new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return;
+  const card = e.target, i = [...card.parentNode.children].indexOf(card);
+  setTimeout(() => { card.classList.add("visto"); decifra(card.querySelector("span")); }, i * 220);
+  io.unobserve(card);
+}), { threshold: .6 }) : null;
+document.querySelectorAll(".indizio").forEach(el => {
+  if (!io) { el.classList.add("visto"); return; }
+  const s = el.querySelector("span");
+  s.textContent = [...s.dataset.vero].map(c => c === " " ? " " : "•").join("");
+  io.observe(el);
+});
+
+// scintille verdi e blu quando qualcuno si iscrive
+window.festa = btn => {
+  if (calmo) return;
+  const r = btn.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let i = 0; i < 18; i++) {
+    const d = document.createElement("i"), a = Math.PI * 2 * i / 18, v = 60 + Math.random() * 70;
+    d.className = "scintilla";
+    d.style.cssText = `left:${cx}px;top:${cy}px;background:${i % 2 ? "#00D2A0" : "#3B8BFF"};--dx:${Math.cos(a) * v}px;--dy:${Math.sin(a) * v}px`;
+    document.body.appendChild(d); setTimeout(() => d.remove(), 1000);
+  }
+};
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -179,6 +264,7 @@ f.addEventListener("submit", async ev => {
   try {
     await setDoc(doc(db, "attesa", email), { email, quando: serverTimestamp() });
     scrivi("✓ Ci sei. Il 1 dicembre ti arriva il codice.", true);
+    window.festa?.(vai);
   } catch (e) {
     // se l'email è già iscritta le regole bloccano la seconda scrittura: va bene così
     if (String(e.code || "").includes("permission")) scrivi("✓ Ci sei già. Il 1 dicembre ti arriva il codice.", true);
