@@ -8,6 +8,12 @@
 <meta property="og:title" content="Qualcosa sta arrivando a Piacenza">
 <meta property="og:description" content="1 dicembre. Su due ruote. Entra tra i primi.">
 <meta name="theme-color" content="#04091A">
+<meta property="og:image" content="https://bikef993-droid.github.io/bikefly/anteprima.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://bikef993-droid.github.io/bikefly/presto/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='18' cy='32' r='12' fill='none' stroke='%2300D2A0' stroke-width='6'/%3E%3Ccircle cx='46' cy='32' r='12' fill='none' stroke='%233B8BFF' stroke-width='6'/%3E%3C/svg%3E">
 <style>
@@ -112,6 +118,17 @@ footer{margin-top:9vh;font-size:13px;color:#5E7090}
 footer a{color:var(--nebbia)}
 
 @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+.nascosto{display:none!important}
+.invito{margin:18px auto 0;max-width:460px;text-align:center;border-radius:22px;padding:22px 18px;background:linear-gradient(160deg,rgba(0,210,160,.16),rgba(59,139,255,.16));border:1px solid rgba(255,255,255,.12);animation:entraInvito .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes entraInvito{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.invito-num{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-weight:800;font-size:22px;line-height:1.15}
+.invito-num b{display:inline-block;font-size:64px;letter-spacing:-.03em;background:linear-gradient(90deg,var(--menta),var(--cielo));-webkit-background-clip:text;background-clip:text;color:transparent;margin:4px 0}
+.invito-sotto{color:var(--nebbia);font-size:14.5px;margin-top:10px}
+.invito-wa{display:flex;align-items:center;justify-content:center;min-height:54px;margin-top:16px;border-radius:99px;background:#25D366;color:#062E16;font-weight:800;text-decoration:none}
+.invito-altro{display:block;margin:10px auto 0;background:none;border:0;color:var(--nebbia);font-weight:700;font-size:14px;cursor:pointer;padding:6px;width:auto;flex:none}
+.folla{margin-top:14px;font-weight:700;color:var(--nebbia);font-size:15px}
+.folla b{color:var(--menta)}
+@media (prefers-reduced-motion:reduce){.invito{animation:none}}
 </style>
 </head>
 <body>
@@ -137,6 +154,8 @@ footer a{color:var(--nebbia)}
     <div><b id="s">--</b><span>sec</span></div>
   </div>
 
+  <p class="folla nascosto dopo" id="folla"></p>
+
   <form id="f" class="dopo" novalidate>
     <label for="email" style="position:absolute;left:-9999px">La tua email</label>
     <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="la-tua@email.it" required maxlength="100">
@@ -144,6 +163,7 @@ footer a{color:var(--nebbia)}
   </form>
   <p class="nota dopo">Chi si iscrive prima del 1 dicembre diventa <b style="color:var(--latte)">🚀 Pioniere</b>: un badge per sempre e il codice invito per primo. Una sola email, niente spam.</p>
   <p class="esito" id="esito" role="status"></p>
+  <div class="invito nascosto" id="invito" aria-live="polite"></div>
 
   <div class="arrivato"><a href="../">È arrivato. Scopri cos'è →</a></div>
 
@@ -152,7 +172,7 @@ footer a{color:var(--nebbia)}
     <div class="indizio"><i>1</i><span>Probabilmente ce l'hai in cantina. Ferma.</span></div>
     <div class="indizio"><i>2</i><span>Potrebbe pagarti la pizza del sabato.</span></div>
     <div class="indizio"><i>3</i><span>È nato qui, a Piacenza.</span></div>
-    <a class="indizio quarto" href="../quanto/?quiz=1"><i>4</i><div class="testo4"><span>Quanto vale la bici che hai in cantina?</span><b class="tasto4">Fai il test · 3 domande</b></div></a>
+    <a class="indizio quarto" href="../quanto/?quiz=2"><i>4</i><div class="testo4"><span>Quanto vale la bici che hai in cantina?</span><b class="tasto4">Fai il test · 3 domande</b></div></a>
   </section>
 
   <footer>
@@ -243,6 +263,7 @@ window.festa = btn => {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, doc, setDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { iscrivi, quanti, numeroSalvato, mostraInvito } from "../iscrizione.js";
 const db = getFirestore(initializeApp({
   apiKey: "AIzaSyCMpYlrzCp6QgxvDzV7qqTDPJH4NFvkT9w",
   authDomain: "bikefly-6078c.firebaseapp.com",
@@ -264,23 +285,24 @@ let fatto = false;
 try { fatto = localStorage.getItem("attesa_ok") === "1"; } catch (e) {}
 if (fatto) scrivi("✓ Sei già in lista. Ci vediamo il 1 dicembre.", true);
 
+const LINK = "https://bikef993-droid.github.io/bikefly/presto/?da=wa";
 f.addEventListener("submit", async ev => {
   ev.preventDefault();
   const email = campo.value.trim().toLowerCase();
   if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(email)) { scrivi("Controlla l'email: sembra sbagliata.", false); campo.focus(); return; }
   vai.disabled = true; vai.textContent = "…";
-  try {
-    await setDoc(doc(db, "attesa", email), { email, quando: serverTimestamp() });
-    scrivi("✓ Ci sei. Il 1 dicembre ti arriva il codice.", true);
-    window.festa?.(vai);
-  } catch (e) {
-    // se l'email è già iscritta le regole bloccano la seconda scrittura: va bene così
-    if (String(e.code || "").includes("permission")) scrivi("✓ Ci sei già. Il 1 dicembre ti arriva il codice.", true);
-    else { scrivi("Connessione assente: riprova tra poco.", false); vai.disabled = false; vai.textContent = "Entra tra i primi"; return; }
-  }
+  let r;
+  try { r = await iscrivi(db, email); }
+  catch (e) { scrivi("Connessione assente: riprova tra poco.", false); vai.disabled = false; vai.textContent = "Entra tra i primi"; return; }
+  scrivi(r.stato === "nuovo" ? "✓ Ci sei!" : "✓ Eri già in lista.", true);
+  if (r.stato === "nuovo") (window.festa || window.scintille)?.(vai);
   try { localStorage.setItem("attesa_ok", "1"); } catch (e) {}
   campo.value = ""; vai.textContent = "Fatto ✓";
+  mostraInvito(document.getElementById("invito"), r.numero, LINK);
 });
+quanti(db).then(n => { if (n && n >= 50) { const el = document.getElementById("folla"); el.innerHTML = `Già <b>${n.toLocaleString("it-IT")}</b> piacentini in lista`; el.classList.remove("nascosto"); } });
+// chi torna dopo essersi iscritto rivede il suo numero e il tasto per invitare
+try { if (localStorage.getItem("attesa_ok") === "1") mostraInvito(document.getElementById("invito"), numeroSalvato(), LINK); } catch (e) {}
 </script>
 </body>
 </html>

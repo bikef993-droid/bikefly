@@ -178,6 +178,23 @@ service cloud.firestore {
   match /codiciPionieri/{email} {
    allow read, write: if admin();
   }
+  match /contatori/pionieri {
+   function giusto() {
+    let u = request.resource.data.ultimo;
+    return request.resource.data.keys().hasOnly([&#x27;n&#x27;, &#x27;ultimo&#x27;])
+     &amp;&amp; u is string &amp;&amp; u.size() &lt;= 100
+     &amp;&amp; !exists(/databases/$(database)/documents/attesa/$(u))
+     &amp;&amp; existsAfter(/databases/$(database)/documents/attesa/$(u));
+   }
+   allow read: if admin();
+   allow create: if giusto() &amp;&amp; request.resource.data.n == 1;
+   allow update: if giusto() &amp;&amp; request.resource.data.n == resource.data.n + 1;
+  }
+  match /contatori/pubblico {
+   allow read: if true;
+   allow create, update: if request.resource.data.keys().hasOnly([&#x27;n&#x27;])
+    &amp;&amp; request.resource.data.n == getAfter(/databases/$(database)/documents/contatori/pionieri).data.n;
+  }
   match /attesa/{email} {
    allow create: if email.size() &lt;= 100
     &amp;&amp; email.matches(&#x27;^[a-z0-9._%+-]+@[a-z0-9.-]+[.][a-z]{2,}$&#x27;)

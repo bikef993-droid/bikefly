@@ -8,6 +8,12 @@
 <meta property="og:title" content="Quanto vale la bici che hai in cantina?">
 <meta property="og:description" content="Scoprilo in 10 secondi. Piacenza, 1 dicembre.">
 <meta name="theme-color" content="#04091A">
+<meta property="og:image" content="https://bikef993-droid.github.io/bikefly/anteprima.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://bikef993-droid.github.io/bikefly/quanto/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='18' cy='32' r='12' fill='none' stroke='%2300D2A0' stroke-width='6'/%3E%3Ccircle cx='46' cy='32' r='12' fill='none' stroke='%233B8BFF' stroke-width='6'/%3E%3C/svg%3E">
 <style>
@@ -106,6 +112,17 @@ footer a{color:var(--nebbia)}
 .risultato.svela{animation:svela .6s cubic-bezier(.2,.8,.2,1)}
 @keyframes svela{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.nascosto{display:none!important}
+.invito{margin:18px auto 0;max-width:460px;text-align:center;border-radius:22px;padding:22px 18px;background:linear-gradient(160deg,rgba(0,210,160,.16),rgba(59,139,255,.16));border:1px solid rgba(255,255,255,.12);animation:entraInvito .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes entraInvito{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.invito-num{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-weight:800;font-size:22px;line-height:1.15}
+.invito-num b{display:inline-block;font-size:64px;letter-spacing:-.03em;background:linear-gradient(90deg,var(--menta),var(--cielo));-webkit-background-clip:text;background-clip:text;color:transparent;margin:4px 0}
+.invito-sotto{color:var(--nebbia);font-size:14.5px;margin-top:10px}
+.invito-wa{display:flex;align-items:center;justify-content:center;min-height:54px;margin-top:16px;border-radius:99px;background:#25D366;color:#062E16;font-weight:800;text-decoration:none}
+.invito-altro{display:block;margin:10px auto 0;background:none;border:0;color:var(--nebbia);font-weight:700;font-size:14px;cursor:pointer;padding:6px;width:auto;flex:none}
+.folla{margin-top:14px;font-weight:700;color:var(--nebbia);font-size:15px}
+.folla b{color:var(--menta)}
+@media (prefers-reduced-motion:reduce){.invito{animation:none}}
 </style>
 </head>
 <body>
@@ -165,6 +182,7 @@ footer a{color:var(--nebbia)}
       <button class="btn primo" id="vai" type="submit">Avvisami</button>
     </form>
     <p class="esito" id="esito" role="status"></p>
+  <div class="invito nascosto" id="invito" aria-live="polite"></div>
     <a class="btn vetro" href="../presto/" style="text-decoration:none">👀 Cosa arriva il 1 dicembre?</a>
   </section>
 
@@ -310,6 +328,7 @@ $("condividi").onclick = async () => {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, doc, setDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { iscrivi, quanti, numeroSalvato, mostraInvito } from "../iscrizione.js";
 const db = getFirestore(initializeApp({
   apiKey: "AIzaSyCMpYlrzCp6QgxvDzV7qqTDPJH4NFvkT9w",
   authDomain: "bikefly-6078c.firebaseapp.com",
@@ -326,22 +345,23 @@ const db = getFirestore(initializeApp({
 })();
 const f = document.getElementById("f"), campo = document.getElementById("email"), vai = document.getElementById("vai"), esito = document.getElementById("esito");
 const scrivi = (t, ok) => { esito.textContent = t; esito.className = "esito " + (ok ? "ok" : "no"); };
+const LINK = "https://bikef993-droid.github.io/bikefly/quanto/?da=wa";
 f.addEventListener("submit", async ev => {
   ev.preventDefault();
   const email = campo.value.trim().toLowerCase();
   if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(email)) { scrivi("Controlla l'email: sembra sbagliata.", false); campo.focus(); return; }
   vai.disabled = true; vai.textContent = "…";
-  try {
-    await setDoc(doc(db, "attesa", email), { email, quando: serverTimestamp() });
-    scrivi("✓ Ci sei. Il 1 dicembre ti arriva il codice.", true);
-    window.scintille?.(vai);
-  } catch (e) {
-    if (String(e.code || "").includes("permission")) scrivi("✓ Ci sei già. Il 1 dicembre ti arriva il codice.", true);
-    else { scrivi("Connessione assente: riprova tra poco.", false); vai.disabled = false; vai.textContent = "Avvisami"; return; }
-  }
+  let r;
+  try { r = await iscrivi(db, email); }
+  catch (e) { scrivi("Connessione assente: riprova tra poco.", false); vai.disabled = false; vai.textContent = "Avvisami"; return; }
+  scrivi(r.stato === "nuovo" ? "✓ Ci sei!" : "✓ Eri già in lista.", true);
+  if (r.stato === "nuovo") (window.festa || window.scintille)?.(vai);
   try { localStorage.setItem("attesa_ok", "1"); } catch (e) {}
   campo.value = ""; vai.textContent = "Fatto ✓";
+  mostraInvito(document.getElementById("invito"), r.numero, LINK);
 });
+// chi torna dopo essersi iscritto rivede il suo numero e il tasto per invitare
+try { if (localStorage.getItem("attesa_ok") === "1") mostraInvito(document.getElementById("invito"), numeroSalvato(), LINK); } catch (e) {}
 </script>
 </body>
 </html>
