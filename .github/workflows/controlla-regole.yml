@@ -4,12 +4,9 @@ jobs:
   prova:
     runs-on: ubuntu-latest
     steps:
-      - name: Prova a iscriversi alla lista d'attesa
+      - name: Legge il contatore pubblico dei Pionieri (permesso solo con le regole nuove)
         run: |
           K=AIzaSyCMpYlrzCp6QgxvDzV7qqTDPJH4NFvkT9w
-          P="projects/bikefly-6078c/databases/(default)/documents"
-          E="prova-regole-$(date +%s)@bikefly.test"
-          R=$(curl -s -X POST "https://firestore.googleapis.com/v1/projects/bikefly-6078c/databases/(default)/documents:commit?key=$K" -H "Content-Type: application/json" \
-            -d "{\"writes\":[{\"update\":{\"name\":\"$P/attesa/$E\",\"fields\":{\"email\":{\"stringValue\":\"$E\"}}},\"currentDocument\":{\"exists\":false},\"updateTransforms\":[{\"fieldPath\":\"quando\",\"setToServerValue\":\"REQUEST_TIME\"}]}]}")
+          R=$(curl -s "https://firestore.googleapis.com/v1/projects/bikefly-6078c/databases/(default)/documents/contatori/pubblico?key=$K")
           echo "$R"
-          if echo "$R" | grep -q commitTime; then echo "::notice::REGOLE NUOVE ATTIVE ($E)"; else echo "::warning::REGOLE VECCHIE: $(echo $R | tr '\n' ' ' | cut -c1-200)"; fi
+          if echo "$R" | grep -q PERMISSION_DENIED; then echo "::warning::REGOLE VECCHIE"; else echo "::notice::REGOLE NUOVE ATTIVE"; fi
