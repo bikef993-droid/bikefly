@@ -96,6 +96,10 @@ button:disabled{opacity:.6}
 .indizio:nth-child(4) i{color:var(--sole)}
 .indizio.quarto{text-decoration:none;border-color:rgba(255,210,63,.35);background:rgba(255,210,63,.07)}
 .indizio.quarto i{color:var(--sole)}
+.testo4{display:grid;gap:10px}
+.tasto4{justify-self:start;font-size:15px;font-weight:800;color:#1A1400;background:var(--sole);padding:9px 16px;border-radius:99px;box-shadow:0 0 0 0 rgba(255,210,63,.5)}
+.indizio.quarto.visto .tasto4{animation:chiama 2.4s ease-out 1s 3}
+@keyframes chiama{0%{box-shadow:0 0 0 0 rgba(255,210,63,.55)}70%,100%{box-shadow:0 0 0 12px rgba(255,210,63,0)}}
 .indizio.quarto:active{transform:scale(.98)}
 
 /* arrivato */
@@ -148,7 +152,7 @@ footer a{color:var(--nebbia)}
     <div class="indizio"><i>1</i><span>Probabilmente ce l'hai in cantina. Ferma.</span></div>
     <div class="indizio"><i>2</i><span>Potrebbe pagarti la pizza del sabato.</span></div>
     <div class="indizio"><i>3</i><span>È nato qui, a Piacenza.</span></div>
-    <a class="indizio quarto" href="../quanto/"><i>4</i><span>Quanto vale la bici che hai in cantina? Scoprilo.</span></a>
+    <a class="indizio quarto" href="../quanto/"><i>4</i><div class="testo4"><span>Quanto vale la bici che hai in cantina?</span><b class="tasto4">Fai il test · 3 domande</b></div></a>
   </section>
 
   <footer>
