@@ -8,5 +8,6 @@ jobs:
         run: |
           K=AIzaSyCMpYlrzCp6QgxvDzV7qqTDPJH4NFvkT9w
           R=$(curl -s "https://firestore.googleapis.com/v1/projects/bikefly-6078c/databases/(default)/documents/config/push?key=$K")
-          echo "$R" | head -c 200
-          if echo "$R" | head -c 200 | grep -q PERMISSION_DENIED; then echo "::warning::REGOLE VECCHIE"; else echo "::notice::REGOLE NUOVE ATTIVE"; fi
+          if echo "$R" | grep -q PERMISSION_DENIED; then echo "::warning::REGOLE VECCHIE"
+          elif echo "$R" | grep -q publicKey; then echo "::notice::REGOLE NUOVE ATTIVE (chiave notifiche leggibile)"
+          else echo "::warning::RISPOSTA STRANA: $(echo "$R" | head -c 150 | tr '\n' ' ')"; fi
