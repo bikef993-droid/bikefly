@@ -46,6 +46,9 @@ service cloud.firestore {
     &amp;&amp; (request.resource.data.get(&#x27;creato&#x27;, null) == null || request.resource.data.creato == request.time);
    allow update: if accesso() &amp;&amp; io() == uid &amp;&amp; profiloValido()
     &amp;&amp; puntiOnesti() &amp;&amp; tempoOnesto(&#x27;ultimaBici&#x27;, 60) &amp;&amp; tempoOnesto(&#x27;ultimoPost&#x27;, 30)
+    &amp;&amp; tempoOnesto(&#x27;ultimaEvidenza&#x27;, 432000)
+    &amp;&amp; request.resource.data.get(&#x27;aliSpese&#x27;, 0) &gt;= resource.data.get(&#x27;aliSpese&#x27;, 0)
+    &amp;&amp; request.resource.data.get(&#x27;aliOggetti&#x27;, []).hasAll(resource.data.get(&#x27;aliOggetti&#x27;, []))
     &amp;&amp; (!(&#x27;ammesso&#x27; in cambiati()) || (request.resource.data.ammesso == true &amp;&amp; resource.data.get(&#x27;ammesso&#x27;, false) == false &amp;&amp; invitoUsato()))
     &amp;&amp; (!(&#x27;invitatoDa&#x27; in cambiati()) || (&#x27;ammesso&#x27; in cambiati()))
     &amp;&amp; (!(&#x27;mioCodice&#x27; in cambiati()) || (resource.data.get(&#x27;mioCodice&#x27;, null) == null &amp;&amp; mioCodiceOk()))
@@ -62,6 +65,9 @@ service cloud.firestore {
     let d = request.resource.data;
     return testo(d.get(&#x27;nome&#x27;, &#x27;&#x27;), 30)
      &amp;&amp; (d.get(&#x27;scuola&#x27;, null) == null || testo(d.scuola, 60))
+     &amp;&amp; (d.get(&#x27;paese&#x27;, null) == null || testo(d.paese, 40))
+     &amp;&amp; d.get(&#x27;aliSpese&#x27;, 0) is int &amp;&amp; d.get(&#x27;aliSpese&#x27;, 0) &gt;= 0
+     &amp;&amp; d.get(&#x27;aliOggetti&#x27;, []) is list &amp;&amp; d.get(&#x27;aliOggetti&#x27;, []).size() &lt;= 10
      &amp;&amp; d.get(&#x27;punti&#x27;, 0) is int &amp;&amp; d.get(&#x27;punti&#x27;, 0) &gt;= 0
      &amp;&amp; d.get(&#x27;km&#x27;, 0) is number &amp;&amp; d.get(&#x27;km&#x27;, 0) &gt;= 0
      &amp;&amp; (d.get(&#x27;foto&#x27;, null) == null || (d.foto is string &amp;&amp; d.foto.size() &lt;= 150000));
@@ -218,7 +224,12 @@ service cloud.firestore {
     &amp;&amp; utenteDopo().get(&#x27;ultimaBici&#x27;, null) == request.time;
    allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; (
     (resource.data.proprietarioUid == io()
-     &amp;&amp; cambiati().hasOnly([&#x27;disponibile&#x27;, &#x27;rubata&#x27;, &#x27;prezzo&#x27;, &#x27;soloFidati&#x27;, &#x27;proprietarioNome&#x27;, &#x27;cauzione&#x27;, &#x27;lucchetto&#x27;, &#x27;casco&#x27;, &#x27;orari&#x27;, &#x27;latRitiro&#x27;, &#x27;lonRitiro&#x27;])
+     &amp;&amp; cambiati().hasOnly([&#x27;disponibile&#x27;, &#x27;rubata&#x27;, &#x27;prezzo&#x27;, &#x27;soloFidati&#x27;, &#x27;proprietarioNome&#x27;, &#x27;cauzione&#x27;, &#x27;lucchetto&#x27;, &#x27;casco&#x27;, &#x27;orari&#x27;, &#x27;latRitiro&#x27;, &#x27;lonRitiro&#x27;, &#x27;evidenzaFino&#x27;])
+     &amp;&amp; (!(&#x27;evidenzaFino&#x27; in cambiati()) || (request.resource.data.evidenzaFino is timestamp
+       &amp;&amp; request.resource.data.evidenzaFino &gt; request.time
+       &amp;&amp; request.resource.data.evidenzaFino &lt;= request.time + duration.value(24, &#x27;h&#x27;)
+       &amp;&amp; resource.data.get(&#x27;evidenzaFino&#x27;, timestamp.value(0)) &lt; request.time - duration.value(5, &#x27;d&#x27;)
+       &amp;&amp; utenteDopo().get(&#x27;ultimaEvidenza&#x27;, null) == request.time))
      &amp;&amp; (!(&#x27;prezzo&#x27; in cambiati()) || (request.resource.data.prezzo is number
        &amp;&amp; request.resource.data.prezzo &gt;= 2 &amp;&amp; request.resource.data.prezzo &lt;= 15))
      &amp;&amp; (!(&#x27;cauzione&#x27; in cambiati()) || (request.resource.data.cauzione is number
@@ -245,7 +256,8 @@ service cloud.firestore {
      &amp;&amp; d.get(&#x27;orari&#x27;, []) is list &amp;&amp; d.get(&#x27;orari&#x27;, []).size() &lt;= 4
      &amp;&amp; posizioneOk(d)
      &amp;&amp; (d.get(&#x27;prezzoMese&#x27;, null) == null || (d.prezzoMese is number &amp;&amp; d.prezzoMese &gt; 0 &amp;&amp; d.prezzoMese &lt;= 1000))
-     &amp;&amp; fotoOk(d.get(&#x27;foto&#x27;, null));
+     &amp;&amp; fotoOk(d.get(&#x27;foto&#x27;, null))
+     &amp;&amp; !(&#x27;evidenzaFino&#x27; in d);
    }
    function votoOnesto() {
     let voto = /databases/$(database)/documents/bici/$(id)/voti/$(io());
@@ -282,7 +294,13 @@ service cloud.firestore {
    }
    match /like/{uid} {
     allow read: if true;
-    allow create, delete: if accesso() &amp;&amp; io() == uid;
+    allow create: if accesso() &amp;&amp; io() == uid &amp;&amp; reazioneOk();
+    allow update: if accesso() &amp;&amp; io() == uid &amp;&amp; cambiati().hasOnly([&#x27;r&#x27;]) &amp;&amp; reazioneOk();
+    allow delete: if accesso() &amp;&amp; io() == uid;
+    function reazioneOk() {
+     let d = request.resource.data;
+     return d.keys().hasOnly([&#x27;si&#x27;, &#x27;r&#x27;]) &amp;&amp; (!(&#x27;r&#x27; in d) || d.r in [&#x27;❤️&#x27;, &#x27;🔥&#x27;, &#x27;🚲&#x27;, &#x27;👏&#x27;]);
+    }
    }
   }
   match /segnalazioni/{id} {

@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>Bikefly</title>
+<title>BikeFly</title>
 <meta name="theme-color" content="#071226">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bikefly">
+<meta name="apple-mobile-web-app-title" content="BikeFly">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icona-180.png">
 <link rel="icon" href="icona-192.png">
@@ -71,6 +71,17 @@ label.etichetta{display:block;font-size:13px;font-weight:700;color:var(--nebbia)
 .pillola svg{width:30px;height:21px}
 .prezzo-mk{background:var(--latte);color:var(--notte);font-weight:800;font-size:13px;padding:5px 10px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap;border:2px solid var(--menta);transform:translate(-50%,-50%);display:inline-block}
 .prezzo-mk.mia{border-color:var(--sole)}
+.prezzo-mk.top{background:linear-gradient(90deg,#FFD54F,#FFA000);color:#3E2700;border-color:#FFF3C4;animation:brilla 1.8s ease-in-out infinite}
+@keyframes brilla{50%{box-shadow:0 0 0 6px rgba(255,193,7,.25),0 4px 14px rgba(0,0,0,.35)}}
+.paesi{display:grid;gap:10px;margin:14px 0}
+.paesi button{padding:15px 16px;border-radius:16px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.16);text-align:left;font-weight:700;font-size:16px;transition:transform .15s,border-color .2s}
+.paesi button:active{transform:scale(.98)}
+.paesi button.si{border-color:var(--menta);background:rgba(0,210,160,.16)}
+.ali{background:linear-gradient(135deg,#0E1B3D,#1E3A8A,#3B8BFF)}
+.ali .num{font-family:Bricolage;font-size:44px;font-weight:800}
+.ali .voce{display:flex;justify-content:space-between;font-size:14px;padding:3px 0}
+.ali .voce b{color:#9CFFD9}
+@media (prefers-reduced-motion:reduce){.prezzo-mk.top{animation:none}}
 .leaflet-div-icon{background:none;border:0}
 .io-mk{width:18px;height:18px;border-radius:50%;background:var(--cielo);border:3px solid #fff;box-shadow:0 0 0 6px rgba(59,139,255,.3)}
 .btn-gps{position:absolute;right:14px;bottom:calc(var(--giu) + 96px);z-index:5;width:52px;height:52px;border-radius:50%;background:rgba(7,18,38,.9);border:1px solid rgba(255,255,255,.15);font-size:22px}
@@ -164,7 +175,7 @@ h2.titolo{font-size:34px;margin-bottom:16px}
   <div class="dentro">
     <div class="logo">
       <svg viewBox="0 0 40 28" aria-hidden="true"><circle cx="9" cy="19" r="7.5" fill="none" stroke="#00D2A0" stroke-width="3"/><circle cx="31" cy="19" r="7.5" fill="none" stroke="#3B8BFF" stroke-width="3"/><path d="M9 19 16 6h10l5 13M16 6l7 13" fill="none" stroke="#F3F6FB" stroke-width="2.6" stroke-linejoin="round"/></svg>
-      <b>Bikefly</b>
+      <b>BikeFly</b>
     </div>
     <h1>Conviene a tutti.</h1>
     <p class="sotto">Chi presta guadagna. Chi noleggia risparmia.</p>
@@ -187,7 +198,7 @@ h2.titolo{font-size:34px;margin-bottom:16px}
       <button type="button" class="link" id="btnIndietro" style="color:var(--nebbia)">Indietro</button>
     </form>
 
-    <label class="casella"><input type="checkbox" id="eta"><span>Ho almeno 14 anni e accetto i <a href="../termini.html" target="_blank">termini</a> e la <a href="../privacy.html" target="_blank">privacy</a> di Bikefly.</span></label>
+    <label class="casella"><input type="checkbox" id="eta"><span>Ho almeno 14 anni e accetto i <a href="../termini.html" target="_blank">termini</a> e la <a href="../privacy.html" target="_blank">privacy</a> di BikeFly.</span></label>
     <div id="erroreAccesso" class="errore nascosto"></div>
     <p class="nota" style="margin-top:22px;text-align:center">Hai Android? <a href="../bikefly.apk" style="color:var(--menta);font-weight:700">Scarica l'app completa</a></p>
   </div>
@@ -197,7 +208,7 @@ h2.titolo{font-size:34px;margin-bottom:16px}
 <section id="invito" class="nascosto" style="position:fixed;inset:0;overflow-y:auto;z-index:49;padding:calc(var(--su) + 60px) 24px 40px;background:radial-gradient(120% 60% at 15% 10%,rgba(124,92,255,.3),transparent 60%),var(--notte)">
   <div style="max-width:420px;margin:0 auto;text-align:center">
     <div style="font-size:76px">🎟️</div>
-    <h1 style="font-size:36px;margin:12px 0">Bikefly è su invito</h1>
+    <h1 style="font-size:36px;margin:12px 0">BikeFly è su invito</h1>
     <p class="nota" style="font-size:16px">Per ora entra solo chi riceve un codice da un amico. Ognuno ne ha 3 da regalare: così restiamo tra persone di fiducia.</p>
     <input class="campo" id="codiceInvito" maxlength="12" autocapitalize="characters" placeholder="Codice invito" style="margin-top:24px;text-align:center;font-size:22px;font-weight:800;letter-spacing:.15em">
     <button class="btn primo" id="btnInvito" style="margin-top:14px">Entra</button>
@@ -211,11 +222,11 @@ h2.titolo{font-size:34px;margin-bottom:16px}
   <div id="pg-mappa" class="vista" style="position:absolute;inset:0">
     <div id="mappa" class="scura"></div>
     <div class="testata-mappa">
-      <div class="pillola"><svg viewBox="0 0 40 28"><circle cx="9" cy="19" r="7.5" fill="none" stroke="#00D2A0" stroke-width="3"/><circle cx="31" cy="19" r="7.5" fill="none" stroke="#3B8BFF" stroke-width="3"/><path d="M9 19 16 6h10l5 13M16 6l7 13" fill="none" stroke="#F3F6FB" stroke-width="2.6" stroke-linejoin="round"/></svg>Bikefly</div>
+      <div class="pillola"><svg viewBox="0 0 40 28"><circle cx="9" cy="19" r="7.5" fill="none" stroke="#00D2A0" stroke-width="3"/><circle cx="31" cy="19" r="7.5" fill="none" stroke="#3B8BFF" stroke-width="3"/><path d="M9 19 16 6h10l5 13M16 6l7 13" fill="none" stroke="#F3F6FB" stroke-width="2.6" stroke-linejoin="round"/></svg>BikeFly</div>
       <div class="pillola" id="contaBici">🚲 …</div>
     </div>
     <button class="btn-gps" id="btnGps" aria-label="La mia posizione">📍</button>
-    <div id="pausa" class="pausa nascosto" role="alert">⏸️ Account in pausa: hai ricevuto 3 segnalazioni. Il team Bikefly controlla e ti riattiva se è tutto a posto. Scrivici: bikef993@gmail.com</div>
+    <div id="pausa" class="pausa nascosto" role="alert">⏸️ Account in pausa: hai ricevuto 3 segnalazioni. Il team BikeFly controlla e ti riattiva se è tutto a posto. Scrivici: bikef993@gmail.com</div>
   </div>
 
   <div id="pg-noleggi" class="vista pagina nascosto"><h2 class="titolo">Noleggi</h2><div id="listaNoleggi"></div></div>
@@ -258,7 +269,7 @@ h2.titolo{font-size:34px;margin-bottom:16px}
 
   <div id="pg-profilo" class="vista pagina nascosto"><h2 class="titolo">Profilo</h2><div id="profilo"></div></div>
 
-  <div id="home" class="nascosto" role="note"><b>📲 Mettila nella schermata Home</b><br>Tocca <b>Condividi</b> <span aria-hidden="true">⬆️</span> qui sotto in Safari, poi <b>"Aggiungi alla schermata Home"</b>. Bikefly diventa un'icona come un'app.<button id="chiudiHome" aria-label="Chiudi">✕</button></div>
+  <div id="home" class="nascosto" role="note"><b>📲 Mettila nella schermata Home</b><br>Tocca <b>Condividi</b> <span aria-hidden="true">⬆️</span> qui sotto in Safari, poi <b>"Aggiungi alla schermata Home"</b>. BikeFly diventa un'icona come un'app.<button id="chiudiHome" aria-label="Chiudi">✕</button></div>
   <nav class="barra" aria-label="Sezioni">
     <button data-pg="mappa" class="attiva"><span>🗺️</span>Mappa</button>
     <button data-pg="noleggi"><span>🔑</span>Noleggi<i class="puntino nascosto" id="puntino"></i></button>
@@ -281,7 +292,7 @@ h2.titolo{font-size:34px;margin-bottom:16px}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, updateProfile, signOut, reload } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, where, orderBy, setDoc, updateDoc, addDoc, getDoc, getDocs, writeBatch, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, where, orderBy, setDoc, updateDoc, addDoc, getDoc, getDocs, deleteDoc, writeBatch, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ---------------- costanti (le stesse dell'app Android) ----------------
 const COMMISSIONE = 0.86, CAUZIONE = 30;
@@ -433,14 +444,17 @@ function preparaMappa() {
   livelloBici = L.layerGroup().addTo(mappa);
   disegnaBici();
 }
+const attivaSu = b => suoi.some(n => n.biciDoc === b.id && ["ACCETTATO", "IN_CORSO"].includes(n.fase));
+const inEvidenza = b => (b.evidenzaFino?.toMillis?.() || 0) > Date.now();
 function disegnaBici() {
   if (!livelloBici) return;
   livelloBici.clearLayers();
   const visibili = bici.filter(b => b.disponibile !== false && !b.rubata);
   visibili.forEach(b => {
     const mia = utente && b.proprietarioUid === utente.uid;
-    const icona = L.divIcon({ className: "", html: `<span class="prezzo-mk${mia ? " mia" : ""}">${TIPI[b.tipo]?.[1] || "🚲"} ${euro(b.prezzo)}</span>`, iconSize: [0, 0] });
-    L.marker(posizione(b), { icon: icona, keyboard: true, title: b.nome }).on("click", () => apriBici(b.id)).addTo(livelloBici);
+    const top = inEvidenza(b);
+    const icona = L.divIcon({ className: "", html: `<span class="prezzo-mk${mia ? " mia" : ""}${top ? " top" : ""}">${top ? "⭐" : TIPI[b.tipo]?.[1] || "🚲"} ${euro(b.prezzo)}</span>`, iconSize: [0, 0] });
+    L.marker(posizione(b), { icon: icona, keyboard: true, title: b.nome, zIndexOffset: top ? 500 : 0 }).on("click", () => apriBici(b.id)).addTo(livelloBici);
   });
   $("contaBici").textContent = "🚲 " + visibili.length + (visibili.length === 1 ? " bici" : " bici");
 }
@@ -449,7 +463,7 @@ $("btnGps").onclick = () => {
   navigator.geolocation.getCurrentPosition(p => {
     const ll = [p.coords.latitude, p.coords.longitude];
     if (segnoIo) segnoIo.setLatLng(ll); else segnoIo = L.marker(ll, { icon: L.divIcon({ className: "", html: '<div class="io-mk"></div>', iconSize: [18, 18] }) }).addTo(mappa);
-    if (!mappa.options.maxBounds.contains(L.latLng(ll))) return avvisa("Sei fuori zona: Bikefly per ora è tra Piacenza e Castel San Giovanni 🚲");
+    if (!mappa.options.maxBounds.contains(L.latLng(ll))) return avvisa("Sei fuori zona: BikeFly per ora è tra Piacenza e Castel San Giovanni 🚲");
     mappa.flyTo(ll, 16);
   }, () => avvisa("Posizione non disponibile: controlla i permessi"));
 };
@@ -500,7 +514,7 @@ function apriBici(id) {
     if (!$("fdTotale")) return;
     const p = prezzoPer(b, scelta), c = commissionePer(p, scelta);
     $("fdTotale").innerHTML = PAGAMENTI_ATTIVI
-      ? `<div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>Commissione Bikefly</span><span>${euro(c)}</span></div><div class="riga tra"><span>Cauzione (solo bloccata)</span><span>${euro(cauzione)}</span></div><div class="riga tra"><span>Totale</span><span>${euro(p + c)}</span></div>`
+      ? `<div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>Commissione BikeFly</span><span>${euro(c)}</span></div><div class="riga tra"><span>Cauzione (solo bloccata)</span><span>${euro(cauzione)}</span></div><div class="riga tra"><span>Totale</span><span>${euro(p + c)}</span></div>`
       : `<p style="color:#8DBBFF;font-weight:700;font-size:14px">🔜 Pagamenti in arrivo: in beta chiusa non si paga nell'app</p><div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>🛡️ Cauzione in contanti</span><span>${euro(cauzione)}</span></div><p class="nota">La lasci al proprietario al ritiro: te la ridà quando riporti la bici integra. 💡 Fate la consegna in un posto pubblico.${b.casco ? "" : b.tipo === "MONOPATTINO" ? " 🪖 Casco obbligatorio." : " 🪖 Casco non incluso."}</p>`;
   };
   totale();
@@ -657,7 +671,7 @@ async function vediFoto(id) {
 // ---------------- segnalazioni (3 da persone diverse = pausa automatica) ----------------
 function segnalaBici(b) {
   const motivi = ["Foto falsa o ingannevole", "Sembra una truffa", "Comportamento scorretto", "Altro"];
-  apriFoglio(`<h2 style="margin-bottom:8px">🚩 Segnala</h2><p class="nota" style="margin-bottom:14px">Il team Bikefly controlla ogni segnalazione. Dopo 3 segnalazioni da persone diverse l'account va in pausa.</p>
+  apriFoglio(`<h2 style="margin-bottom:8px">🚩 Segnala</h2><p class="nota" style="margin-bottom:14px">Il team BikeFly controlla ogni segnalazione. Dopo 3 segnalazioni da persone diverse l'account va in pausa.</p>
     <div style="display:grid;gap:10px">${motivi.map((m, i) => `<button class="btn vetro" data-m="${i}">${m}</button>`).join("")}</div>
     <button class="link" id="annullaSegnala" style="color:var(--nebbia)">Annulla</button>`);
   $("annullaSegnala").onclick = chiudiFoglio;
@@ -672,7 +686,7 @@ function segnalaBici(b) {
     } catch (e) { /* l'avevi già segnalato: conta una volta sola */ }
     try {
       await addDoc(collection(db, "segnalazioni"), { tipo: "bici", doc: b.id, motivo: motivi[+el.dataset.m], daUid: mio, quando: serverTimestamp() });
-      avvisa("Grazie! Il team Bikefly controllerà 🛡️");
+      avvisa("Grazie! Il team BikeFly controllerà 🛡️");
     } catch (e) { avvisa("Segnalazione non inviata: riprova"); }
   });
 }
@@ -714,7 +728,7 @@ $("moduloChat").onsubmit = ev => {
   const t = $("testoChat").value.trim(); if (!t) return;
   if (!puoScrivere()) return;
   if (!contieneContatti(t)) return mandaMessaggio(t);
-  apriFoglio(`<h2 style="margin-bottom:8px">🛡️ Resta nella chat di Bikefly</h2>
+  apriFoglio(`<h2 style="margin-bottom:8px">🛡️ Resta nella chat di BikeFly</h2>
     <p style="line-height:1.5;margin-bottom:16px">Sembra che tu stia mandando un numero di telefono o un'email. Per la tua sicurezza è meglio organizzarsi qui: se c'è un problema, la chat è la prova.</p>
     <button class="btn primo" id="ctNo">Ok, non lo mando</button><button class="link" id="ctSi" style="color:var(--nebbia)">Invia lo stesso</button>`);
   $("ctNo").onclick = chiudiFoglio;
@@ -814,14 +828,16 @@ function disegnaProfilo() {
     ${verificato() ? "" : `<div class="banner"><b>📩 Verifica la tua email</b><span class="nota">Apri il link che ti abbiamo mandato a ${esc(utente.email)}. Senza verifica non puoi noleggiare, prestare o scrivere.</span><div class="riga"><button class="btn vetro piccolo" id="pfRimanda">Rimanda mail</button><button class="btn primo piccolo" id="pfVerificato">Ho verificato</button></div></div>`}
     <div class="card"><div class="riga"><div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--menta),var(--cielo));display:grid;place-items:center;font-family:Bricolage;font-size:24px;font-weight:800;overflow:hidden">${utente.photoURL ? `<img src="${esc(utente.photoURL)}" alt="" style="width:100%;height:100%;object-fit:cover" referrerpolicy="no-referrer">` : esc((utente.displayName || "?")[0].toUpperCase())}</div>
       <div><h3>${esc(utente.displayName || "Senza nome")}</h3>${rigaBadge(mieiBadge)}<p class="nota">${esc(utente.email || "")}</p><p class="nota">${verificato() ? "✅ Email verificata" : "📩 Email da verificare"}</p></div></div></div>
+    ${cardAli()}
     ${profiloMio.mioCodice ? `<div class="card" style="background:linear-gradient(135deg,#7C5CFF,#3B8BFF)"><h3>🎟️ I tuoi inviti</h3><p style="font-size:14px">Puoi invitare ancora ${Math.max(0, invito.max - invito.usi)} amici di fiducia.</p><div class="codice" id="mioCodice">${esc(profiloMio.mioCodice)}</div><button class="btn bianco" id="pfInvita">Manda l'invito</button><p style="font-size:12px;opacity:.85">Usati ${invito.usi} su ${invito.max}</p></div>` : ""}
     ${sonoAdmin ? `<div class="card"><h3>🛡️ Admin</h3><button class="btn vetro piccolo" id="pfCodice">Crea codice da 20 inviti</button><div id="pfCodiceNuovo" class="codice nascosto"></div><button class="btn primo piccolo" id="pfPionieri">🎟️ Codici per i Pionieri</button><p class="nota">Crea un codice invito per ogni email della lista d'attesa e prepara le email da mandare.</p></div>` : ""}
-    <div class="card"><h3>Le tue bici</h3>${mie.length ? mie.map(b => `<div class="riga tra"><span>${TIPI[b.tipo]?.[1] || "🚲"} ${esc(b.nome)} · ${euro(b.prezzo)}</span><button class="btn vetro piccolo" data-disp="${b.id}">${b.disponibile !== false ? "Disponibile" : "Non disponibile"}</button></div>`).join("") : `<p class="nota">Non hai ancora pubblicato bici.</p>`}</div>
-    <div class="card"><h3>Installa Bikefly</h3><p class="nota">Su iPhone: tocca <b>Condividi</b> ↑ e poi <b>"Aggiungi alla schermata Home"</b>. Su Android puoi scaricare <a href="../bikefly.apk" style="color:var(--menta);font-weight:700">l'app completa</a>, con Fly, il social e tutto il resto.</p></div>
+    <div class="card"><h3>Le tue bici</h3>${mie.length ? mie.map(b => `<div class="riga tra"><span>${TIPI[b.tipo]?.[1] || "🚲"} ${esc(b.nome)} · ${euro(b.prezzo)}</span><span class="riga" style="gap:6px;flex:none"><button class="btn vetro piccolo" data-disp="${b.id}">${b.disponibile !== false ? "⏸️ Pausa" : "▶️ Riattiva"}</button><button class="btn vetro piccolo" data-elimina="${b.id}" aria-label="Elimina ${esc(b.nome)}">🗑️</button></span></div>`).join("") : `<p class="nota">Non hai ancora pubblicato bici.</p>`}</div>
+    <div class="card"><h3>Installa BikeFly</h3><p class="nota">Su iPhone: tocca <b>Condividi</b> ↑ e poi <b>"Aggiungi alla schermata Home"</b>. Su Android puoi scaricare <a href="../bikefly.apk" style="color:var(--menta);font-weight:700">l'app completa</a>, con Fly, il social e tutto il resto.</p><a class="link" href="../installa/" style="margin-top:4px">Guida passo passo →</a></div>
     <button class="btn vetro" id="pfEsci">Esci</button>`;
+  document.querySelectorAll("[data-conta]").forEach(contaSu);
   $("pfEsci").onclick = () => signOut(auth);
   $("pfInvita") && ($("pfInvita").onclick = async () => {
-    const testo = "Ti invito su Bikefly, l'app per noleggiare e prestare bici a Piacenza 🚲\nIl mio codice invito: " + profiloMio.mioCodice + "\nhttps://bikef993-droid.github.io/bikefly/";
+    const testo = "Ti invito su BikeFly, l'app per noleggiare e prestare bici a Piacenza 🚲\nIl mio codice invito: " + profiloMio.mioCodice + "\nhttps://bikef993-droid.github.io/bikefly/";
     try { if (navigator.share) await navigator.share({ text: testo }); else { await navigator.clipboard.writeText(testo); avvisa("Invito copiato 📋"); } } catch (e) {}
   });
   $("pfCodice") && ($("pfCodice").onclick = async () => {
@@ -834,17 +850,103 @@ function disegnaProfilo() {
   $("pfVerificato") && ($("pfVerificato").onclick = async () => { await reload(utente); await utente.getIdToken(true); utente = auth.currentUser; avvisa(verificato() ? "Email verificata! ✅" : "Non risulta ancora: apri il link nella mail"); disegnaProfilo(); });
   document.querySelectorAll("[data-disp]").forEach(el => el.onclick = async () => {
     const b = bici.find(x => x.id === el.dataset.disp);
-    await updateDoc(doc(db, "bici", b.id), { disponibile: b.disponibile === false }).catch(() => avvisa("Non riuscito"));
+    if (attivaSu(b)) return avvisa("C'è un noleggio in corso: potrai farlo quando la bici torna 🔒");
+    const pausa = b.disponibile !== false;
+    try {
+      await updateDoc(doc(db, "bici", b.id), { disponibile: !pausa });
+      if (pausa) for (const n of suoi.filter(n => n.biciDoc === b.id && n.fase === "IN_ATTESA")) await updateDoc(doc(db, "noleggi", n.id), { fase: "RIFIUTATO" }).catch(() => {});
+      avvisa(pausa ? "In pausa: nessuno la vede sulla mappa ⏸️" : "È di nuovo sulla mappa! 🚲");
+    } catch (e) { avvisa("Non riuscito"); }
   });
+  document.querySelectorAll("[data-elimina]").forEach(el => el.onclick = () => {
+    const b = bici.find(x => x.id === el.dataset.elimina);
+    if (attivaSu(b)) return avvisa("C'è un noleggio in corso: potrai farlo quando la bici torna 🔒");
+    apriFoglio(`<h2 style="margin-bottom:8px">🗑️ Eliminare "${esc(b.nome)}"?</h2><p class="nota" style="margin-bottom:16px">Sparisce dalla mappa per sempre. Le recensioni che ha ricevuto restano.</p><div class="riga"><button class="btn vetro" id="elNo">Annulla</button><button class="btn rosso" id="elSi">Elimina</button></div>`);
+    $("elNo").onclick = chiudiFoglio;
+    $("elSi").onclick = async () => {
+      try {
+        for (const n of suoi.filter(n => n.biciDoc === b.id && n.fase === "IN_ATTESA")) await updateDoc(doc(db, "noleggi", n.id), { fase: "RIFIUTATO" }).catch(() => {});
+        await deleteDoc(doc(db, "bici", b.id)); chiudiFoglio(); avvisa("Bici eliminata");
+      } catch (e) { avvisa("Non riuscito"); }
+    };
+  });
+}
+
+// ---------------- Ali 🪽 (le stesse regole dell'app Android) ----------------
+function aliVoci() {
+  const inOrario = n => n.inizioMs && n.fineMs && (n.fineMs - n.inizioMs) <= (n.durataMs || 5 * ORA) + 15 * 60000;
+  const fatti = miei.filter(n => n.fase === "CONCLUSO");
+  const orari = fatti.filter(inOrario);
+  const prestati = suoi.filter(n => n.fase === "CONCLUSO" && n.clienteUid !== utente.uid);
+  const km = Math.floor(fatti.reduce((t, n) => t + Math.max(0, ((n.fineMs || 0) - (n.inizioMs || 0)) / ORA) * 10, 0));
+  const stelle = suoi.filter(n => n.voto === 5 && n.clienteUid !== utente.uid).length;
+  const v = [["👋", "Benvenuto su BikeFly", 20]];
+  if (orari.length) v.push(["🚲", `Noleggi riconsegnati in orario · ${orari.length}`, orari.reduce((t, n) => t + (n.invernale ? 20 : 10), 0)]);
+  if (prestati.length) v.push(["🔑", `Prestiti della tua bici · ${prestati.length}`, prestati.length * 10]);
+  if (km) v.push(["📏", `Km pedalati · ${km}`, km]);
+  if (stelle) v.push(["⭐", `Recensioni a 5 stelle ricevute · ${stelle}`, stelle * 5]);
+  if (invito.usi) v.push(["🎟️", `Amici entrati con il tuo invito · ${invito.usi}`, invito.usi * 50]);
+  if (mieiBadge.fondatore === true) v.push(["👑", "Fondatore di BikeFly", 200]);
+  else if (mieiBadge.pioniere === true) v.push(["🚀", "Pioniere di BikeFly", 100]);
+  return v;
+}
+function cardAli() {
+  const v = aliVoci();
+  const saldo = Math.max(0, v.reduce((t, x) => t + x[2], 0) - (profiloMio.aliSpese || 0));
+  return `<div class="card ali"><p style="font-weight:700;opacity:.85">🪽 Le tue Ali</p><div class="num" data-conta="${saldo}">0</div>
+    <p style="font-size:13px;opacity:.85">Le guadagni pedalando, prestando la bici e invitando amici. Il negozio (cornici, sfondi, bici in evidenza) è nell'app Android e arriva presto anche qui.</p>
+    <details><summary style="font-weight:700;cursor:pointer;margin-top:6px">📜 Come le ho prese</summary>${v.map(x => `<div class="voce"><span>${x[0]} ${esc(x[1])}</span><b>+${x[2]}</b></div>`).join("")}${profiloMio.aliSpese ? `<div class="voce"><span>🛍️ Spese nel negozio</span><b style="color:#FFB3B3">−${profiloMio.aliSpese}</b></div>` : ""}
+    <p style="font-size:11px;opacity:.6;margin-top:6px">Le Ali non si comprano e non valgono soldi.</p></details></div>`;
+}
+function contaSu(el) {
+  const fine = +el.dataset.conta, t0 = performance.now(), dur = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 1200;
+  const passo = t => { const p = Math.min(1, (t - t0) / dur); el.textContent = Math.round(fine * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(passo); };
+  requestAnimationFrame(passo);
+}
+
+// ---------------- di dove sei? ----------------
+const PAESI = [["Piacenza", 45.0526, 9.6934], ["San Nicolò", 45.0560, 9.6110], ["Rottofreno", 45.0570, 9.5490], ["Sarmato", 45.0590, 9.4920], ["Castel San Giovanni", 45.0600, 9.4340]];
+let paeseChiesto = false;
+function chiediPaese() {
+  if (paeseChiesto) return; paeseChiesto = true;
+  apriFoglio(`<h2 style="font-size:30px">📍 Di dove sei?</h2><p class="nota" style="margin-top:6px">Così la mappa parte da casa tua e ti avvisiamo quando BikeFly arriva nella tua zona.</p>
+    <div class="paesi">${PAESI.map(p => `<button data-paese="${esc(p[0])}">${esc(p[0])}</button>`).join("")}<button data-paese="">Altro paese o città…</button></div>
+    <input class="campo nascosto" id="altroPaese" maxlength="40" placeholder="Dove abiti?"><p class="nota nascosto" id="notaPaese" style="margin-top:8px"></p>
+    <button class="btn primo" id="okPaese" disabled style="margin-top:14px">Continua</button>`);
+  let scelto = null;
+  document.querySelectorAll("[data-paese]").forEach(b => b.onclick = () => {
+    document.querySelectorAll("[data-paese]").forEach(x => x.classList.remove("si")); b.classList.add("si");
+    scelto = b.dataset.paese; const altro = scelto === "";
+    $("altroPaese").classList.toggle("nascosto", !altro); $("notaPaese").classList.add("nascosto");
+    $("okPaese").disabled = altro && !$("altroPaese").value.trim();
+    const p = PAESI.find(x => x[0] === scelto);
+    if (p && mappa) mappa.flyTo([p[1], p[2]], 15, { duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1.5 });
+    if (altro) $("altroPaese").focus();
+  });
+  $("altroPaese").oninput = () => {
+    const t = $("altroPaese").value.trim(); $("okPaese").disabled = !t;
+    $("notaPaese").textContent = `BikeFly per ora è tra Piacenza e Castel San Giovanni. Arriva presto anche a ${t}: ti avvisiamo appena apre!`;
+    $("notaPaese").classList.toggle("nascosto", !t);
+  };
+  $("okPaese").onclick = async () => {
+    const nome = (scelto || $("altroPaese").value.trim()).slice(0, 40); if (!nome) return;
+    try { localStorage.setItem("paese", nome); } catch (e) {}
+    await setDoc(doc(db, "utenti", utente.uid), { paese: nome }, { merge: true }).catch(() => {});
+    chiudiFoglio(); avvisa("Benvenuto! 🚲");
+  };
+}
+function vaiAlPaese(nome) {
+  const p = PAESI.find(x => x[0] === nome);
+  if (p && mappa) mappa.setView([p[1], p[2]], 15);
 }
 
 // ---------------- badge ----------------
 const BADGE = [["fondatore", "🏅 Fondatore"], ["pioniere", "🚀 Pioniere"], ["ambasciatore", "🎓 Ambasciatore"]];
-let mieiBadge = {};
+let mieiBadge = {}, paeseVisto = false;
 const rigaBadge = (b, centro) => { const l = BADGE.filter(x => b?.[x[0]] === true); return l.length ? `<div class="badge" style="${centro ? "justify-content:center;margin-top:6px" : "margin-top:6px"}">${l.map(x => `<span>${x[1]}</span>`).join("")}</div>` : ""; };
 
 // ---------------- codici invito per i Pionieri (lancio del 1 dicembre) ----------------
-const testoInvitoPioniere = c => `Ciao! 🚀\n\nEri tra i primi a iscriverti: sei un PIONIERE di Bikefly, l'app per noleggiare e prestare bici a Piacenza.\n\nIl tuo codice invito personale: ${c}\n\nAndroid: scarica l'app da https://bikef993-droid.github.io/bikefly/bikefly.apk\niPhone: apri https://bikef993-droid.github.io/bikefly/app/\n\nEntra con QUESTA email e sul profilo ti comparirà il badge 🚀 Pioniere.\n\nConviene a tutti.\nIl team Bikefly`;
+const testoInvitoPioniere = c => `Ciao! 🚀\n\nEri tra i primi a iscriverti: sei un PIONIERE di BikeFly, l'app per noleggiare e prestare bici a Piacenza.\n\nIl tuo codice invito personale: ${c}\n\nAndroid: scarica l'app da https://bikef993-droid.github.io/bikefly/bikefly.apk\niPhone: apri https://bikef993-droid.github.io/bikefly/app/\n\nEntra con QUESTA email e sul profilo ti comparirà il badge 🚀 Pioniere.\n\nConviene a tutti.\nIl team BikeFly`;
 async function codiciPionieri() {
   apriFoglio(`<p class="nota" style="text-align:center;padding:30px">Preparo i codici…</p>`);
   try {
@@ -860,7 +962,7 @@ async function codiciPionieri() {
       await lotto.commit();
       codici[e] = c;
     }
-    const oggetto = encodeURIComponent("🚀 Il tuo codice da Pioniere di Bikefly");
+    const oggetto = encodeURIComponent("🚀 Il tuo codice da Pioniere di BikeFly");
     apriFoglio(`<h2 style="margin-bottom:6px">🎟️ Pionieri: ${email.length}</h2>
       <p class="nota" style="margin-bottom:12px">Ogni codice vale per una persona. Tocca ✉️ per aprire l'email già scritta, poi premi Invia.</p>
       ${email.map(e => `<div class="riga tra" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="font-size:13px;word-break:break-all">${esc(e)}<br><b>${esc(codici[e])}</b></span><a class="btn vetro piccolo" href="mailto:${encodeURIComponent(e)}?subject=${oggetto}&body=${encodeURIComponent(testoInvitoPioniere(codici[e]))}">✉️</a></div>`).join("") || `<p class="nota">La lista d'attesa è vuota.</p>`}
@@ -896,7 +998,7 @@ $("btnInvito").onclick = async () => {
       const lotto = writeBatch(db);
       lotto.update(doc(db, "inviti", codice), { usi: increment(1) });
       lotto.set(doc(db, "utenti", utente.uid), { ammesso: true, invitatoDa: codice }, { merge: true });
-      await lotto.commit(); erroreInvito(""); avvisa("Benvenuto su Bikefly! 🎉");
+      await lotto.commit(); erroreInvito(""); avvisa("Benvenuto su BikeFly! 🎉");
     }
   } catch (e) { erroreInvito("Codice non accettato: riprova"); }
   btn.disabled = false; btn.textContent = "Entra";
@@ -917,9 +1019,9 @@ async function apriProfilo(uid) {
       <div style="width:86px;height:86px;margin:0 auto;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--menta),var(--cielo));display:grid;place-items:center;font-family:Bricolage;font-size:34px;font-weight:800">${foto ? `<img src="data:image/jpeg;base64,${foto}" style="width:100%;height:100%;object-fit:cover" alt="">` : esc(nome[0] || "?")}</div>
       <h2 style="margin-top:10px">${esc(nome)}</h2>${rigaBadge(badge, true)}
       ${sonoAdmin ? `<div class="riga" style="justify-content:center;margin-top:10px">${[["fondatore", "🏅"], ["ambasciatore", "🎓"]].map(([k, i]) => `<button class="btn vetro piccolo" data-badge="${k}" data-ha="${badge[k] === true}">${badge[k] === true ? "− " : "+ "}${i}</button>`).join("")}</div>` : ""}
-      ${creato ? `<p class="nota">Su Bikefly da ${creato.toLocaleDateString("it-IT", { month: "long", year: "numeric" })}</p>` : ""}
+      ${creato ? `<p class="nota">Su BikeFly da ${creato.toLocaleDateString("it-IT", { month: "long", year: "numeric" })}</p>` : ""}
       <div class="riga" style="justify-content:center;margin:14px 0"><span class="chip">⭐ ${media} come cliente</span><span class="chip">🚲 ${cli.length} noleggi votati</span></div></div>
-      ${lista.length ? lista.slice(0, 20).map(r => `<div class="card" style="gap:4px"><b>${"★".repeat(r.voto)}${"☆".repeat(5 - r.voto)} · ${esc(r.daNome)}</b>${r.testo ? `<span class="nota">${esc(r.testo)}</span>` : ""}</div>`).join("") : `<p class="nota" style="text-align:center">Ancora nessuna recensione: è nuovo su Bikefly.</p>`}
+      ${lista.length ? lista.slice(0, 20).map(r => `<div class="card" style="gap:4px"><b>${"★".repeat(r.voto)}${"☆".repeat(5 - r.voto)} · ${esc(r.daNome)}</b>${r.testo ? `<span class="nota">${esc(r.testo)}</span>` : ""}</div>`).join("") : `<p class="nota" style="text-align:center">Ancora nessuna recensione: è nuovo su BikeFly.</p>`}
       <button class="btn vetro" id="chiudiProfilo">Chiudi</button>`);
     $("chiudiProfilo").onclick = chiudiFoglio;
     document.querySelectorAll("#contenutoFoglio [data-badge]").forEach(el => el.onclick = async () => {
@@ -978,13 +1080,15 @@ onSnapshot(collection(db, "bici"), s => {
 
 onAuthStateChanged(auth, u => {
   utente = u;
-  ascolti.forEach(f => f()); ascolti = []; miei = []; suoi = []; codici = {}; giaVisti = false;
+  ascolti.forEach(f => f()); ascolti = []; miei = []; suoi = []; codici = {}; giaVisti = false; paeseVisto = false; paeseChiesto = false;
   profiloMio = { caricato: false }; sonoAdmin = false; inPausa = false; mieiBadge = {}; $("pausa").classList.add("nascosto"); mieRecensioni = []; recensiti = new Set(); ascoltoInvito?.(); ascoltoInvito = null;
   if (u) {
     ascolti.push(onSnapshot(doc(db, "utenti", u.uid), d => {
       const dati = d.data() || {};
       const prima = profiloMio.mioCodice;
-      profiloMio = { caricato: true, ammesso: dati.ammesso === true, mioCodice: dati.mioCodice || null };
+      profiloMio = { caricato: true, ammesso: dati.ammesso === true, mioCodice: dati.mioCodice || null, paese: dati.paese || null, aliSpese: Number.isInteger(dati.aliSpese) ? dati.aliSpese : 0 };
+      if (profiloMio.ammesso && !profiloMio.paese) setTimeout(chiediPaese, 600);
+      if (profiloMio.paese && !paeseVisto) { paeseVisto = true; setTimeout(() => vaiAlPaese(profiloMio.paese), 300); }
       if (!dati.creato) setDoc(doc(db, "utenti", u.uid), { creato: serverTimestamp() }, { merge: true }).catch(() => {});
       if (profiloMio.ammesso && !profiloMio.mioCodice) creaMioCodice();
       if (profiloMio.mioCodice && profiloMio.mioCodice !== prima) {
