@@ -10,7 +10,7 @@ a{display:block;margin:12px auto;max-width:320px;padding:16px;border-radius:99px
 // Android scarica l'app, iPhone e computer aprono BikeFly Web
 var ua = navigator.userAgent || "";
 var ios = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-if (/Android/i.test(ua)) { document.getElementById("t").textContent = "Scarico l'app per Android…"; location.href = "../bikefly.apk"; }
+if (/Android/i.test(ua)) { document.getElementById("t").textContent = "Ti porto alla guida per Android…"; location.replace("../installa/?os=android"); }
 else if (ios) { document.getElementById("t").textContent = "Apro BikeFly Web…"; location.replace("../app/"); }
 else { document.getElementById("t").textContent = "Scegli come usare BikeFly:"; }
 </script></body></html>

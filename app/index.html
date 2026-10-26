@@ -601,7 +601,7 @@ function apriBici(id) {
         proprietarioUid: b.proprietarioUid, commissione: commissionePer(p, scelta), conKit: false, gruppo: 0, inizioPrevistoMs: null,
         codiceTentativo: "", creato: Date.now()
       });
-      chiudiFoglio(); avvisa("Richiesta inviata! ✓"); vai("noleggi");
+      chiudiFoglio(); avvisa("Richiesta inviata! ✓"); vai("noleggi"); momentoMagico("richiesta");
     } catch (e) { btn.disabled = false; btn.textContent = "Chiedi la bici"; avvisa("Richiesta rifiutata: " + (e.code || "riprova")); }
   });
 }
@@ -879,7 +879,7 @@ $("moduloBici").onsubmit = async ev => {
     $("caricaFoto").firstElementChild.outerHTML = `<span id="testoFoto">📸<br>Tocca per aggiungere una foto</span>`;
     orariScelti = []; disegnaOrari(); puntoRitiro = null; segnoRitiro?.remove(); segnoRitiro = null;
     $("testoRitiro").textContent = "Se non lo scegli, sulla mappa la bici appare vicino al centro del quartiere.";
-    avvisa("La tua bici è sulla mappa! 🎉"); vai("mappa");
+    avvisa("La tua bici è sulla mappa! 🎉"); vai("mappa"); momentoMagico("bici");
   } catch (e) { avvisa("Non pubblicata: aspetta un minuto tra una bici e l'altra"); }
   btn.disabled = false; btn.textContent = "Pubblica la bici";
 };
@@ -1052,6 +1052,28 @@ async function cardNotifiche() {
 }
 // il service worker chiede di aprire una pagina dopo il tocco su una notifica
 navigator.serviceWorker?.addEventListener("message", e => { if (e.data?.apri && utente) vai("noleggi"); });
+
+// ---------------- il "momento magico": dopo la prima richiesta o la prima bici ----------------
+// è lì che la gente ha un motivo vero per mettere BikeFly sulla Home e attivare le notifiche
+async function momentoMagico(perche) {
+  let visto = false; try { visto = localStorage.getItem("momento_" + perche) === "1"; localStorage.setItem("momento_" + perche, "1"); } catch (e) {}
+  if (visto) return;
+  const st = await statoNotifiche();
+  if (st !== "home" && st !== "da") return;
+  const frase = perche === "richiesta" ? "Ti avvisiamo appena il proprietario risponde alla tua richiesta." : "Ti avvisiamo appena qualcuno chiede la tua bici, così non perdi il noleggio.";
+  setTimeout(() => {
+    if (st === "home") apriFoglio(`<div style="text-align:center"><div style="font-size:52px">📲</div><h2 style="margin:6px 0">Non perderti la risposta!</h2><p class="nota" style="margin-bottom:14px">${frase} Su iPhone serve un passaggio: mettere BikeFly sulla schermata Home.</p></div>
+      <ol style="list-style:none;display:grid;gap:10px;margin:0 0 16px;padding:0">
+        <li class="riga-neg"><div class="pallino" style="background:rgba(255,255,255,.12)">⬆️</div><div class="nome">Tocca <b>Condividi</b> nella barra di Safari <small class="nota">(o ••• → Condividi)</small></div></li>
+        <li class="riga-neg"><div class="pallino" style="background:rgba(255,255,255,.12)">＋</div><div class="nome">"Aggiungi alla schermata Home"</div></li>
+        <li class="riga-neg"><div class="pallino" style="background:rgba(255,255,255,.12)">🔔</div><div class="nome">Aprila dall'icona e tocca "Attiva le notifiche" nel Profilo</div></li>
+      </ol><button class="btn primo" id="okMagico">Ho capito</button>`);
+    else apriFoglio(`<div style="text-align:center"><div style="font-size:52px">🔔</div><h2 style="margin:6px 0">Vuoi essere avvisato?</h2><p class="nota" style="margin-bottom:16px">${frase}</p></div>
+      <button class="btn primo" id="siMagico">Attiva le notifiche</button><button class="btn vetro" id="okMagico" style="margin-top:10px">Più tardi</button>`);
+    $("okMagico") && ($("okMagico").onclick = chiudiFoglio);
+    $("siMagico") && ($("siMagico").onclick = () => { chiudiFoglio(); attivaNotifiche(); });
+  }, 900);
+}
 
 // ---------------- Giri: i post della community, con le reazioni ----------------
 const REAZIONI = ["❤️", "🔥", "🚲", "👏"];
