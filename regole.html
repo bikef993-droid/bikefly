@@ -43,10 +43,13 @@ allow create: if accesso() &amp;&amp; io() == uid &amp;&amp; profiloValido()
 &amp;&amp; request.resource.data.get(&#x27;punti&#x27;, 0) &lt;= 1500
 &amp;&amp; (request.resource.data.get(&#x27;ammesso&#x27;, false) == false || invitoUsato())
 &amp;&amp; (request.resource.data.get(&#x27;mioCodice&#x27;, null) == null || mioCodiceOk())
-&amp;&amp; (request.resource.data.get(&#x27;creato&#x27;, null) == null || request.resource.data.creato == request.time);
+&amp;&amp; (request.resource.data.get(&#x27;creato&#x27;, null) == null || request.resource.data.creato == request.time)
+&amp;&amp; (request.resource.data.get(&#x27;regoleAccettate&#x27;, null) == null || request.resource.data.regoleAccettate == request.time);
 allow update: if accesso() &amp;&amp; io() == uid &amp;&amp; profiloValido()
 &amp;&amp; puntiOnesti() &amp;&amp; tempoOnesto(&#x27;ultimaBici&#x27;, 60) &amp;&amp; tempoOnesto(&#x27;ultimoPost&#x27;, 30)
 &amp;&amp; tempoOnesto(&#x27;ultimaEvidenza&#x27;, 432000)
+&amp;&amp; (!(&#x27;regoleAccettate&#x27; in cambiati()) || request.resource.data.regoleAccettate == request.time)
+&amp;&amp; request.resource.data.get(&#x27;regoleVersione&#x27;, 0) &gt;= resource.data.get(&#x27;regoleVersione&#x27;, 0)
 &amp;&amp; request.resource.data.get(&#x27;aliSpese&#x27;, 0) &gt;= resource.data.get(&#x27;aliSpese&#x27;, 0)
 &amp;&amp; request.resource.data.get(&#x27;aliOggetti&#x27;, []).hasAll(resource.data.get(&#x27;aliOggetti&#x27;, []))
 &amp;&amp; (!(&#x27;ammesso&#x27; in cambiati()) || (request.resource.data.ammesso == true &amp;&amp; resource.data.get(&#x27;ammesso&#x27;, false) == false &amp;&amp; invitoUsato()))
@@ -68,6 +71,7 @@ return testo(d.get(&#x27;nome&#x27;, &#x27;&#x27;), 30)
 &amp;&amp; (d.get(&#x27;paese&#x27;, null) == null || testo(d.paese, 40))
 &amp;&amp; d.get(&#x27;aliSpese&#x27;, 0) is int &amp;&amp; d.get(&#x27;aliSpese&#x27;, 0) &gt;= 0
 &amp;&amp; d.get(&#x27;aliOggetti&#x27;, []) is list &amp;&amp; d.get(&#x27;aliOggetti&#x27;, []).size() &lt;= 10
+&amp;&amp; d.get(&#x27;regoleVersione&#x27;, 0) is int &amp;&amp; d.get(&#x27;regoleVersione&#x27;, 0) &gt;= 0 &amp;&amp; d.get(&#x27;regoleVersione&#x27;, 0) &lt;= 1000
 &amp;&amp; d.get(&#x27;punti&#x27;, 0) is int &amp;&amp; d.get(&#x27;punti&#x27;, 0) &gt;= 0
 &amp;&amp; d.get(&#x27;km&#x27;, 0) is number &amp;&amp; d.get(&#x27;km&#x27;, 0) &gt;= 0
 &amp;&amp; (d.get(&#x27;foto&#x27;, null) == null || (d.foto is string &amp;&amp; d.foto.size() &lt;= 150000));

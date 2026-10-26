@@ -207,6 +207,32 @@ button,a,.btn{touch-action:manipulation}
 .badge span{font-size:12px;font-weight:800;padding:4px 10px;border-radius:99px;background:linear-gradient(90deg,var(--menta),var(--cielo));color:#fff}
 .segnala{display:block;margin:14px auto 0;color:var(--nebbia);font-size:13px;font-weight:700;padding:6px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* regole da accettare: schede di vetro da scorrere */
+.regole{position:fixed;inset:0;z-index:80;background:radial-gradient(120% 80% at 20% 0%,rgba(0,210,160,.35),transparent 60%),radial-gradient(120% 80% at 90% 100%,rgba(140,90,255,.4),transparent 60%),var(--notte);display:flex;flex-direction:column;padding:calc(var(--su) + 14px) 0 calc(var(--giu) + 18px);animation:regEntra .35s ease}
+@keyframes regEntra{from{opacity:0;transform:scale(1.04)}}
+.regole .testa{display:flex;justify-content:space-between;align-items:center;padding:0 18px;font-weight:900;font-size:16px}
+.regole .x{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:50%;width:40px;height:40px;font-size:17px;font-weight:800}
+.regole .scorri{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;align-items:center}
+.regole .scorri::-webkit-scrollbar{display:none}
+.regole .scheda{flex:0 0 100%;scroll-snap-align:center;padding:0 22px;box-sizing:border-box}
+.regole .vetro-r{max-width:440px;margin:0 auto;text-align:center;padding:26px 22px;border-radius:30px;background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 20px 50px rgba(0,0,0,.35);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.regole .num{font-size:13px;font-weight:800;opacity:.75}
+.regole .em{font-size:58px;width:120px;height:120px;margin:14px auto;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.45),rgba(255,255,255,.08) 60%);border:1px solid rgba(255,255,255,.35);animation:regGalla 3.4s ease-in-out infinite}
+@keyframes regGalla{50%{transform:translateY(-8px)}}
+.regole h2{font-family:Bricolage,sans-serif;font-size:26px;line-height:1.1;margin:6px 0 10px}
+.regole p{color:rgba(255,255,255,.92);font-size:15px;line-height:1.5;margin:0}
+.regole .piede{padding:0 22px;max-width:480px;margin:0 auto;width:100%;box-sizing:border-box;text-align:center}
+.regole .punti{display:flex;gap:7px;justify-content:center;margin-bottom:14px}
+.regole .punti i{height:8px;width:8px;border-radius:9px;background:rgba(255,255,255,.4);transition:all .3s}
+.regole .punti i.on{width:28px;background:#fff}
+.regole .piede a{display:inline-block;margin-top:10px;font-size:12px;color:rgba(255,255,255,.85)}
+@media (prefers-reduced-motion:reduce){.regole,.regole .em{animation:none}}
+/* controllo della bici */
+.controllo{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:12px 14px;margin:10px 0}
+.controllo b{display:block;margin-bottom:4px}
+.controllo label{display:flex;gap:10px;align-items:center;padding:7px 0;font-size:15px}
+.controllo input{width:20px;height:20px;accent-color:var(--menta)}
+.controllo .problema{background:none;border:0;color:var(--corallo);font-weight:800;padding:6px 0;font-size:14px}
 </style>
 </head>
 <body>
@@ -533,6 +559,60 @@ $("btnGps").onclick = () => {
 
 // ---------------- foglio dal basso ----------------
 function apriFoglio(html) { $("contenutoFoglio").innerHTML = html; $("velo").classList.add("aperto"); $("foglio").classList.add("aperto"); $("foglio").scrollTop = 0; }
+
+// ---------------- regole da accettare (con prova: data e versione) ----------------
+const REGOLE_VERSIONE = 1;
+const REGOLE = [
+  ["🤝", "BikeFly vi mette in contatto", "BikeFly è un intermediario: fa incontrare chi presta la bici e chi la noleggia. Il noleggio è un accordo tra voi due."],
+  ["🧑‍✈️", "Chi pedala è responsabile", "Mentre usi la bici rispondi tu di come guidi, del codice della strada e dei danni che causi. Il casco è consigliato: proteggi la testa."],
+  ["🔧", "Bici in ordine, sempre", "Chi presta garantisce che la bici è sicura. Chi la ritira fa il controllo prima di partire: freni, gomme, luci, sella. Se qualcosa non va, non partire e avvisa in chat."],
+  ["📸", "Le foto proteggono tutti e due", "Alla consegna e alla restituzione si fa la foto della bici: è la prova di com'era. Senza foto non si parte e non si restituisce."],
+  ["⏱️", "Danni e ritardi si pagano", "Se rompi qualcosa paghi tu il danno. Il ritardo costa 1 € ogni 10 minuti e, oltre 3 ore, la cauzione resta al proprietario."],
+  ["💜", "Rispetto e fiducia", "Niente profili falsi, niente scorrettezze: chi non rispetta le regole viene bloccato. Le regole complete sono nei termini d'uso."]
+];
+function regoleLocali() { try { return +(localStorage.getItem("regoleV") || 0); } catch (e) { return 0; } }
+function regoleOk() { return Math.max(regoleLocali(), profiloMio.regoleVersione || 0) >= REGOLE_VERSIONE; }
+function chiediRegole() {
+  if (regoleOk()) return Promise.resolve(true);
+  return new Promise(fine => {
+    const box = document.createElement("div");
+    box.className = "regole"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", "Le regole di BikeFly");
+    box.innerHTML = `<div class="testa"><span>📜 Le regole di BikeFly</span><button class="x" aria-label="Chiudi senza accettare">✕</button></div>
+      <div class="scorri">${REGOLE.map((g, i) => `<section class="scheda"><div class="vetro-r"><div class="num">Regola ${i + 1} di ${REGOLE.length}</div><div class="em">${g[0]}</div><h2>${g[1]}</h2><p>${g[2]}</p></div></section>`).join("")}</div>
+      <div class="piede"><div class="punti">${REGOLE.map(() => "<i></i>").join("")}</div><button class="btn primo" id="regAvanti">Avanti</button><br><a href="../termini.html" target="_blank">Leggi i termini d'uso completi</a></div>`;
+    document.body.appendChild(box);
+    const scorri = box.querySelector(".scorri"), btn = box.querySelector("#regAvanti"), punti = [...box.querySelectorAll(".punti i")];
+    let viste = false;
+    const pagina = () => Math.round(scorri.scrollLeft / Math.max(1, scorri.clientWidth));
+    const aggiorna = () => {
+      const i = pagina();
+      punti.forEach((p, k) => p.classList.toggle("on", k === i));
+      if (i === REGOLE.length - 1) viste = true;
+      btn.textContent = viste && i === REGOLE.length - 1 ? "Ho letto e accetto ✓" : "Avanti";
+    };
+    scorri.addEventListener("scroll", aggiorna, { passive: true }); aggiorna();
+    const chiudi = ok => { box.remove(); fine(ok); };
+    box.querySelector(".x").onclick = () => chiudi(false);
+    btn.onclick = async () => {
+      const i = pagina();
+      if (!(viste && i === REGOLE.length - 1)) { scorri.scrollTo({ left: (i + 1) * scorri.clientWidth, behavior: "smooth" }); return; }
+      try { localStorage.setItem("regoleV", REGOLE_VERSIONE); } catch (e) {}
+      profiloMio.regoleVersione = REGOLE_VERSIONE;
+      if (navigator.vibrate) navigator.vibrate(15);
+      setDoc(doc(db, "utenti", utente.uid), { regoleVersione: REGOLE_VERSIONE, regoleAccettate: serverTimestamp() }, { merge: true }).catch(() => {});
+      chiudi(true);
+    };
+  });
+}
+// ---------------- controllo della bici prima di partire ----------------
+const CONTROLLI = ["🛑 I freni frenano bene", "🛞 Le gomme sono gonfie", "💡 Luci e catarifrangenti ci sono", "🪑 La sella è all'altezza giusta"];
+const controlliFatti = {};
+function controlloOk(id) { return (controlliFatti[id] || new Set()).size === CONTROLLI.length; }
+function rigaControllo(n) {
+  const f = controlliFatti[n.id] || new Set();
+  return `<div class="controllo"><b>✅ Controllo prima di partire</b>${CONTROLLI.map((c, i) => `<label><input type="checkbox" data-ctrl="${i}" data-id="${n.id}" ${f.has(i) ? "checked" : ""}>${c}</label>`).join("")}
+    <p class="nota">🪖 Casco consigliato (sul monopattino è obbligatorio).</p><button class="problema" data-a="chat" data-id="${n.id}">⚠️ Qualcosa non va? Non partire: scrivilo in chat</button></div>`;
+}
 function chiudiFoglio() { $("velo").classList.remove("aperto"); $("foglio").classList.remove("aperto"); }
 $("velo").onclick = chiudiFoglio;
 
@@ -590,6 +670,7 @@ function apriBici(id) {
   });
   $("fdRichiedi") && ($("fdRichiedi").onclick = async () => {
     if (!puoScrivere()) return;
+    if (!(await chiediRegole())) return;
     const btn = $("fdRichiedi"); btn.disabled = true; btn.textContent = "Invio la richiesta…";
     const p = prezzoPer(b, scelta);
     try {
@@ -622,7 +703,7 @@ function disegnaNoleggi() {
     if (cliente) {
       if (n.fase === "IN_ATTESA") azioni = `<p class="nota">Aspettiamo che ${esc(altro)} accetti.</p><button class="btn vetro" data-a="annulla" data-id="${n.id}">Annulla la richiesta</button>`;
       if (n.fase === "ACCETTATO") azioni = rigaFoto(n, "consegna") + (n.codiceOk
-        ? `<p class="nota">✅ Codice giusto! Ritira la bici e parti.</p>${n.fotoConsegnaMs ? `<button class="btn primo" data-a="avvia" data-id="${n.id}">Ho ritirato la bici · Avvia</button>` : `<button class="btn primo" disabled>📸 Prima fai la foto alla bici</button>`}`
+        ? `<p class="nota">✅ Codice giusto! Ritira la bici e parti.</p>${rigaControllo(n)}${!n.fotoConsegnaMs ? `<button class="btn primo" disabled>📸 Prima fai la foto alla bici</button>` : `<button class="btn primo" data-a="avvia" data-id="${n.id}" id="avvia-${n.id}" ${controlloOk(n.id) ? "" : "disabled"}>${controlloOk(n.id) ? "Ho ritirato la bici · Avvia" : "✅ Prima fai il controllo della bici"}</button>`}`
         : `<p class="nota">Vai a ritirare la bici: ${esc(altro)} ti dirà un codice di 4 cifre. Scrivilo qui.</p>
            <div class="cifre"><input class="campo" inputmode="numeric" maxlength="4" placeholder="••••" id="cod-${n.id}"><button class="btn primo piccolo" data-a="codice" data-id="${n.id}">Invia</button></div>
            ${n.codiceTentativo ? `<p class="nota">Controllo il codice sul telefono del proprietario…</p>` : n.codiceErrato ? `<p class="nota" style="color:var(--corallo)">Codice sbagliato, riprova.</p>` : ""}`);
@@ -642,6 +723,14 @@ function disegnaNoleggi() {
       ${n.motivoFine ? `<p class="nota">${esc(n.motivoFine)}</p>` : ""}${azioni}${chat}</div>`;
   }).join("");
 }
+$("listaNoleggi").addEventListener("change", ev => {
+  const c = ev.target.closest("[data-ctrl]"); if (!c) return;
+  const id = c.dataset.id, f = controlliFatti[id] || (controlliFatti[id] = new Set());
+  c.checked ? f.add(+c.dataset.ctrl) : f.delete(+c.dataset.ctrl);
+  if (navigator.vibrate) navigator.vibrate(8);
+  const b = $("avvia-" + id);
+  if (b) { b.disabled = !controlloOk(id); b.textContent = controlloOk(id) ? "Ho ritirato la bici · Avvia" : "✅ Prima fai il controllo della bici"; }
+});
 $("listaNoleggi").addEventListener("click", async ev => {
   const el = ev.target.closest("[data-a]"); if (!el) return;
   const id = el.dataset.id, ref = doc(db, "noleggi", id);
@@ -661,7 +750,8 @@ $("listaNoleggi").addEventListener("click", async ev => {
         if (v.length !== 4) return avvisa("Il codice ha 4 cifre");
         await updateDoc(ref, { codiceTentativo: v }); break;
       }
-      case "avvia": await updateDoc(ref, { fase: "IN_CORSO", inizioMs: Date.now() }); avvisa("Buona pedalata! 🚴"); break;
+      case "avvia": if (!controlloOk(id)) return avvisa("Prima fai il controllo della bici");
+        await updateDoc(ref, { fase: "IN_CORSO", inizioMs: Date.now() }); avvisa("Buona pedalata! 🚴"); break;
       case "restituisci": await updateDoc(ref, { fase: "CONCLUSO", fineMs: Date.now() }); avvisa("Bici restituita! Cauzione sbloccata 🛡️"); break;
       case "voto": {
         const v = +el.dataset.v, n = miei.find(x => x.id === id);
@@ -860,6 +950,7 @@ $("moduloBici").onsubmit = async ev => {
   if (!$("biciLucchetto").checked) return avvisa("Il lucchetto è obbligatorio");
   if (mono && (!$("biciTarghino").checked || !$("biciAssicurazione").checked)) return avvisa("Per il monopattino servono targhino e assicurazione");
   if (!$("biciConsenso").checked) return avvisa("Conferma l'età e i termini");
+  if (!(await chiediRegole())) return;
   const btn = $("btnPubblica"); btn.disabled = true; btn.textContent = "Pubblico…";
   try {
     const ref = doc(collection(db, "bici"));
@@ -1384,7 +1475,7 @@ onAuthStateChanged(auth, u => {
     ascolti.push(onSnapshot(doc(db, "utenti", u.uid), d => {
       const dati = d.data() || {};
       const prima = profiloMio.mioCodice;
-      profiloMio = { caricato: true, ammesso: dati.ammesso === true, mioCodice: dati.mioCodice || null, paese: dati.paese || null, aliSpese: Number.isInteger(dati.aliSpese) ? dati.aliSpese : 0, aliOggetti: Array.isArray(dati.aliOggetti) ? dati.aliOggetti : [] };
+      profiloMio = { caricato: true, ammesso: dati.ammesso === true, mioCodice: dati.mioCodice || null, paese: dati.paese || null, aliSpese: Number.isInteger(dati.aliSpese) ? dati.aliSpese : 0, aliOggetti: Array.isArray(dati.aliOggetti) ? dati.aliOggetti : [], regoleVersione: Number.isInteger(dati.regoleVersione) ? dati.regoleVersione : 0 };
       if (profiloMio.ammesso && !profiloMio.paese) setTimeout(chiediPaese, 600);
       if (profiloMio.paese && !paeseVisto) { paeseVisto = true; setTimeout(() => vaiAlPaese(profiloMio.paese), 300); }
       if (!dati.creato) setDoc(doc(db, "utenti", u.uid), { creato: serverTimestamp() }, { merge: true }).catch(() => {});
