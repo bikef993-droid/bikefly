@@ -87,10 +87,19 @@ label.etichetta{display:block;font-size:13px;font-weight:700;color:var(--nebbia)
 .btn-gps{position:absolute;right:14px;bottom:calc(var(--giu) + 96px);z-index:5;width:52px;height:52px;border-radius:50%;background:rgba(7,18,38,.9);border:1px solid rgba(255,255,255,.15);font-size:22px}
 
 /* barra in basso */
-nav.barra{position:absolute;left:12px;right:12px;bottom:calc(var(--giu) + 12px);z-index:20;display:grid;grid-template-columns:repeat(4,1fr);background:rgba(10,22,46,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);border-radius:26px;padding:6px}
-nav.barra button{display:grid;justify-items:center;gap:2px;padding:8px 0;border-radius:20px;font-size:11px;font-weight:700;color:var(--nebbia);position:relative}
-nav.barra button span{font-size:22px;line-height:1}
-nav.barra button.attiva{color:var(--latte);background:rgba(255,255,255,.08)}
+/* Liquid Glass: barra di vetro con una lente che segue il dito */
+nav.barra{position:absolute;left:12px;right:12px;bottom:calc(var(--giu) + 12px);z-index:20;display:grid;grid-template-columns:repeat(4,1fr);background:rgba(14,30,60,.55);backdrop-filter:blur(18px) saturate(1.8);-webkit-backdrop-filter:blur(18px) saturate(1.8);border:1px solid rgba(255,255,255,.18);border-radius:30px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(255,255,255,.06);touch-action:none;user-select:none;-webkit-user-select:none}
+nav.barra::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.16),transparent 55%);pointer-events:none}
+nav.barra button{display:grid;justify-items:center;gap:2px;padding:8px 0;border-radius:24px;font-size:11px;font-weight:700;color:var(--nebbia);position:relative;z-index:2;transition:color .25s}
+nav.barra button span{font-size:22px;line-height:1;transition:transform .35s cubic-bezier(.3,1.6,.5,1);will-change:transform}
+nav.barra button.attiva{color:var(--latte)}
+.lente{position:absolute;top:6px;bottom:6px;left:0;width:0;border-radius:24px;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,rgba(0,210,160,.55),rgba(59,139,255,.55));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(255,255,255,.15),inset 1px 0 0 rgba(0,210,160,.5),inset -1px 0 0 rgba(59,139,255,.5),0 6px 18px rgba(59,139,255,.35);
+  transition:transform .55s cubic-bezier(.3,1.5,.45,1),background .3s,box-shadow .3s;will-change:transform}
+.lente.premuta{background:rgba(255,255,255,.10);backdrop-filter:blur(1.5px) saturate(2) brightness(1.15);-webkit-backdrop-filter:blur(1.5px) saturate(2) brightness(1.15);
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(255,255,255,.3),inset 2px 0 0 rgba(0,210,160,.6),inset -2px 0 0 rgba(59,139,255,.6),0 10px 26px rgba(0,0,0,.35);transition:transform .08s linear,background .3s,box-shadow .3s}
+@media (prefers-reduced-motion:reduce){.lente,nav.barra button span{transition:none}}
 .puntino{position:absolute;top:6px;right:calc(50% - 18px);width:9px;height:9px;border-radius:50%;background:var(--corallo)}
 
 /* foglio dal basso */
@@ -270,7 +279,7 @@ h2.titolo{font-size:34px;margin-bottom:16px}
   <div id="pg-profilo" class="vista pagina nascosto"><h2 class="titolo">Profilo</h2><div id="profilo"></div></div>
 
   <div id="home" class="nascosto" role="note"><b>📲 Mettila nella schermata Home</b><br>Tocca <b>Condividi</b> <span aria-hidden="true">⬆️</span> qui sotto in Safari, poi <b>"Aggiungi alla schermata Home"</b>. BikeFly diventa un'icona come un'app.<button id="chiudiHome" aria-label="Chiudi">✕</button></div>
-  <nav class="barra" aria-label="Sezioni">
+  <nav class="barra" aria-label="Sezioni"><i class="lente" id="lente" aria-hidden="true"></i>
     <button data-pg="mappa" class="attiva"><span>🗺️</span>Mappa</button>
     <button data-pg="noleggi"><span>🔑</span>Noleggi<i class="puntino nascosto" id="puntino"></i></button>
     <button data-pg="pubblica"><span>➕</span>Pubblica</button>
@@ -1032,18 +1041,70 @@ async function apriProfilo(uid) {
 }
 
 // ---------------- navigazione ----------------
+// ---------------- Liquid Glass: la lente segue il dito sulla barra ----------------
+let trascinoBarra = false;
+const barra = document.querySelector("nav.barra"), lente = $("lente"), tasti = [...document.querySelectorAll("nav.barra button")];
+function geometria() { const r = barra.getBoundingClientRect(), t = tasti.map(b => b.getBoundingClientRect()); return { r, t, w: t[0].width }; }
+function mettiLente(cx, scala = 1, stira = 0) {
+  const { r, w } = geometria();
+  const meta = w * scala * (1 + stira) / 2;
+  const min = Math.max(6 + w / 2, meta + 2), max = Math.min(r.width - 6 - w / 2, r.width - meta - 2);
+  const x = Math.max(min, Math.min(max, cx));
+  lente.style.width = w + "px";
+  lente.style.transform = `translateX(${x - w / 2}px) scale(${scala * (1 + stira)},${scala * (1 - stira * .35)})`;
+  // le icone sotto la lente si ingrandiscono
+  const { t } = geometria();
+  t.forEach((q, i) => {
+    const c = q.left - r.left + q.width / 2, vicino = Math.max(0, 1 - Math.abs(c - x) / w);
+    tasti[i].firstElementChild.style.transform = `scale(${1 + (scala > 1 ? .4 : .1) * vicino}) translateY(${scala > 1 ? -3 * vicino : 0}px)`;
+  });
+  return x;
+}
+function lenteSu(pg) {
+  const i = Math.max(0, tasti.findIndex(b => b.dataset.pg === pg));
+  const { r, t } = geometria(); if (!r.width) return;
+  mettiLente(t[i].left - r.left + t[i].width / 2);
+}
+function sotto(x) { const { r, t } = geometria(); let m = 0, d = 1e9; t.forEach((q, i) => { const c = q.left - r.left + q.width / 2; if (Math.abs(c - x) < d) { d = Math.abs(c - x); m = i; } }); return m; }
+let ultimoX = 0, ultimoT = 0, ultimoTasto = -1, inizioX = 0;
+barra.addEventListener("pointerdown", e => {
+  trascinoBarra = true; barra.setPointerCapture(e.pointerId);
+  const x = e.clientX - barra.getBoundingClientRect().left;
+  inizioX = ultimoX = x; ultimoT = e.timeStamp; ultimoTasto = sotto(x);
+  lente.classList.add("premuta"); mettiLente(x, 1.18);
+});
+barra.addEventListener("pointermove", e => {
+  if (!trascinoBarra) return;
+  const x = e.clientX - barra.getBoundingClientRect().left;
+  const v = (x - ultimoX) / Math.max(1, e.timeStamp - ultimoT); ultimoX = x; ultimoT = e.timeStamp;
+  mettiLente(x, 1.18, Math.min(.3, Math.abs(v) * .12));
+  const s = sotto(x); if (s !== ultimoTasto) { ultimoTasto = s; navigator.vibrate?.(6); }
+});
+function fineTrascino(e) {
+  if (!trascinoBarra) return;
+  trascinoBarra = false; lente.classList.remove("premuta");
+  const x = e.clientX - barra.getBoundingClientRect().left;
+  const scelto = tasti[sotto(Math.abs(x - inizioX) > 8 ? x : inizioX)];
+  vai(scelto.dataset.pg);
+}
+barra.addEventListener("pointerup", fineTrascino);
+barra.addEventListener("pointercancel", fineTrascino);
+addEventListener("resize", () => lenteSu(vistaAttuale));
+requestAnimationFrame(() => lenteSu(vistaAttuale || "mappa"));
 let vistaAttuale = "mappa";
 function vai(pg) {
   vistaAttuale = pg;
   document.querySelectorAll(".vista").forEach(v => v.classList.toggle("nascosto", v.id !== "pg-" + pg));
   document.querySelectorAll("nav.barra button").forEach(b => b.classList.toggle("attiva", b.dataset.pg === pg));
+  if (!trascinoBarra) lenteSu(pg);
   if (pg === "mappa") setTimeout(() => mappa?.invalidateSize(), 60);
   if (pg === "noleggi") disegnaNoleggi();
   if (pg === "profilo") disegnaProfilo();
   if (pg === "pubblica") setTimeout(preparaMappaRitiro, 60);
   consiglioHome();
 }
-document.querySelectorAll("nav.barra button").forEach(b => b.onclick = () => vai(b.dataset.pg));
+document.querySelectorAll("nav.barra button").forEach(b => b.onclick = e => { if (e.detail === 0) vai(b.dataset.pg); });
+
 setInterval(() => { if (vistaAttuale === "noleggi" && [...miei].some(n => n.fase === "IN_CORSO")) disegnaNoleggi(); }, 30000);
 
 // su iPhone, se non è già nella schermata Home, spiega come aggiungerla
