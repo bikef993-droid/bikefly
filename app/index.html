@@ -221,6 +221,13 @@ button,a,.btn{touch-action:manipulation}
 @keyframes regGalla{50%{transform:translateY(-8px)}}
 .regole h2{font-family:Bricolage,sans-serif;font-size:26px;line-height:1.1;margin:6px 0 10px}
 .regole p{color:rgba(255,255,255,.92);font-size:15px;line-height:1.5;margin:0}
+.regole .scheda .em,.regole .scheda h2,.regole .scheda p{transition:transform .7s cubic-bezier(.34,1.56,.64,1),opacity .5s}
+.regole .scheda:not(.on) .em{transform:scale(.4) rotate(-40deg);opacity:0}
+.regole .scheda:not(.on) h2{transform:translateY(28px);opacity:0}
+.regole .scheda:not(.on) p{transform:translateY(20px);opacity:0}
+.regole .scheda.on p{transition-delay:.15s}
+.regole .barra{height:5px;margin:12px 18px 0;border-radius:9px;background:rgba(255,255,255,.18);overflow:hidden}
+.regole .barra i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--menta),var(--cielo));border-radius:9px;transition:width .4s}
 .regole .piede{padding:0 22px;max-width:480px;margin:0 auto;width:100%;box-sizing:border-box;text-align:center}
 .regole .punti{display:flex;gap:7px;justify-content:center;margin-bottom:14px}
 .regole .punti i{height:8px;width:8px;border-radius:9px;background:rgba(255,255,255,.4);transition:all .3s}
@@ -303,7 +310,7 @@ button,a,.btn{touch-action:manipulation}
       <div class="pillola"><svg viewBox="0 0 40 28"><circle cx="9" cy="19" r="7.5" fill="none" stroke="#00D2A0" stroke-width="3"/><circle cx="31" cy="19" r="7.5" fill="none" stroke="#3B8BFF" stroke-width="3"/><path d="M9 19 16 6h10l5 13M16 6l7 13" fill="none" stroke="#F3F6FB" stroke-width="2.6" stroke-linejoin="round"/></svg>BikeFly</div>
       <div class="pillola" id="contaBici">🚲 …</div>
     </div>
-    <div class="promo promo-mappa" data-promo id="promoMappa"><span>🎉</span><div><b>Zero commissioni fino al 31 marzo</b><small>Paghi solo il prezzo della bici.</small></div><button class="x" id="promoChiudi" aria-label="Chiudi">✕</button></div>
+    <div class="promo promo-mappa" data-promo id="promoMappa"><span>🎉</span><div><b>Zero commissioni fino al 28 febbraio</b><small>Paghi solo il prezzo della bici.</small></div><button class="x" id="promoChiudi" aria-label="Chiudi">✕</button></div>
     <button class="btn-gps" id="btnGps" aria-label="La mia posizione">📍</button>
     <div id="pausa" class="pausa nascosto" role="alert">⏸️ Account in pausa: hai ricevuto 3 segnalazioni. Il team BikeFly controlla e ti riattiva se è tutto a posto. Scrivici: bikef993@gmail.com</div>
   </div>
@@ -313,7 +320,7 @@ button,a,.btn{touch-action:manipulation}
   <div id="pg-pubblica" class="vista pagina nascosto">
     <h2 class="titolo">Presta la tua bici</h2>
     <p class="nota" style="margin:-8px 0 14px">Una foto, un prezzo, e la tua bici compare sulla mappa di tutti.</p>
-    <div class="promo" data-promo><span>🎉</span><div><b>Zero commissioni fino al 31 marzo</b><small>Quello che paga chi noleggia lo tieni tu (tolto solo il costo della carta).</small></div></div>
+    <div class="promo" data-promo><span>🎉</span><div><b>Zero commissioni fino al 28 febbraio</b><small>Quello che paga chi noleggia lo tieni tu (tolto solo il costo della carta).</small></div></div>
     <form id="moduloBici" novalidate>
       <label class="carica" id="caricaFoto"><span id="testoFoto">📸<br>Tocca per aggiungere una foto</span><input type="file" accept="image/*" id="fileFoto" class="nascosto"></label>
       <label class="etichetta" for="biciNome">Nome della bici</label><input class="campo" id="biciNome" maxlength="40" placeholder="Es. City bike azzurra">
@@ -589,15 +596,19 @@ function chiediRegole() {
     const box = document.createElement("div");
     box.className = "regole"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", "Le regole di BikeFly");
     box.innerHTML = `<div class="testa"><span>📜 Le regole di BikeFly</span><button class="x" aria-label="Chiudi senza accettare">✕</button></div>
+      <div class="barra"><i></i></div>
       <div class="scorri">${REGOLE.map((g, i) => `<section class="scheda"><div class="vetro-r"><div class="num">Regola ${i + 1} di ${REGOLE.length}</div><div class="em">${g[0]}</div><h2>${g[1]}</h2><p>${g[2]}</p></div></section>`).join("")}</div>
       <div class="piede"><div class="punti">${REGOLE.map(() => "<i></i>").join("")}</div><button class="btn primo" id="regAvanti">Avanti</button><br><a href="../termini.html" target="_blank">Leggi i termini d'uso completi</a></div>`;
     document.body.appendChild(box);
     const scorri = box.querySelector(".scorri"), btn = box.querySelector("#regAvanti"), punti = [...box.querySelectorAll(".punti i")];
     let viste = false;
     const pagina = () => Math.round(scorri.scrollLeft / Math.max(1, scorri.clientWidth));
+    const schede = [...box.querySelectorAll(".scheda")], barra = box.querySelector(".barra i");
     const aggiorna = () => {
       const i = pagina();
       punti.forEach((p, k) => p.classList.toggle("on", k === i));
+      schede.forEach((p, k) => p.classList.toggle("on", k === i));
+      barra.style.width = ((i + 1) / REGOLE.length * 100) + "%";
       if (i === REGOLE.length - 1) viste = true;
       btn.textContent = viste && i === REGOLE.length - 1 ? "Ho letto e accetto ✓" : "Avanti";
     };
@@ -611,7 +622,7 @@ function chiediRegole() {
       profiloMio.regoleVersione = REGOLE_VERSIONE;
       if (navigator.vibrate) navigator.vibrate(15);
       setDoc(doc(db, "utenti", utente.uid), { regoleVersione: REGOLE_VERSIONE, regoleAccettate: serverTimestamp() }, { merge: true }).catch(() => {});
-      chiudi(true);
+      coriandoli(); chiudi(true);
     };
   });
 }
@@ -626,7 +637,7 @@ function rigaControllo(n) {
 }
 
 // ---------------- promo di lancio e Pionieri ----------------
-const FINE_PROMO = new Date(2027, 3, 1).getTime(), FINE_PIONIERI = new Date(2026, 11, 1).getTime();
+const FINE_PROMO = new Date(2027, 2, 1).getTime(), FINE_PIONIERI = new Date(2026, 11, 1).getTime();
 const giorniPionieri = () => Math.max(0, Math.floor((FINE_PIONIERI - Date.now()) / 86400000));
 if (Date.now() >= FINE_PROMO) document.querySelectorAll("[data-promo]").forEach(e => e.remove());
 try { if (sessionStorage.getItem("promoVista")) $("promoMappa")?.remove(); } catch (e) {}
@@ -1021,7 +1032,7 @@ function disegnaProfilo() {
   $("pfEsci").onclick = () => signOut(auth);
   const testoInvito = () => "Ti invito su BikeFly, l'app per noleggiare e prestare bici a Piacenza 🚲\nIl mio codice invito: " + profiloMio.mioCodice + "\nhttps://bikef993-droid.github.io/bikefly/";
   $("pfInvita") && ($("pfInvita").onclick = () => whatsapp(testoInvito()));
-  $("pfPionieriWa") && ($("pfPionieriWa").onclick = () => whatsapp("A Piacenza arriva BikeFly: noleggi le bici dei vicini o guadagni prestando la tua 🚲 Zero commissioni fino al 31 marzo. Diventa Pioniere prima del 1° dicembre: https://bikef993-droid.github.io/bikefly/presto/"));
+  $("pfPionieriWa") && ($("pfPionieriWa").onclick = () => whatsapp("A Piacenza arriva BikeFly: noleggi le bici dei vicini o guadagni prestando la tua 🚲 Zero commissioni fino al 28 febbraio. Diventa Pioniere prima del 1° dicembre: https://bikef993-droid.github.io/bikefly/presto/"));
   if ($("numPionieri")) getDoc(doc(db, "contatori", "pubblico")).then(d => contaNumero($("numPionieri"), d.data()?.n || 0)).catch(() => { $("numPionieri").textContent = "—"; });
   $("pfInvitaAltro") && ($("pfInvitaAltro").onclick = async () => {
     const testo = testoInvito();
