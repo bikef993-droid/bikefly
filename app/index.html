@@ -88,7 +88,7 @@ label.etichetta{display:block;font-size:13px;font-weight:700;color:var(--nebbia)
 
 /* barra in basso */
 /* Liquid Glass: barra di vetro con una lente che segue il dito */
-nav.barra{position:absolute;left:12px;right:12px;bottom:calc(var(--giu) + 12px);z-index:20;display:grid;grid-template-columns:repeat(4,1fr);background:rgba(14,30,60,.55);backdrop-filter:blur(18px) saturate(1.8);-webkit-backdrop-filter:blur(18px) saturate(1.8);border:1px solid rgba(255,255,255,.18);border-radius:30px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(255,255,255,.06);touch-action:none;user-select:none;-webkit-user-select:none}
+nav.barra{position:absolute;left:12px;right:12px;bottom:calc(var(--giu) + 12px);z-index:20;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,30,60,.55);backdrop-filter:blur(18px) saturate(1.8);-webkit-backdrop-filter:blur(18px) saturate(1.8);border:1px solid rgba(255,255,255,.18);border-radius:30px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(255,255,255,.06);touch-action:none;user-select:none;-webkit-user-select:none}
 nav.barra::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.16),transparent 55%);pointer-events:none}
 nav.barra button{display:grid;justify-items:center;gap:2px;padding:8px 0;border-radius:24px;font-size:11px;font-weight:700;color:var(--nebbia);position:relative;z-index:2;transition:color .25s}
 nav.barra button span{font-size:22px;line-height:1;transition:transform .35s cubic-bezier(.3,1.6,.5,1);will-change:transform}
@@ -120,6 +120,23 @@ nav.barra button.attiva{color:var(--latte)}
 .totale .riga.tra:last-child{font-weight:800;font-size:18px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px}
 
 /* schede noleggi */
+.riga-neg{display:flex;align-items:center;gap:12px;padding:10px;border-radius:18px;background:rgba(255,255,255,.06)}
+.riga-neg .pallino{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:22px;flex:none}
+.riga-neg .nome{flex:1;font-weight:700}
+.riga-neg button{padding:9px 14px;border-radius:99px;font-weight:800;font-size:13px;background:linear-gradient(90deg,var(--menta),var(--cielo));color:#fff}
+.riga-neg button:disabled{background:rgba(255,255,255,.1);color:var(--nebbia)}
+.post{background:var(--notte2);border:1px solid rgba(255,255,255,.07);border-radius:26px;overflow:hidden;margin-bottom:14px}
+.post .testa{display:flex;gap:10px;align-items:center;padding:14px}
+.post .av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--menta),var(--cielo));display:grid;place-items:center;font-weight:800;font-family:Bricolage}
+.post .imm{aspect-ratio:1.1;display:grid;place-items:center;font-size:90px;position:relative}
+.post .imm img{width:100%;height:100%;object-fit:cover}
+.post .imm .info{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.45);padding:6px 12px;border-radius:99px;font-size:13px;font-weight:700}
+.post .testo{padding:10px 14px;font-size:14px;line-height:1.45}
+.reazioni{display:flex;align-items:center;gap:4px;padding:4px 10px 12px}
+.reazioni button{font-size:22px;width:42px;height:42px;border-radius:50%;transition:transform .3s cubic-bezier(.3,1.8,.5,1),background .2s}
+.reazioni button.mia{background:rgba(0,210,160,.18);transform:scale(1.18)}
+.reazioni button.spenta{opacity:.45}
+.reazioni b{margin-left:4px}
 .card{background:var(--notte2);border:1px solid rgba(255,255,255,.07);border-radius:22px;padding:16px;margin-bottom:12px;display:grid;gap:10px}
 .card h3{font-size:20px}
 .stato{font-size:12px;font-weight:800;padding:4px 10px;border-radius:99px;justify-self:start}
@@ -154,10 +171,27 @@ h2.titolo{font-size:34px;margin-bottom:16px}
 .banner{background:rgba(255,210,63,.14);border:1px solid rgba(255,210,63,.4);border-radius:18px;padding:14px;margin-bottom:14px;display:grid;gap:10px}
 .carica{width:100%;aspect-ratio:16/10;border-radius:20px;border:2px dashed rgba(255,255,255,.25);display:grid;place-items:center;text-align:center;color:var(--nebbia);overflow:hidden;cursor:pointer}
 .carica img{width:100%;height:100%;object-fit:cover}
-#home{position:absolute;left:12px;right:12px;bottom:calc(var(--giu) + 92px);z-index:21;background:var(--latte);color:var(--notte);border-radius:20px;padding:14px 44px 14px 16px;font-size:14px;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.4)}
-#home b{font-size:15px}
-#home button{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(7,18,38,.08);color:var(--notte);font-size:16px}
-#home::after{content:"";position:absolute;bottom:-8px;left:50%;margin-left:-8px;border:8px solid transparent;border-top-color:var(--latte);border-bottom:0}
+#home{position:absolute;left:12px;right:12px;bottom:calc(var(--giu) + 96px);z-index:21;background:rgba(14,30,60,.72);backdrop-filter:blur(22px) saturate(1.8);-webkit-backdrop-filter:blur(22px) saturate(1.8);border:1px solid rgba(255,255,255,.2);color:var(--latte);border-radius:26px;padding:16px 16px 14px;box-shadow:0 18px 50px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.3);animation:sale .6s cubic-bezier(.2,1.3,.4,1)}
+#home h3{font-size:19px;margin:0 30px 4px 0}
+#home .perche{font-size:13px;color:var(--nebbia);margin-bottom:12px}
+#home ol{list-style:none;display:grid;gap:8px;margin:0;padding:0}
+#home li{display:flex;align-items:center;gap:12px;font-size:14px;line-height:1.3}
+#home li i{flex:none;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-style:normal;font-size:17px;background:rgba(255,255,255,.12)}
+#home button{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.12);color:var(--latte);font-size:15px}
+#home .freccia{position:absolute;left:50%;bottom:-62px;margin-left:-16px;font-size:30px;animation:rimbalza 1s ease-in-out infinite;filter:drop-shadow(0 4px 10px rgba(0,210,160,.6))}
+@keyframes rimbalza{50%{transform:translateY(12px)}}
+@keyframes sale{from{opacity:0;transform:translateY(30px) scale(.95)}}
+@media (prefers-reduced-motion:reduce){#home,#home .freccia{animation:none}}
+/* sensazione da app: niente zoom, niente rimbalzi di Safari, niente selezioni per sbaglio */
+html{-webkit-text-size-adjust:100%}
+body{overscroll-behavior:none}
+button,nav,.btn,.lente,.prezzo-mk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button,a,.btn{touch-action:manipulation}
+::view-transition-old(root){animation:.22s ease both esce}
+::view-transition-new(root){animation:.32s cubic-bezier(.2,.9,.3,1) both entra}
+@keyframes esce{to{opacity:0;transform:scale(.985)}}
+@keyframes entra{from{opacity:0;transform:translateY(10px)}}
+@media (prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}}
 .fasce{display:flex;gap:8px;flex-wrap:wrap}
 .fasce button{padding:9px 13px;border-radius:99px;background:rgba(255,255,255,.07);border:1.5px solid transparent;font-weight:700;font-size:14px}
 .fasce button.si{border-color:var(--menta);background:rgba(0,210,160,.14)}
@@ -276,11 +310,22 @@ h2.titolo{font-size:34px;margin-bottom:16px}
     </form>
   </div>
 
+  <div id="pg-giri" class="vista pagina nascosto"><h2 class="titolo">Giri</h2><p class="nota" style="margin:-6px 0 14px">I giri in bici della community di BikeFly.</p><div id="listaGiri"></div></div>
   <div id="pg-profilo" class="vista pagina nascosto"><h2 class="titolo">Profilo</h2><div id="profilo"></div></div>
 
-  <div id="home" class="nascosto" role="note"><b>📲 Mettila nella schermata Home</b><br>Tocca <b>Condividi</b> <span aria-hidden="true">⬆️</span> qui sotto in Safari, poi <b>"Aggiungi alla schermata Home"</b>. BikeFly diventa un'icona come un'app.<button id="chiudiHome" aria-label="Chiudi">✕</button></div>
+  <div id="home" class="nascosto" role="note">
+    <h3>📲 Rendila un'app vera</h3>
+    <p class="perche">Si apre a tutto schermo e ti arrivano le notifiche delle tue bici.</p>
+    <ol>
+      <li><i>⬆️</i><span>Tocca <b>Condividi</b> nella barra di Safari, sotto l'app<br><small style="color:var(--nebbia)">(se non lo vedi: tocca <b>•••</b> e poi Condividi)</small></span></li>
+      <li><i>＋</i><span>Scegli <b>"Aggiungi alla schermata Home"</b></span></li>
+      <li><i>🚲</i><span>Apri BikeFly dall'icona: fatto!</span></li>
+    </ol>
+    <button id="chiudiHome" aria-label="Chiudi">✕</button>
+  </div>
   <nav class="barra" aria-label="Sezioni"><i class="lente" id="lente" aria-hidden="true"></i>
     <button data-pg="mappa" class="attiva"><span>🗺️</span>Mappa</button>
+    <button data-pg="giri"><span>🎬</span>Giri</button>
     <button data-pg="noleggi"><span>🔑</span>Noleggi<i class="puntino nascosto" id="puntino"></i></button>
     <button data-pg="pubblica"><span>➕</span>Pubblica</button>
     <button data-pg="profilo"><span>👤</span>Profilo</button>
@@ -298,10 +343,19 @@ h2.titolo{font-size:34px;margin-bottom:16px}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="config.js"></script>
+<script src="intro.js"></script>
+<script>
+// l'intro di BikeFly: intera la prima volta, corta le volte dopo (?nointro per i test)
+(function () {
+  if (/[?&]nointro/.test(location.search) || !window.introBikeFly) return;
+  let vista = false; try { vista = localStorage.getItem("intro_vista") === "1"; } catch (e) {}
+  window.introBikeFly(vista, () => { try { localStorage.setItem("intro_vista", "1"); } catch (e) {} });
+})();
+</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, updateProfile, signOut, reload } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, where, orderBy, setDoc, updateDoc, addDoc, getDoc, getDocs, deleteDoc, writeBatch, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, where, orderBy, limit, setDoc, updateDoc, addDoc, getDoc, getDocs, deleteDoc, writeBatch, increment, serverTimestamp, arrayUnion, Timestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ---------------- costanti (le stesse dell'app Android) ----------------
 const COMMISSIONE = 0.86, CAUZIONE = 30;
@@ -835,15 +889,18 @@ function disegnaProfilo() {
   const mie = bici.filter(b => b.proprietarioUid === utente.uid);
   $("profilo").innerHTML = `
     ${verificato() ? "" : `<div class="banner"><b>📩 Verifica la tua email</b><span class="nota">Apri il link che ti abbiamo mandato a ${esc(utente.email)}. Senza verifica non puoi noleggiare, prestare o scrivere.</span><div class="riga"><button class="btn vetro piccolo" id="pfRimanda">Rimanda mail</button><button class="btn primo piccolo" id="pfVerificato">Ho verificato</button></div></div>`}
-    <div class="card"><div class="riga"><div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--menta),var(--cielo));display:grid;place-items:center;font-family:Bricolage;font-size:24px;font-weight:800;overflow:hidden">${utente.photoURL ? `<img src="${esc(utente.photoURL)}" alt="" style="width:100%;height:100%;object-fit:cover" referrerpolicy="no-referrer">` : esc((utente.displayName || "?")[0].toUpperCase())}</div>
+    <div class="card" style="${sfondoMio() ? `background:${gradiente(sfondoMio())}` : ""}"><div class="riga"><div style="padding:${corniceMia() ? 4 : 0}px;border-radius:50%;background:${corniceMia() ? `conic-gradient(${[...corniceMia(), corniceMia()[0]].join(",")})` : "none"};flex:none"><div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--menta),var(--cielo));display:grid;place-items:center;font-family:Bricolage;font-size:24px;font-weight:800;overflow:hidden">${utente.photoURL ? `<img src="${esc(utente.photoURL)}" alt="" style="width:100%;height:100%;object-fit:cover" referrerpolicy="no-referrer">` : esc((utente.displayName || "?")[0].toUpperCase())}</div></div>
       <div><h3>${esc(utente.displayName || "Senza nome")}</h3>${rigaBadge(mieiBadge)}<p class="nota">${esc(utente.email || "")}</p><p class="nota">${verificato() ? "✅ Email verificata" : "📩 Email da verificare"}</p></div></div></div>
     ${cardAli()}
+    <div class="card" id="cardNotifiche"></div>
     ${profiloMio.mioCodice ? `<div class="card" style="background:linear-gradient(135deg,#7C5CFF,#3B8BFF)"><h3>🎟️ I tuoi inviti</h3><p style="font-size:14px">Puoi invitare ancora ${Math.max(0, invito.max - invito.usi)} amici di fiducia.</p><div class="codice" id="mioCodice">${esc(profiloMio.mioCodice)}</div><button class="btn bianco" id="pfInvita">Manda l'invito</button><p style="font-size:12px;opacity:.85">Usati ${invito.usi} su ${invito.max}</p></div>` : ""}
     ${sonoAdmin ? `<div class="card"><h3>🛡️ Admin</h3><button class="btn vetro piccolo" id="pfCodice">Crea codice da 20 inviti</button><div id="pfCodiceNuovo" class="codice nascosto"></div><button class="btn primo piccolo" id="pfPionieri">🎟️ Codici per i Pionieri</button><p class="nota">Crea un codice invito per ogni email della lista d'attesa e prepara le email da mandare.</p></div>` : ""}
     <div class="card"><h3>Le tue bici</h3>${mie.length ? mie.map(b => `<div class="riga tra"><span>${TIPI[b.tipo]?.[1] || "🚲"} ${esc(b.nome)} · ${euro(b.prezzo)}</span><span class="riga" style="gap:6px;flex:none"><button class="btn vetro piccolo" data-disp="${b.id}">${b.disponibile !== false ? "⏸️ Pausa" : "▶️ Riattiva"}</button><button class="btn vetro piccolo" data-elimina="${b.id}" aria-label="Elimina ${esc(b.nome)}">🗑️</button></span></div>`).join("") : `<p class="nota">Non hai ancora pubblicato bici.</p>`}</div>
     <div class="card"><h3>Installa BikeFly</h3><p class="nota">Su iPhone: tocca <b>Condividi</b> ↑ e poi <b>"Aggiungi alla schermata Home"</b>. Su Android puoi scaricare <a href="../bikefly.apk" style="color:var(--menta);font-weight:700">l'app completa</a>, con Fly, il social e tutto il resto.</p><a class="link" href="../installa/" style="margin-top:4px">Guida passo passo →</a></div>
     <button class="btn vetro" id="pfEsci">Esci</button>`;
   document.querySelectorAll("[data-conta]").forEach(contaSu);
+  $("pfNegozio") && ($("pfNegozio").onclick = () => apriNegozio());
+  cardNotifiche();
   $("pfEsci").onclick = () => signOut(auth);
   $("pfInvita") && ($("pfInvita").onclick = async () => {
     const testo = "Ti invito su BikeFly, l'app per noleggiare e prestare bici a Piacenza 🚲\nIl mio codice invito: " + profiloMio.mioCodice + "\nhttps://bikef993-droid.github.io/bikefly/";
@@ -899,11 +956,161 @@ function aliVoci() {
   else if (mieiBadge.pioniere === true) v.push(["🚀", "Pioniere di BikeFly", 100]);
   return v;
 }
+// ---------------- negozio delle Ali (come su Android) ----------------
+const CORNICI = [["cornice_oro", "🥇", "Cornice Oro", 200, ["#FFD54F", "#FF8F00"]], ["cornice_menta", "🌿", "Cornice Menta", 250, ["#00D2A0", "#14C8C8"]], ["cornice_neon", "⚡", "Cornice Neon", 400, ["#00E5FF", "#D500F9"]], ["cornice_arcobaleno", "🌈", "Cornice Arcobaleno", 600, ["#FF5252", "#FFD740", "#69F0AE", "#40C4FF", "#E040FB"]]];
+const SFONDI = [["sfondo_tramonto", "🌅", "Tramonto sul Po", 300, ["#FF7E5F", "#FEB47B"]], ["sfondo_notte", "🌌", "Notte a Piacenza", 350, ["#0F2027", "#2C5364"]], ["sfondo_galassia", "🪐", "Galassia", 500, ["#41295A", "#2F0743", "#7F00FF"]]];
+const OGGETTI = [...CORNICI, ...SFONDI], ALI_EVIDENZA = 150, EVIDENZA_MS = 23 * ORA, ATTESA_EVIDENZA_MS = 6 * 24 * ORA;
+const indossato = t => { try { return localStorage.getItem("ali_" + t); } catch (e) { return null; } };
+const indossa = (t, id) => { try { id ? localStorage.setItem("ali_" + t, id) : localStorage.removeItem("ali_" + t); } catch (e) {} };
+const mieiOggetti = () => profiloMio.aliOggetti || [];
+const corniceMia = () => { const o = CORNICI.find(x => x[0] === indossato("cornice") && mieiOggetti().includes(x[0])); return o ? o[4] : null; };
+const sfondoMio = () => { const o = SFONDI.find(x => x[0] === indossato("sfondo") && mieiOggetti().includes(x[0])); return o ? o[4] : null; };
+function aliSpese() { return Math.max(profiloMio.aliSpese || 0, OGGETTI.filter(o => mieiOggetti().includes(o[0])).reduce((t, o) => t + o[3], 0)); }
+function aliSaldo() { return Math.max(0, aliVoci().reduce((t, x) => t + x[2], 0) - aliSpese()); }
+const gradiente = c => `linear-gradient(135deg,${c.join(",")})`;
+function prossimaEvidenza() { const mie = bici.filter(b => b.proprietarioUid === utente.uid); return Math.max(0, ...mie.map(b => b.evidenzaFino?.toMillis?.() || 0)) - EVIDENZA_MS + ATTESA_EVIDENZA_MS; }
+let negozioOcc = false;
+function apriNegozio(msg = "") {
+  const saldo = aliSaldo(), mie = bici.filter(b => b.proprietarioUid === utente.uid), ora = Date.now(), prossima = prossimaEvidenza();
+  const riga = (em, nome, col, testo, attivo, dati) => `<div class="riga-neg"><div class="pallino" style="background:${gradiente(col.length > 1 ? col : [col[0], col[0]])}">${em}</div><div class="nome">${esc(nome)}</div><button ${attivo ? "" : "disabled"} ${dati}>${testo}</button></div>`;
+  const oggetto = (o, tipo) => { const mio = mieiOggetti().includes(o[0]), su = indossato(tipo) === o[0];
+    return riga(o[1], o[2], o[4], su ? "In uso ✓" : mio ? "Usa" : o[3] + " 🪽", !su && (mio || saldo >= o[3]), `data-ogg="${o[0]}" data-tipo="${tipo}"`); };
+  apriFoglio(`<h2 style="margin-bottom:4px">🛍️ Negozio delle Ali</h2><p style="font-weight:800;color:var(--cielo);margin-bottom:6px">🪽 ${saldo} Ali disponibili</p>
+    ${msg ? `<p class="nota" style="color:var(--menta);font-weight:700;margin-bottom:8px">${esc(msg)}</p>` : ""}
+    ${mie.length ? `<h3 style="margin-top:10px">⭐ Bici in evidenza</h3><p class="nota" style="margin-bottom:8px">Per un giorno la tua bici appare in cima e brilla sulla mappa. Una volta a settimana.</p>
+      <div style="display:grid;gap:8px">${mie.map(b => { const top = inEvidenza(b), attesa = !top && prossima > ora;
+        return riga(TIPI[b.tipo]?.[1] || "🚲", b.nome, ["#FFD54F", "#FFA000"], top ? "In evidenza ⭐" : attesa ? `Tra ${Math.ceil((prossima - ora) / 864e5)} giorni` : ALI_EVIDENZA + " 🪽", !top && !attesa && saldo >= ALI_EVIDENZA && b.disponibile !== false, `data-evid="${b.id}"`); }).join("")}</div>` : ""}
+    <h3 style="margin-top:14px">🖼️ Cornici per la tua foto</h3><div style="display:grid;gap:8px;margin-top:8px">${CORNICI.map(o => oggetto(o, "cornice")).join("")}</div>
+    <h3 style="margin-top:14px">🎨 Sfondi del profilo</h3><div style="display:grid;gap:8px;margin-top:8px">${SFONDI.map(o => oggetto(o, "sfondo")).join("")}</div>
+    <p class="nota" style="margin-top:14px">In arrivo: noleggi senza commissione e premi nei bar di Piacenza. Le Ali non si comprano e non valgono soldi.</p>`);
+  document.querySelectorAll("[data-ogg]").forEach(el => el.onclick = async () => {
+    if (negozioOcc) return; const o = OGGETTI.find(x => x[0] === el.dataset.ogg), tipo = el.dataset.tipo;
+    if (mieiOggetti().includes(o[0])) { indossa(tipo, o[0]); disegnaProfilo(); return apriNegozio("Fatto! ✨"); }
+    if (aliSaldo() < o[3]) return apriNegozio("Non hai abbastanza Ali");
+    negozioOcc = true; el.disabled = true;
+    try {
+      await setDoc(doc(db, "utenti", utente.uid), { aliSpese: increment(o[3]), aliOggetti: arrayUnion(o[0]) }, { merge: true });
+      profiloMio.aliOggetti = [...mieiOggetti(), o[0]]; profiloMio.aliSpese = (profiloMio.aliSpese || 0) + o[3];
+      indossa(tipo, o[0]); disegnaProfilo(); apriNegozio("Comprato e indossato! 🎉"); coriandoli();
+    } catch (e) { apriNegozio("Non è andata: riprova. Le Ali non sono state scalate."); }
+    negozioOcc = false;
+  });
+  document.querySelectorAll("[data-evid]").forEach(el => el.onclick = async () => {
+    if (negozioOcc) return; negozioOcc = true; el.disabled = true;
+    try {
+      const lotto = writeBatch(db);
+      lotto.update(doc(db, "bici", el.dataset.evid), { evidenzaFino: Timestamp.fromMillis(Date.now() + EVIDENZA_MS) });
+      lotto.set(doc(db, "utenti", utente.uid), { ultimaEvidenza: serverTimestamp() }, { merge: true });
+      await lotto.commit();
+      await setDoc(doc(db, "utenti", utente.uid), { aliSpese: increment(ALI_EVIDENZA) }, { merge: true });
+      profiloMio.aliSpese = (profiloMio.aliSpese || 0) + ALI_EVIDENZA;
+      apriNegozio("La tua bici è in evidenza per un giorno! ⭐"); coriandoli();
+    } catch (e) { apriNegozio("Non è andata: riprova più tardi. Le Ali non sono state scalate."); }
+    negozioOcc = false;
+  });
+}
+// ---------------- notifiche (web push): su iPhone funzionano se BikeFly è nella schermata Home ----------------
+const pushSupportato = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+let registrazioneSW = null;
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").then(r => { registrazioneSW = r; }).catch(() => {});
+const b64aByte = s => { const p = "=".repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...b].map(c => c.charCodeAt(0))); };
+const byteAb64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+async function statoNotifiche() {
+  if (suIphone && !giaInstallata) return "home";
+  if (!pushSupportato()) return "no";
+  if (Notification.permission === "denied") return "negate";
+  if (Notification.permission !== "granted") return "da";
+  try { const r = registrazioneSW || await navigator.serviceWorker.ready; return (await r.pushManager.getSubscription()) ? "si" : "da"; } catch (e) { return "da"; }
+}
+async function attivaNotifiche() {
+  try {
+    if (await Notification.requestPermission() !== "granted") { avvisa("Notifiche non permesse: puoi attivarle nelle Impostazioni"); return disegnaProfilo(); }
+    const cfg = await getDoc(doc(db, "config", "push"));
+    const chiave = cfg.data()?.publicKey;
+    if (!chiave) { avvisa("Le notifiche si attivano tra pochi minuti: riprova più tardi"); return; }
+    const r = registrazioneSW || await navigator.serviceWorker.ready;
+    const sub = await r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64aByte(chiave) });
+    const j = sub.toJSON();
+    const id = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sub.endpoint)))).slice(0, 12).map(x => x.toString(16).padStart(2, "0")).join("");
+    await setDoc(doc(db, "pushWeb", utente.uid, "iscrizioni", id), { endpoint: sub.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, creato: serverTimestamp(), tipo: suIphone ? "iphone" : "web" });
+    avvisa("Notifiche attive! 🔔"); coriandoli();
+  } catch (e) { avvisa("Non riesco ad attivare le notifiche su questo telefono"); }
+  disegnaProfilo();
+}
+async function cardNotifiche() {
+  const el = $("cardNotifiche"); if (!el) return;
+  const st = await statoNotifiche();
+  const testi = {
+    si: [`🔔 Notifiche attive`, `Ti avvisiamo quando qualcuno chiede la tua bici o accetta la tua richiesta.`, ""],
+    da: [`🔔 Attiva le notifiche`, `Così sai subito quando qualcuno chiede la tua bici o ti risponde.`, `<button class="btn primo" id="pfNotifiche" style="min-height:46px">Attiva le notifiche</button>`],
+    home: [`🔔 Notifiche su iPhone`, `Su iPhone le notifiche arrivano solo se BikeFly è nella schermata Home: Condividi → "Aggiungi alla schermata Home", poi aprila dall'icona.`, ""],
+    negate: [`🔕 Notifiche bloccate`, `Le hai bloccate: per riattivarle vai in Impostazioni → Notifiche → BikeFly.`, ""],
+    no: [`🔕 Notifiche non disponibili`, `Questo browser non supporta le notifiche. Su iPhone serve iOS 16.4 o più recente.`, ""]
+  }[st];
+  el.innerHTML = `<h3>${testi[0]}</h3><p class="nota">${testi[1]}</p>${testi[2]}`;
+  $("pfNotifiche") && ($("pfNotifiche").onclick = attivaNotifiche);
+}
+// il service worker chiede di aprire una pagina dopo il tocco su una notifica
+navigator.serviceWorker?.addEventListener("message", e => { if (e.data?.apri && utente) vai("noleggi"); });
+
+// ---------------- Giri: i post della community, con le reazioni ----------------
+const REAZIONI = ["❤️", "🔥", "🚲", "👏"];
+let giri = [], mieReazioni = {}, ascoltoGiri = null, reazioneOcc = false;
+const colHex = n => "#" + ((Number(n) >>> 0) & 0xFFFFFF).toString(16).padStart(6, "0");
+function avviaGiri() {
+  if (ascoltoGiri) return;
+  ascoltoGiri = onSnapshot(query(collection(db, "post"), orderBy("quando", "desc"), limit(40)), async s => {
+    giri = s.docs.map(d => ({ id: d.id, ...d.data() }));
+    // le mie reazioni (una lettura per post nuovo)
+    await Promise.all(giri.filter(p => !(p.id in mieReazioni)).map(async p => {
+      try { const r = await getDoc(doc(db, "post", p.id, "like", utente.uid)); mieReazioni[p.id] = r.exists() ? (REAZIONI.includes(r.data().r) ? r.data().r : "❤️") : null; } catch (e) { mieReazioni[p.id] = null; }
+    }));
+    if (vistaAttuale === "giri") disegnaGiri();
+  }, () => {});
+}
+function quandoFa(ms) { const m = Math.round((Date.now() - ms) / 60000); return m < 60 ? `${Math.max(1, m)} min fa` : m < 1440 ? `${Math.round(m / 60)} h fa` : `${Math.round(m / 1440)} g fa`; }
+function disegnaGiri() {
+  avviaGiri();
+  const el = $("listaGiri");
+  if (!giri.length) { el.innerHTML = `<div class="card" style="text-align:center"><div style="font-size:48px">🚴</div><h3>Ancora nessun giro</h3><p class="nota">Quando qualcuno finisce un noleggio e condivide il giro, lo vedi qui.</p></div>`; return; }
+  el.innerHTML = giri.map(p => {
+    const mia = mieReazioni[p.id];
+    const c1 = p.colore1 != null ? colHex(p.colore1) : "#00D2A0", c2 = p.colore2 != null ? colHex(p.colore2) : "#3B8BFF";
+    return `<article class="post"><div class="testa"><div class="av">${esc((p.autoreNome || "?")[0].toUpperCase())}</div><div style="flex:1"><b>${esc(p.autoreUid === utente.uid ? "Tu" : p.autoreNome || "Ciclista")}</b><p class="nota">📍 ${esc(p.titolo || "")} · ${quandoFa(p.quando || Date.now())}</p></div></div>
+      <div class="imm" style="background:linear-gradient(135deg,${c1},${c2})">${p.foto ? `<img src="data:image/jpeg;base64,${p.foto}" alt="">` : esc(p.emoji || "🚲")}<span class="info">${esc(p.emoji || "🚲")} ${Number(p.km || 0).toFixed(1)} km · ⏱️ ${p.minuti || 0} min · 🌱 ${(Number(p.km || 0) * .15).toFixed(1)} kg CO₂</span></div>
+      ${p.testo ? `<p class="testo">${esc(p.testo)}</p>` : ""}
+      <div class="reazioni">${REAZIONI.map(e => `<button data-reaz="${e}" data-post="${p.id}" class="${mia === e ? "mia" : mia ? "spenta" : ""}" aria-label="Reagisci ${e}">${e === "❤️" && !mia ? "🤍" : e}</button>`).join("")}<b>${p.likes || 0}</b></div></article>`;
+  }).join("");
+  el.querySelectorAll("[data-reaz]").forEach(b => b.onclick = () => reagisci(b.dataset.post, b.dataset.reaz));
+}
+async function reagisci(id, e) {
+  if (reazioneOcc || !verificato()) return verificato() || avvisa("Prima verifica la tua email 📩");
+  reazioneOcc = true;
+  const mia = mieReazioni[id], post = doc(db, "post", id), cuore = doc(db, "post", id, "like", utente.uid);
+  try {
+    if (!mia) { const l = writeBatch(db); l.update(post, { likes: increment(1) }); l.set(cuore, { si: true, r: e }); await l.commit(); mieReazioni[id] = e; navigator.vibrate?.(8); }
+    else if (mia === e) { const l = writeBatch(db); l.update(post, { likes: increment(-1) }); l.delete(cuore); await l.commit(); mieReazioni[id] = null; }
+    else { await updateDoc(cuore, { r: e }); mieReazioni[id] = e; }
+  } catch (err) { avvisa("Reazione non salvata: riprova"); }
+  reazioneOcc = false; disegnaGiri();
+}
+
+// coriandoli leggeri per i momenti belli
+function coriandoli() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = document.createElement("canvas"), dpr = Math.min(2, devicePixelRatio || 1); cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+  cv.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9998"; document.body.appendChild(cv);
+  const q = cv.getContext("2d"); q.scale(dpr, dpr); const col = ["#00D2A0", "#3B8BFF", "#FFD23F", "#FF5A5F", "#7C5CFF"];
+  const p = Array.from({ length: 70 }, (_, i) => ({ x: Math.random() * innerWidth, y: -20 - Math.random() * 200, v: 2 + Math.random() * 3, r: Math.random() * 6, c: col[i % 5], d: (Math.random() - .5) * 2 }));
+  let n = 0; (function f() { q.clearRect(0, 0, innerWidth, innerHeight); p.forEach(o => { o.y += o.v; o.x += o.d; o.r += .1; q.save(); q.translate(o.x, o.y); q.rotate(o.r); q.fillStyle = o.c; q.fillRect(-4, -2, 8, 4); q.restore(); }); if (++n < 140) requestAnimationFrame(f); else cv.remove(); })();
+}
+
 function cardAli() {
   const v = aliVoci();
-  const saldo = Math.max(0, v.reduce((t, x) => t + x[2], 0) - (profiloMio.aliSpese || 0));
+  const saldo = aliSaldo();
   return `<div class="card ali"><p style="font-weight:700;opacity:.85">🪽 Le tue Ali</p><div class="num" data-conta="${saldo}">0</div>
-    <p style="font-size:13px;opacity:.85">Le guadagni pedalando, prestando la bici e invitando amici. Il negozio (cornici, sfondi, bici in evidenza) è nell'app Android e arriva presto anche qui.</p>
+    <p style="font-size:13px;opacity:.85">Le guadagni pedalando, prestando la bici e invitando amici. Le spendi per cornici, sfondi e per mettere la tua bici in evidenza.</p>
+    <button class="btn bianco" id="pfNegozio" style="min-height:46px">🛍️ Negozio</button>
     <details><summary style="font-weight:700;cursor:pointer;margin-top:6px">📜 Come le ho prese</summary>${v.map(x => `<div class="voce"><span>${x[0]} ${esc(x[1])}</span><b>+${x[2]}</b></div>`).join("")}${profiloMio.aliSpese ? `<div class="voce"><span>🛍️ Spese nel negozio</span><b style="color:#FFB3B3">−${profiloMio.aliSpese}</b></div>` : ""}
     <p style="font-size:11px;opacity:.6;margin-top:6px">Le Ali non si comprano e non valgono soldi.</p></details></div>`;
 }
@@ -1093,6 +1300,13 @@ addEventListener("resize", () => lenteSu(vistaAttuale));
 requestAnimationFrame(() => lenteSu(vistaAttuale || "mappa"));
 let vistaAttuale = "mappa";
 function vai(pg) {
+  if (document.startViewTransition && pg !== vistaAttuale && !matchMedia("(prefers-reduced-motion: reduce)").matches && document.visibilityState === "visible") {
+    const prima = vistaAttuale; vistaAttuale = pg;
+    try { document.startViewTransition(() => { vistaAttuale = prima; vaiSubito(pg); }); return; } catch (e) { vistaAttuale = prima; }
+  }
+  vaiSubito(pg);
+}
+function vaiSubito(pg) {
   vistaAttuale = pg;
   document.querySelectorAll(".vista").forEach(v => v.classList.toggle("nascosto", v.id !== "pg-" + pg));
   document.querySelectorAll("nav.barra button").forEach(b => b.classList.toggle("attiva", b.dataset.pg === pg));
@@ -1100,6 +1314,7 @@ function vai(pg) {
   if (pg === "mappa") setTimeout(() => mappa?.invalidateSize(), 60);
   if (pg === "noleggi") disegnaNoleggi();
   if (pg === "profilo") disegnaProfilo();
+  if (pg === "giri") disegnaGiri();
   if (pg === "pubblica") setTimeout(preparaMappaRitiro, 60);
   consiglioHome();
 }
@@ -1141,13 +1356,13 @@ onSnapshot(collection(db, "bici"), s => {
 
 onAuthStateChanged(auth, u => {
   utente = u;
-  ascolti.forEach(f => f()); ascolti = []; miei = []; suoi = []; codici = {}; giaVisti = false; paeseVisto = false; paeseChiesto = false;
+  ascolti.forEach(f => f()); ascolti = []; miei = []; suoi = []; codici = {}; giaVisti = false; paeseVisto = false; paeseChiesto = false; ascoltoGiri?.(); ascoltoGiri = null; giri = []; mieReazioni = {};
   profiloMio = { caricato: false }; sonoAdmin = false; inPausa = false; mieiBadge = {}; $("pausa").classList.add("nascosto"); mieRecensioni = []; recensiti = new Set(); ascoltoInvito?.(); ascoltoInvito = null;
   if (u) {
     ascolti.push(onSnapshot(doc(db, "utenti", u.uid), d => {
       const dati = d.data() || {};
       const prima = profiloMio.mioCodice;
-      profiloMio = { caricato: true, ammesso: dati.ammesso === true, mioCodice: dati.mioCodice || null, paese: dati.paese || null, aliSpese: Number.isInteger(dati.aliSpese) ? dati.aliSpese : 0 };
+      profiloMio = { caricato: true, ammesso: dati.ammesso === true, mioCodice: dati.mioCodice || null, paese: dati.paese || null, aliSpese: Number.isInteger(dati.aliSpese) ? dati.aliSpese : 0, aliOggetti: Array.isArray(dati.aliOggetti) ? dati.aliOggetti : [] };
       if (profiloMio.ammesso && !profiloMio.paese) setTimeout(chiediPaese, 600);
       if (profiloMio.paese && !paeseVisto) { paeseVisto = true; setTimeout(() => vaiAlPaese(profiloMio.paese), 300); }
       if (!dati.creato) setDoc(doc(db, "utenti", u.uid), { creato: serverTimestamp() }, { merge: true }).catch(() => {});

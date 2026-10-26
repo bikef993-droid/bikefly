@@ -1,14 +1,23 @@
 {
-  "name": "Bikefly",
-  "short_name": "Bikefly",
-  "description": "Conviene a tutti: bici tra persone a Piacenza.",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#071226",
-  "theme_color": "#071226",
-  "icons": [
-    { "src": "icona-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icona-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ]
+ "name": "BikeFly",
+ "short_name": "BikeFly",
+ "description": "Conviene a tutti: noleggia e presta bici a Piacenza.",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#071226",
+ "theme_color": "#071226",
+ "icons": [
+  {
+   "src": "icona-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icona-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
 }

@@ -1,0 +1,35 @@
+name: Notifiche iPhone
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notifiche
+  cancel-in-progress: false
+
+jobs:
+  invia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: strumenti/notifiche
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: strumenti/notifiche/package.json
+      - name: Installa
+        working-directory: strumenti/notifiche
+        run: npm install --no-audit --no-fund
+      - name: Invia le notifiche
+        working-directory: strumenti/notifiche
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node invia.mjs
