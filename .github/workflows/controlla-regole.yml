@@ -4,10 +4,28 @@ jobs:
   prova:
     runs-on: ubuntu-latest
     steps:
-      - name: Legge la chiave pubblica delle notifiche (permesso solo con le regole della 14.1.5)
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: cd strumenti/notifiche && npm install --silent --no-audit --no-fund
+      - name: Legge le regole attive su Firebase e cerca le novità della 14.2
+        env:
+          CHIAVE: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          K=AIzaSyCMpYlrzCp6QgxvDzV7qqTDPJH4NFvkT9w
-          R=$(curl -s "https://firestore.googleapis.com/v1/projects/bikefly-6078c/databases/(default)/documents/config/push?key=$K")
-          if echo "$R" | grep -q PERMISSION_DENIED; then echo "::warning::REGOLE VECCHIE"
-          elif echo "$R" | grep -q publicKey; then echo "::notice::REGOLE NUOVE ATTIVE (chiave notifiche leggibile)"
-          else echo "::warning::RISPOSTA STRANA: $(echo "$R" | head -c 150 | tr '\n' ' ')"; fi
+          cd strumenti/notifiche
+          node --input-type=module -e '
+          import admin from "firebase-admin";
+          const sa = JSON.parse(process.env.CHIAVE);
+          const { access_token } = await admin.credential.cert(sa).getAccessToken();
+          const h = { Authorization: "Bearer " + access_token };
+          const base = "https://firebaserules.googleapis.com/v1/";
+          const rel = await (await fetch(base + "projects/" + sa.project_id + "/releases/cloud.firestore", { headers: h })).json();
+          if (!rel.rulesetName) { console.log("::warning::RISPOSTA STRANA: " + JSON.stringify(rel).slice(0, 200)); process.exit(0); }
+          const rs = await (await fetch(base + rel.rulesetName, { headers: h })).json();
+          const testo = (rs.source?.files || []).map(f => f.content).join("\n");
+          const quando = rel.updateTime || "";
+          if (testo.includes("regoleAccettate")) console.log("::notice::REGOLE 14.2 ATTIVE (pubblicate " + quando + ")");
+          else if (testo.includes("pushWeb")) console.log("::warning::REGOLE VECCHIE (14.1.5, pubblicate " + quando + ")");
+          else console.log("::warning::REGOLE MOLTO VECCHIE (pubblicate " + quando + ")");
+          '
