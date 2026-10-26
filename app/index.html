@@ -233,6 +233,15 @@ button,a,.btn{touch-action:manipulation}
 .controllo label{display:flex;gap:10px;align-items:center;padding:7px 0;font-size:15px}
 .controllo input{width:20px;height:20px;accent-color:var(--menta)}
 .controllo .problema{background:none;border:0;color:var(--corallo);font-weight:800;padding:6px 0;font-size:14px}
+.promo{display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:18px;background:linear-gradient(120deg,var(--menta),var(--cielo));color:#fff;margin:0 0 14px;position:relative;overflow:hidden}
+.promo>span{font-size:22px}.promo b{display:block;font-size:14px}.promo small{display:block;font-size:12px;opacity:.92;line-height:1.35}
+.promo::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.3) 50%,transparent 70%);transform:translateX(-100%);animation:promoLuce 2.8s linear infinite}
+@keyframes promoLuce{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.promo::after{animation:none;display:none}}
+.promo-mappa{position:absolute;left:12px;right:12px;top:calc(var(--su) + 70px);z-index:400;margin:0;padding:8px 40px 8px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.promo-mappa .x{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.22);border:0;color:#fff;width:28px;height:28px;border-radius:50%;font-weight:800;z-index:2}
+.pionieri{background:linear-gradient(135deg,var(--notte2),#7C5CFF)}
+.pionieri .num{font-family:Bricolage,sans-serif;font-size:34px;font-weight:800}
 </style>
 </head>
 <body>
@@ -267,7 +276,7 @@ button,a,.btn{touch-action:manipulation}
       <button type="button" class="link" id="btnIndietro" style="color:var(--nebbia)">Indietro</button>
     </form>
 
-    <label class="casella"><input type="checkbox" id="eta"><span>Ho almeno 14 anni e accetto i <a href="../termini.html" target="_blank">termini</a> e la <a href="../privacy.html" target="_blank">privacy</a> di BikeFly.</span></label>
+    <label class="casella"><input type="checkbox" id="eta"><span>Ho almeno 16 anni (se ne ho meno di 18, un genitore è d'accordo) e accetto i <a href="../termini.html" target="_blank">termini</a> e la <a href="../privacy.html" target="_blank">privacy</a> di BikeFly.</span></label>
     <div id="erroreAccesso" class="errore nascosto"></div>
     <p class="nota" style="margin-top:22px;text-align:center">Hai Android? <a href="../installa/" style="color:var(--menta);font-weight:700">Scarica l'app completa</a></p>
   </div>
@@ -294,6 +303,7 @@ button,a,.btn{touch-action:manipulation}
       <div class="pillola"><svg viewBox="0 0 40 28"><circle cx="9" cy="19" r="7.5" fill="none" stroke="#00D2A0" stroke-width="3"/><circle cx="31" cy="19" r="7.5" fill="none" stroke="#3B8BFF" stroke-width="3"/><path d="M9 19 16 6h10l5 13M16 6l7 13" fill="none" stroke="#F3F6FB" stroke-width="2.6" stroke-linejoin="round"/></svg>BikeFly</div>
       <div class="pillola" id="contaBici">🚲 …</div>
     </div>
+    <div class="promo promo-mappa" data-promo id="promoMappa"><span>🎉</span><div><b>Zero commissioni fino al 31 marzo</b><small>Paghi solo il prezzo della bici.</small></div><button class="x" id="promoChiudi" aria-label="Chiudi">✕</button></div>
     <button class="btn-gps" id="btnGps" aria-label="La mia posizione">📍</button>
     <div id="pausa" class="pausa nascosto" role="alert">⏸️ Account in pausa: hai ricevuto 3 segnalazioni. Il team BikeFly controlla e ti riattiva se è tutto a posto. Scrivici: bikef993@gmail.com</div>
   </div>
@@ -303,6 +313,7 @@ button,a,.btn{touch-action:manipulation}
   <div id="pg-pubblica" class="vista pagina nascosto">
     <h2 class="titolo">Presta la tua bici</h2>
     <p class="nota" style="margin:-8px 0 14px">Una foto, un prezzo, e la tua bici compare sulla mappa di tutti.</p>
+    <div class="promo" data-promo><span>🎉</span><div><b>Zero commissioni fino al 31 marzo</b><small>Quello che paga chi noleggia lo tieni tu (tolto solo il costo della carta).</small></div></div>
     <form id="moduloBici" novalidate>
       <label class="carica" id="caricaFoto"><span id="testoFoto">📸<br>Tocca per aggiungere una foto</span><input type="file" accept="image/*" id="fileFoto" class="nascosto"></label>
       <label class="etichetta" for="biciNome">Nome della bici</label><input class="campo" id="biciNome" maxlength="40" placeholder="Es. City bike azzurra">
@@ -331,7 +342,7 @@ button,a,.btn{touch-action:manipulation}
         <p class="nota" style="margin-top:8px">Il casco va sempre dato insieme al monopattino.</p>
       </div>
       <label class="etichetta" for="biciDesc">Descrizione</label><textarea class="campo" id="biciDesc" maxlength="600" placeholder="Com'è, cosa ha (cestino, luci, lucchetto…)"></textarea>
-      <label class="casella"><input type="checkbox" id="biciConsenso"><span>Ho almeno 18 anni, oppure un genitore è d'accordo, e accetto i <a href="../termini.html" target="_blank">termini</a>.</span></label>
+      <label class="casella"><input type="checkbox" id="biciConsenso"><span>Ho almeno 18 anni e accetto i <a href="../termini.html" target="_blank">termini</a>. Hai meno di 18 anni? La bici la pubblica un genitore dal suo account.</span></label>
       <button class="btn primo" style="margin-top:18px" id="btnPubblica">Pubblica la bici</button>
     </form>
   </div>
@@ -612,6 +623,20 @@ function rigaControllo(n) {
   const f = controlliFatti[n.id] || new Set();
   return `<div class="controllo"><b>✅ Controllo prima di partire</b>${CONTROLLI.map((c, i) => `<label><input type="checkbox" data-ctrl="${i}" data-id="${n.id}" ${f.has(i) ? "checked" : ""}>${c}</label>`).join("")}
     <p class="nota">🪖 Casco consigliato (sul monopattino è obbligatorio).</p><button class="problema" data-a="chat" data-id="${n.id}">⚠️ Qualcosa non va? Non partire: scrivilo in chat</button></div>`;
+}
+
+// ---------------- promo di lancio e Pionieri ----------------
+const FINE_PROMO = new Date(2027, 3, 1).getTime(), FINE_PIONIERI = new Date(2026, 11, 1).getTime();
+const giorniPionieri = () => Math.max(0, Math.floor((FINE_PIONIERI - Date.now()) / 86400000));
+if (Date.now() >= FINE_PROMO) document.querySelectorAll("[data-promo]").forEach(e => e.remove());
+try { if (sessionStorage.getItem("promoVista")) $("promoMappa")?.remove(); } catch (e) {}
+$("promoChiudi") && ($("promoChiudi").onclick = () => { $("promoMappa")?.remove(); try { sessionStorage.setItem("promoVista", "1"); } catch (e) {} });
+function whatsapp(testo) { window.open("https://wa.me/?text=" + encodeURIComponent(testo), "_blank"); }
+function contaNumero(el, n) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = n; return; }
+  const t0 = performance.now(), d = 1300;
+  const passo = t => { const k = Math.min(1, (t - t0) / d); el.textContent = Math.round(n * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(passo); };
+  requestAnimationFrame(passo);
 }
 function chiudiFoglio() { $("velo").classList.remove("aperto"); $("foglio").classList.remove("aperto"); }
 $("velo").onclick = chiudiFoglio;
@@ -984,7 +1009,8 @@ function disegnaProfilo() {
       <div><h3>${esc(utente.displayName || "Senza nome")}</h3>${rigaBadge(mieiBadge)}<p class="nota">${esc(utente.email || "")}</p><p class="nota">${verificato() ? "✅ Email verificata" : "📩 Email da verificare"}</p></div></div></div>
     ${cardAli()}
     <div class="card" id="cardNotifiche"></div>
-    ${profiloMio.mioCodice ? `<div class="card" style="background:linear-gradient(135deg,#7C5CFF,#3B8BFF)"><h3>🎟️ I tuoi inviti</h3><p style="font-size:14px">Puoi invitare ancora ${Math.max(0, invito.max - invito.usi)} amici di fiducia.</p><div class="codice" id="mioCodice">${esc(profiloMio.mioCodice)}</div><button class="btn bianco" id="pfInvita">Manda l'invito</button><p style="font-size:12px;opacity:.85">Usati ${invito.usi} su ${invito.max}</p></div>` : ""}
+    ${Date.now() < FINE_PIONIERI ? `<div class="card pionieri"><h3>🚀 Pionieri di BikeFly</h3><div><span class="num" id="numPionieri">…</span> <span class="nota" style="color:#fff">già iscritti</span></div><p style="font-size:14px">${giorniPionieri() > 0 ? `Mancano ${giorniPionieri()} giorni: chi si iscrive prima del 1° dicembre diventa Pioniere per sempre.` : "Ultimo giorno per diventare Pioniere!"}</p><button class="btn bianco" id="pfPionieriWa">💬 Fallo sapere su WhatsApp</button></div>` : ""}
+    ${profiloMio.mioCodice ? `<div class="card" style="background:linear-gradient(135deg,#7C5CFF,#3B8BFF)"><h3>🎟️ I tuoi inviti</h3><p style="font-size:14px">Puoi invitare ancora ${Math.max(0, invito.max - invito.usi)} amici di fiducia.</p><div class="codice" id="mioCodice">${esc(profiloMio.mioCodice)}</div><button class="btn bianco" id="pfInvita">💬 Invita su WhatsApp</button><button class="btn vetro piccolo" id="pfInvitaAltro" style="margin-top:8px">Altre app</button><p style="font-size:12px;opacity:.85">Usati ${invito.usi} su ${invito.max}</p></div>` : ""}
     ${sonoAdmin ? `<div class="card"><h3>🛡️ Admin</h3><button class="btn vetro piccolo" id="pfCodice">Crea codice da 20 inviti</button><div id="pfCodiceNuovo" class="codice nascosto"></div><button class="btn primo piccolo" id="pfPionieri">🎟️ Codici per i Pionieri</button><p class="nota">Crea un codice invito per ogni email della lista d'attesa e prepara le email da mandare.</p></div>` : ""}
     <div class="card"><h3>Le tue bici</h3>${mie.length ? mie.map(b => `<div class="riga tra"><span>${TIPI[b.tipo]?.[1] || "🚲"} ${esc(b.nome)} · ${euro(b.prezzo)}</span><span class="riga" style="gap:6px;flex:none"><button class="btn vetro piccolo" data-disp="${b.id}">${b.disponibile !== false ? "⏸️ Pausa" : "▶️ Riattiva"}</button><button class="btn vetro piccolo" data-elimina="${b.id}" aria-label="Elimina ${esc(b.nome)}">🗑️</button></span></div>`).join("") : `<p class="nota">Non hai ancora pubblicato bici.</p>`}</div>
     <div class="card"><h3>Installa BikeFly</h3><p class="nota">Su iPhone: tocca <b>Condividi</b> ↑ e poi <b>"Aggiungi alla schermata Home"</b>. Su Android puoi scaricare <a href="../bikefly.apk" style="color:var(--menta);font-weight:700">l'app completa</a>, con Fly, il social e tutto il resto.</p><a class="link" href="../installa/" style="margin-top:4px">Guida passo passo →</a></div>
@@ -993,8 +1019,12 @@ function disegnaProfilo() {
   $("pfNegozio") && ($("pfNegozio").onclick = () => apriNegozio());
   cardNotifiche();
   $("pfEsci").onclick = () => signOut(auth);
-  $("pfInvita") && ($("pfInvita").onclick = async () => {
-    const testo = "Ti invito su BikeFly, l'app per noleggiare e prestare bici a Piacenza 🚲\nIl mio codice invito: " + profiloMio.mioCodice + "\nhttps://bikef993-droid.github.io/bikefly/";
+  const testoInvito = () => "Ti invito su BikeFly, l'app per noleggiare e prestare bici a Piacenza 🚲\nIl mio codice invito: " + profiloMio.mioCodice + "\nhttps://bikef993-droid.github.io/bikefly/";
+  $("pfInvita") && ($("pfInvita").onclick = () => whatsapp(testoInvito()));
+  $("pfPionieriWa") && ($("pfPionieriWa").onclick = () => whatsapp("A Piacenza arriva BikeFly: noleggi le bici dei vicini o guadagni prestando la tua 🚲 Zero commissioni fino al 31 marzo. Diventa Pioniere prima del 1° dicembre: https://bikef993-droid.github.io/bikefly/presto/"));
+  if ($("numPionieri")) getDoc(doc(db, "contatori", "pubblico")).then(d => contaNumero($("numPionieri"), d.data()?.n || 0)).catch(() => { $("numPionieri").textContent = "—"; });
+  $("pfInvitaAltro") && ($("pfInvitaAltro").onclick = async () => {
+    const testo = testoInvito();
     try { if (navigator.share) await navigator.share({ text: testo }); else { await navigator.clipboard.writeText(testo); avvisa("Invito copiato 📋"); } } catch (e) {}
   });
   $("pfCodice") && ($("pfCodice").onclick = async () => {
