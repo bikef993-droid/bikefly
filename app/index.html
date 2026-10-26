@@ -209,7 +209,7 @@ h2.titolo{font-size:34px;margin-bottom:16px}
 
     <label class="casella"><input type="checkbox" id="eta"><span>Ho almeno 14 anni e accetto i <a href="../termini.html" target="_blank">termini</a> e la <a href="../privacy.html" target="_blank">privacy</a> di BikeFly.</span></label>
     <div id="erroreAccesso" class="errore nascosto"></div>
-    <p class="nota" style="margin-top:22px;text-align:center">Hai Android? <a href="../bikefly.apk" style="color:var(--menta);font-weight:700">Scarica l'app completa</a></p>
+    <p class="nota" style="margin-top:22px;text-align:center">Hai Android? <a href="../installa/" style="color:var(--menta);font-weight:700">Scarica l'app completa</a></p>
   </div>
 </section>
 
@@ -955,7 +955,7 @@ let mieiBadge = {}, paeseVisto = false;
 const rigaBadge = (b, centro) => { const l = BADGE.filter(x => b?.[x[0]] === true); return l.length ? `<div class="badge" style="${centro ? "justify-content:center;margin-top:6px" : "margin-top:6px"}">${l.map(x => `<span>${x[1]}</span>`).join("")}</div>` : ""; };
 
 // ---------------- codici invito per i Pionieri (lancio del 1 dicembre) ----------------
-const testoInvitoPioniere = c => `Ciao! 🚀\n\nEri tra i primi a iscriverti: sei un PIONIERE di BikeFly, l'app per noleggiare e prestare bici a Piacenza.\n\nIl tuo codice invito personale: ${c}\n\nAndroid: scarica l'app da https://bikef993-droid.github.io/bikefly/bikefly.apk\niPhone: apri https://bikef993-droid.github.io/bikefly/app/\n\nEntra con QUESTA email e sul profilo ti comparirà il badge 🚀 Pioniere.\n\nConviene a tutti.\nIl team BikeFly`;
+const testoInvitoPioniere = c => `Ciao! 🚀\n\nEri tra i primi a iscriverti: sei un PIONIERE di BikeFly, l'app per noleggiare e prestare bici a Piacenza.\n\nIl tuo codice invito personale: ${c}\n\nCome installarla (Android e iPhone): https://bikef993-droid.github.io/bikefly/installa/\n\nEntra con QUESTA email e sul profilo ti comparirà il badge 🚀 Pioniere.\n\nConviene a tutti.\nIl team BikeFly`;
 async function codiciPionieri() {
   apriFoglio(`<p class="nota" style="text-align:center;padding:30px">Preparo i codici…</p>`);
   try {
