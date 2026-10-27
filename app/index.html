@@ -417,7 +417,8 @@ const ZONE = [
 // da Castel San Giovanni a Piacenza e dintorni (gli stessi confini delle regole Firebase)
 const CONFINI = [[44.97, 9.39], [45.12, 9.82]];
 const TIPI = { CITY: ["City", "🚲"], MOUNTAIN: ["Mountain", "🚵"], CORSA: ["Corsa", "🚴"], EBIKE: ["E-bike", "⚡"], MONOPATTINO: ["Monopattino", "🛴"] };
-const MENSILE_ATTIVO = false, PAGAMENTI_ATTIVI = false;
+const MENSILE_ATTIVO = false, PAGAMENTI_ATTIVI = true;
+const SERVER_PAGAMENTI = "https://bikefly-pagamenti.bikef993.workers.dev";
 const ORA = 3600000;
 const DURATE = [
   { id: "ORA1", nome: "1 ora", ms: ORA, lunga: false },
@@ -652,7 +653,58 @@ function contaNumero(el, n) {
   const passo = t => { const k = Math.min(1, (t - t0) / d); el.textContent = Math.round(n * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(passo); };
   requestAnimationFrame(passo);
 }
-function chiudiFoglio() { $("velo").classList.remove("aperto"); $("foglio").classList.remove("aperto"); }
+
+// ---------------- pagamenti con Stripe (i soldi vengono bloccati, poi presi al ritiro) ----------------
+async function servizioPagamenti(azione, noleggio, extra = {}) {
+  try {
+    const r = await fetch(SERVER_PAGAMENTI + "/" + azione, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + await utente.getIdToken() }, body: JSON.stringify({ noleggio, ...extra }) });
+    return await r.json();
+  } catch (e) { return { errore: "rete" }; }   // ci pensa il controllo automatico ogni 15 minuti
+}
+let stripeJs = null;
+function caricaStripe() {
+  if (stripeJs) return stripeJs;
+  stripeJs = new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://js.stripe.com/v3/"; sc.onload = () => ok(window.Stripe); sc.onerror = () => { stripeJs = null; no(new Error("stripe")); }; document.head.appendChild(sc); });
+  return stripeJs;
+}
+// mostra il modulo di pagamento; restituisce l'id del pagamento (soldi bloccati) oppure null
+async function pagaNoleggio(id, b, scelta, prezzo) {
+  let dati;
+  try {
+    const [StripeF, r] = await Promise.all([caricaStripe(), fetch(SERVER_PAGAMENTI + "/prepara", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + await utente.getIdToken() },
+      body: JSON.stringify({ noleggio: id, bici: b.id, durataMs: scelta.ms, prezzo })
+    })]);
+    dati = await r.json();
+    if (!r.ok || !dati.clientSecret) { avvisa("Pagamento non disponibile: " + (dati.errore || "riprova")); return null; }
+    dati.Stripe = StripeF;
+  } catch (e) { avvisa("Non riesco a contattare il pagamento: controlla la connessione"); return null; }
+  return new Promise(fine => {
+    let chiuso = false;
+    apriFoglio(`<h2 style="margin:6px 0 4px">💳 Pagamento</h2>
+      <p class="nota">${esc(b.nome)} · ${scelta.nome}</p>
+      <div class="riga tra" style="font-weight:800;font-size:22px;margin:10px 0"><span>Totale</span><span>${euro(dati.importo / 100)}</span></div>
+      ${dati.test ? `<div style="background:rgba(255,210,63,.12);border:1px solid rgba(255,210,63,.4);border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.45;color:#FFE38A">🧪 <b>Modalità prova</b>: nessun addebito vero. Usa la carta <b>4242 4242 4242 4242</b>, una data futura e CVC <b>123</b>.</div>` : ""}
+      <div id="pagaElemento" style="margin:14px 0;min-height:120px"></div>
+      <button class="btn primo" id="pagaOra">Blocca ${euro(dati.importo / 100)} e invia la richiesta</button>
+      <p class="nota" style="text-align:center;margin-top:10px">🔒 I soldi vengono solo bloccati e presi quando ritiri la bici. Se il proprietario rifiuta, tornano subito.</p>
+      <button class="btn vetro piccolo" id="pagaAnnulla" style="margin-top:6px">Annulla</button>`);
+    const stripe = dati.Stripe(dati.pk);
+    const elements = stripe.elements({ clientSecret: dati.clientSecret, locale: "it", appearance: { theme: "night", variables: { colorPrimary: "#00D2A0", colorBackground: "#162A4D", borderRadius: "14px", fontFamily: "Figtree, system-ui, sans-serif" } } });
+    elements.create("payment", { layout: "tabs" }).mount("#pagaElemento");
+    const esci = v => { if (chiuso) return; chiuso = true; window.__suChiusura = null; fine(v); };
+    window.__suChiusura = () => esci(null);   // foglio chiuso toccando fuori: niente pagamento
+    $("pagaAnnulla").onclick = () => { chiudiFoglio(); esci(null); };
+    $("pagaOra").onclick = async () => {
+      const btn = $("pagaOra"); btn.disabled = true; btn.textContent = "Blocco i soldi…";
+      const { error, paymentIntent } = await stripe.confirmPayment({ elements, redirect: "if_required", confirmParams: { return_url: location.href.split("#")[0] } });
+      if (error) { btn.disabled = false; btn.textContent = `Riprova · ${euro(dati.importo / 100)}`; avvisa(error.message || "Pagamento non riuscito"); return; }
+      if (paymentIntent && ["requires_capture", "succeeded", "processing"].includes(paymentIntent.status)) { esci(paymentIntent.id); }
+      else { btn.disabled = false; btn.textContent = "Riprova"; avvisa("Pagamento non completato"); }
+    };
+  });
+}
+function chiudiFoglio() { $("velo").classList.remove("aperto"); $("foglio").classList.remove("aperto"); const f = window.__suChiusura; window.__suChiusura = null; if (f) f(); }
 $("velo").onclick = chiudiFoglio;
 
 function apriBici(id) {
@@ -695,9 +747,10 @@ function apriBici(id) {
   const totale = () => {
     if (!$("fdTotale")) return;
     const p = prezzoPer(b, scelta), c = commissionePer(p, scelta);
+    const promo = Date.now() < FINE_PROMO;
     $("fdTotale").innerHTML = PAGAMENTI_ATTIVI
-      ? `<div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>Commissione BikeFly</span><span>${euro(c)}</span></div><div class="riga tra"><span>Cauzione (solo bloccata)</span><span>${euro(cauzione)}</span></div><div class="riga tra"><span>Totale</span><span>${euro(p + c)}</span></div>`
-      : `<p style="color:#8DBBFF;font-weight:700;font-size:14px">🔜 Pagamenti in arrivo: in beta chiusa non si paga nell'app</p><div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>🛡️ Cauzione in contanti</span><span>${euro(cauzione)}</span></div><p class="nota">La lasci al proprietario al ritiro: te la ridà quando riporti la bici integra. 💡 Fate la consegna in un posto pubblico.${b.casco ? "" : b.tipo === "MONOPATTINO" ? " 🪖 Casco obbligatorio." : " 🪖 Casco non incluso."}</p>`;
+      ? `<div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>Commissione BikeFly</span><span>${promo ? `<s style="opacity:.5">${euro(c)}</s> <b style="color:var(--menta)">0 € 🎉</b>` : euro(c)}</span></div><div class="riga tra" style="font-weight:800;font-size:18px"><span>Totale</span><span>${euro(promo ? p : p + c)}</span></div><p class="nota">💳 Paghi con carta, Google Pay o Apple Pay. I soldi vengono solo <b>bloccati</b>: li prendiamo quando ritiri la bici. Se il proprietario rifiuta, tornano subito.</p>`
+      : `<p style="color:#8DBBFF">Pagamenti in arrivo</p>`;
   };
   totale();
   $("fdChiudi") && ($("fdChiudi").onclick = chiudiFoglio);
@@ -710,19 +763,28 @@ function apriBici(id) {
   $("fdRichiedi") && ($("fdRichiedi").onclick = async () => {
     if (!puoScrivere()) return;
     if (!(await chiediRegole())) return;
-    const btn = $("fdRichiedi"); btn.disabled = true; btn.textContent = "Invio la richiesta…";
+    const btn = $("fdRichiedi"); btn.disabled = true; btn.textContent = "Preparo il pagamento…";
     const p = prezzoPer(b, scelta);
+    const rif = doc(collection(db, "noleggi"));
+    let pagato = null;
+    if (PAGAMENTI_ATTIVI) {
+      pagato = await pagaNoleggio(rif.id, b, scelta, p);
+      if (!pagato) { btn.disabled = false; btn.textContent = "Chiedi la bici"; return; }
+    }
     try {
-      await setDoc(doc(collection(db, "noleggi")), {
+      await setDoc(rif, {
         fase: "IN_ATTESA", inizioMs: null, fineMs: null, voto: 0, codiceOk: false, fotoConsegnaMs: null, fotoRestituzioneMs: null,
         garanziaPioggia: false, bonusZona: 0, durataMs: scelta.ms, prezzo: p, invernale: false, accettatoMs: null, motivoFine: null,
         rimborso: 0, guasto: null, statoDanno: 0, descrizioneDanno: "", importoDanno: 0,
         numero: numero(), biciNumero: b.numero || 0, biciDoc: b.id, clienteUid: utente.uid, clienteNome: (utente.displayName || "").slice(0, 30),
         proprietarioUid: b.proprietarioUid, commissione: commissionePer(p, scelta), conKit: false, gruppo: 0, inizioPrevistoMs: null,
-        codiceTentativo: "", creato: Date.now()
+        codiceTentativo: "", creato: Date.now(), ...(pagato ? { pi: pagato } : {})
       });
       chiudiFoglio(); avvisa("Richiesta inviata! ✓"); vai("noleggi"); momentoMagico("richiesta");
-    } catch (e) { btn.disabled = false; btn.textContent = "Chiedi la bici"; avvisa("Richiesta rifiutata: " + (e.code || "riprova")); }
+    } catch (e) {
+      if (pagato) servizioPagamenti("annulla", rif.id, { pi: pagato });   // la richiesta non è partita: sblocco i soldi
+      btn.disabled = false; btn.textContent = "Chiedi la bici"; avvisa("Richiesta rifiutata: " + (e.code || "riprova"));
+    }
   });
 }
 
@@ -759,6 +821,7 @@ function disegnaNoleggi() {
     const chat = ["IN_ATTESA", "ACCETTATO", "IN_CORSO"].includes(n.fase) ? `<button class="btn vetro piccolo" data-a="chat" data-id="${n.id}">💬 Chat con ${esc(altro)}</button>` : "";
     return `<div class="card"><span class="stato s-${n.fase}">${nomeFase[n.fase] || n.fase}</span>
       <h3>${esc(b.nome)}</h3><p class="nota">${cliente ? "Noleggi da " + esc(altro) : "Noleggiata da " + esc(altro)} · ${euro(n.prezzo || b.prezzo || 0)}</p>
+      ${n.pi ? `<p class="nota" style="color:var(--menta);font-weight:700">💳 ${["IN_CORSO", "CONCLUSO"].includes(n.fase) ? "Pagato" : ["RIFIUTATO", "ANNULLATO"].includes(n.fase) ? "Soldi sbloccati: nessun addebito" : "Pagamento bloccato sulla carta: viene preso al ritiro"}</p>` : ""}
       ${n.motivoFine ? `<p class="nota">${esc(n.motivoFine)}</p>` : ""}${azioni}${chat}</div>`;
   }).join("");
 }
@@ -775,8 +838,8 @@ $("listaNoleggi").addEventListener("click", async ev => {
   const id = el.dataset.id, ref = doc(db, "noleggi", id);
   try {
     switch (el.dataset.a) {
-      case "annulla": await updateDoc(ref, { fase: "ANNULLATO", motivoFine: "Hai annullato la richiesta" }); break;
-      case "rifiuta": await updateDoc(ref, { fase: "RIFIUTATO" }); break;
+      case "annulla": await updateDoc(ref, { fase: "ANNULLATO", motivoFine: "Hai annullato la richiesta" }); servizioPagamenti("annulla", id); break;
+      case "rifiuta": await updateDoc(ref, { fase: "RIFIUTATO" }); servizioPagamenti("annulla", id); break;
       case "accetta": {
         const codice = String(1000 + Math.floor(Math.random() * 9000));
         codici[id] = codice;
@@ -790,7 +853,7 @@ $("listaNoleggi").addEventListener("click", async ev => {
         await updateDoc(ref, { codiceTentativo: v }); break;
       }
       case "avvia": if (!controlloOk(id)) return avvisa("Prima fai il controllo della bici");
-        await updateDoc(ref, { fase: "IN_CORSO", inizioMs: Date.now() }); avvisa("Buona pedalata! 🚴"); break;
+        await updateDoc(ref, { fase: "IN_CORSO", inizioMs: Date.now() }); servizioPagamenti("cattura", id); avvisa("Buona pedalata! 🚴"); break;
       case "restituisci": await updateDoc(ref, { fase: "CONCLUSO", fineMs: Date.now() }); avvisa("Bici restituita! Cauzione sbloccata 🛡️"); break;
       case "voto": {
         const v = +el.dataset.v, n = miei.find(x => x.id === id);
@@ -1055,7 +1118,7 @@ function disegnaProfilo() {
     const pausa = b.disponibile !== false;
     try {
       await updateDoc(doc(db, "bici", b.id), { disponibile: !pausa });
-      if (pausa) for (const n of suoi.filter(n => n.biciDoc === b.id && n.fase === "IN_ATTESA")) await updateDoc(doc(db, "noleggi", n.id), { fase: "RIFIUTATO" }).catch(() => {});
+      if (pausa) for (const n of suoi.filter(n => n.biciDoc === b.id && n.fase === "IN_ATTESA")) await updateDoc(doc(db, "noleggi", n.id), { fase: "RIFIUTATO" }).then(() => servizioPagamenti("annulla", n.id)).catch(() => {});
       avvisa(pausa ? "In pausa: nessuno la vede sulla mappa ⏸️" : "È di nuovo sulla mappa! 🚲");
     } catch (e) { avvisa("Non riuscito"); }
   });
@@ -1066,7 +1129,7 @@ function disegnaProfilo() {
     $("elNo").onclick = chiudiFoglio;
     $("elSi").onclick = async () => {
       try {
-        for (const n of suoi.filter(n => n.biciDoc === b.id && n.fase === "IN_ATTESA")) await updateDoc(doc(db, "noleggi", n.id), { fase: "RIFIUTATO" }).catch(() => {});
+        for (const n of suoi.filter(n => n.biciDoc === b.id && n.fase === "IN_ATTESA")) await updateDoc(doc(db, "noleggi", n.id), { fase: "RIFIUTATO" }).then(() => servizioPagamenti("annulla", n.id)).catch(() => {});
         await deleteDoc(doc(db, "bici", b.id)); chiudiFoglio(); avvisa("Bici eliminata");
       } catch (e) { avvisa("Non riuscito"); }
     };
