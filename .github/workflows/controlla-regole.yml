@@ -25,7 +25,8 @@ jobs:
           const rs = await (await fetch(base + rel.rulesetName, { headers: h })).json();
           const testo = (rs.source?.files || []).map(f => f.content).join("\n");
           const quando = rel.updateTime || "";
-          if (testo.includes("regoleAccettate")) console.log("::notice::REGOLE 14.2 ATTIVE (pubblicate " + quando + ")");
+          if (testo.includes("pushLancio")) console.log("::notice::REGOLE NUOVE ATTIVE con Avvisami (pubblicate " + quando + ")");
+          else if (testo.includes("regoleAccettate")) console.log("::warning::REGOLE DELLA 14.2, manca Avvisami (pubblicate " + quando + ")");
           else if (testo.includes("pushWeb")) console.log("::warning::REGOLE VECCHIE (14.1.5, pubblicate " + quando + ")");
           else console.log("::warning::REGOLE MOLTO VECCHIE (pubblicate " + quando + ")");
           '
