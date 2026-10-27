@@ -240,7 +240,7 @@ allow create: if scrittore() &amp;&amp; biciValida()
 &amp;&amp; utenteDopo().get(&#x27;ultimaBici&#x27;, null) == request.time;
 allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; (
 (resource.data.proprietarioUid == io()
-&amp;&amp; cambiati().hasOnly([&#x27;disponibile&#x27;, &#x27;rubata&#x27;, &#x27;prezzo&#x27;, &#x27;soloFidati&#x27;, &#x27;proprietarioNome&#x27;, &#x27;cauzione&#x27;, &#x27;lucchetto&#x27;, &#x27;casco&#x27;, &#x27;orari&#x27;, &#x27;latRitiro&#x27;, &#x27;lonRitiro&#x27;, &#x27;evidenzaFino&#x27;])
+&amp;&amp; cambiati().hasOnly([&#x27;disponibile&#x27;, &#x27;rubata&#x27;, &#x27;prezzo&#x27;, &#x27;soloFidati&#x27;, &#x27;proprietarioNome&#x27;, &#x27;cauzione&#x27;, &#x27;lucchetto&#x27;, &#x27;casco&#x27;, &#x27;orari&#x27;, &#x27;latRitiro&#x27;, &#x27;lonRitiro&#x27;, &#x27;evidenzaFino&#x27;, &#x27;minimoOre&#x27;])
 &amp;&amp; (!(&#x27;evidenzaFino&#x27; in cambiati()) || (nd().evidenzaFino is timestamp
 &amp;&amp; nd().evidenzaFino &gt; request.time
 &amp;&amp; nd().evidenzaFino &lt;= request.time + duration.value(24, &#x27;h&#x27;)
@@ -250,6 +250,7 @@ allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; (
 &amp;&amp; nd().prezzo &gt;= 2 &amp;&amp; nd().prezzo &lt;= 15))
 &amp;&amp; (!(&#x27;cauzione&#x27; in cambiati()) || (nd().cauzione is number
 &amp;&amp; nd().cauzione &gt;= 30 &amp;&amp; nd().cauzione &lt;= 200))
+&amp;&amp; nd().get(&#x27;minimoOre&#x27;, 1) in [1, 2]
 &amp;&amp; testo(nd().proprietarioNome, 30)
 &amp;&amp; posizioneOk(nd()))
 || votoOnesto()
@@ -269,6 +270,7 @@ return testo(d.nome, 40) &amp;&amp; d.nome.size() &gt; 0
 &amp;&amp; d.tipo in [&#x27;CITY&#x27;, &#x27;MOUNTAIN&#x27;, &#x27;CORSA&#x27;, &#x27;EBIKE&#x27;, &#x27;MONOPATTINO&#x27;]
 &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) is number &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) &gt;= 30 &amp;&amp; d.get(&#x27;cauzione&#x27;, 30) &lt;= 200
 &amp;&amp; d.get(&#x27;lucchetto&#x27;, false) == true
+&amp;&amp; d.get(&#x27;minimoOre&#x27;, 1) in [1, 2]
 &amp;&amp; d.get(&#x27;orari&#x27;, []) is list &amp;&amp; d.get(&#x27;orari&#x27;, []).size() &lt;= 4
 &amp;&amp; posizioneOk(d)
 &amp;&amp; (d.get(&#x27;prezzoMese&#x27;, null) == null || (d.prezzoMese is number &amp;&amp; d.prezzoMese &gt; 0 &amp;&amp; d.prezzoMese &lt;= 1000))
@@ -340,10 +342,11 @@ let b = get(/databases/$(database)/documents/bici/$(d.biciDoc)).data;
 let ore = d.durataMs;
 let mese = b.get(&#x27;prezzoMese&#x27;, null);
 return d.prezzo is number &amp;&amp; d.prezzo &lt;= 1100
-&amp;&amp; d.commissione is number &amp;&amp; d.commissione &gt;= 0.86
+&amp;&amp; d.commissione is number &amp;&amp; (d.commissione &gt;= 0.86
+|| (d.commissione &gt;= 0 &amp;&amp; request.time &lt; timestamp.date(2027, 3, 1) - duration.value(1, &#x27;h&#x27;)))
 &amp;&amp; (
 (ore == 18000000 &amp;&amp; d.prezzo &gt;= b.prezzo)
-|| (ore == 3600000 &amp;&amp; d.prezzo &gt;= 1.5 &amp;&amp; d.prezzo &gt;= b.prezzo * 0.4 - 0.26)
+|| (ore == 3600000 &amp;&amp; b.get(&#x27;minimoOre&#x27;, 1) == 1 &amp;&amp; d.prezzo &gt;= 1.5 &amp;&amp; d.prezzo &gt;= b.prezzo * 0.4 - 0.26)
 || (ore == 7200000 &amp;&amp; d.prezzo &gt;= 2.5 &amp;&amp; d.prezzo &gt;= b.prezzo * 0.6 - 0.26)
 || (ore == 604800000 &amp;&amp; mese != null &amp;&amp; d.prezzo &gt;= mese * 0.35 - 0.26)
 || (ore == 2592000000 &amp;&amp; mese != null &amp;&amp; d.prezzo &gt;= mese)
@@ -359,6 +362,8 @@ allow create: if scrittore() &amp;&amp; nd().clienteUid == io()
 &amp;&amp; nd().proprietarioUid == get(/databases/$(database)/documents/bici/$(nd().biciDoc)).data.proprietarioUid
 &amp;&amp; nd().proprietarioUid != io()
 &amp;&amp; testo(nd().clienteNome, 30)
+&amp;&amp; (request.time &lt; timestamp.date(2026, 11, 30) + duration.value(23, &#x27;h&#x27;)
+|| (nd().get(&#x27;pi&#x27;, &#x27;&#x27;) is string &amp;&amp; nd().get(&#x27;pi&#x27;, &#x27;&#x27;).matches(&#x27;pi_[A-Za-z0-9]+&#x27;)))
 &amp;&amp; prezzoOnesto();
 allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; partecipante()
 &amp;&amp; nd().clienteUid == resource.data.clienteUid
@@ -366,7 +371,17 @@ allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; partecipante()
 &amp;&amp; nd().biciDoc == resource.data.biciDoc
 &amp;&amp; (resource.data.proprietarioUid == io()
 || !cambiati().hasAny([&#x27;codiceOk&#x27;]))
-&amp;&amp; (nd().fase != &#x27;IN_CORSO&#x27; || nd().codiceOk == true);
+&amp;&amp; (nd().fase != &#x27;IN_CORSO&#x27; || nd().codiceOk == true)
+&amp;&amp; faseAvanti(resource.data.fase, nd().fase)
+&amp;&amp; !(resource.data.get(&#x27;codiceOk&#x27;, false) == true &amp;&amp; nd().fase in [&#x27;ANNULLATO&#x27;, &#x27;RIFIUTATO&#x27;])
+&amp;&amp; nd().get(&#x27;pi&#x27;, null) == resource.data.get(&#x27;pi&#x27;, null)
+&amp;&amp; (resource.data.get(&#x27;pi&#x27;, null) == null || !cambiati().hasAny([&#x27;prezzo&#x27;, &#x27;durataMs&#x27;, &#x27;commissione&#x27;]));
+function faseAvanti(da, a) {
+return da == a
+|| (da == &#x27;IN_ATTESA&#x27; &amp;&amp; a in [&#x27;ACCETTATO&#x27;, &#x27;RIFIUTATO&#x27;, &#x27;ANNULLATO&#x27;])
+|| (da == &#x27;ACCETTATO&#x27; &amp;&amp; a in [&#x27;IN_CORSO&#x27;, &#x27;RIFIUTATO&#x27;, &#x27;ANNULLATO&#x27;])
+|| (da == &#x27;IN_CORSO&#x27; &amp;&amp; a == &#x27;CONCLUSO&#x27;);
+}
 match /messaggi/{m} {
 allow read: if accesso() &amp;&amp; partecipanteDi(id);
 allow create: if scrittore() &amp;&amp; partecipanteDi(id)
