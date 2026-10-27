@@ -47,7 +47,8 @@ export function mostraInvito(box, numero, link) {
     ${numero ? `<p class="invito-num">Sei il Pioniere<br><b>n° ${numero}</b><br>di Piacenza 🚀</p>` : `<p class="invito-num">Sei tra i <b>Pionieri</b> 🚀</p>`}
     <p class="invito-sotto">Il 1 dicembre ti arriva il codice. Intanto porta un amico: chi entra prima, prende il codice prima.</p>
     <a class="invito-wa" href="https://wa.me/?text=${encodeURIComponent(testo)}" target="_blank" rel="noopener">Invita un amico su WhatsApp</a>
-    <button type="button" class="invito-altro">Condividi in un altro modo</button>`;
+    <button type="button" class="invito-altro">Condividi in un altro modo</button>
+    <a class="invito-tt" href="https://www.tiktok.com/@bikefly0" target="_blank" rel="noopener">🎵 Seguici su TikTok per sapere quando esce</a>`;
   box.classList.remove("nascosto");
   box.querySelector(".invito-altro").onclick = async () => {
     try {
