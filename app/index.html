@@ -335,7 +335,7 @@ button,a,.btn{touch-action:manipulation}
       <p class="nota" id="guadagnoTesto"></p>
       <label class="etichetta" for="biciCauzione">Cauzione: <b id="cauzioneTesto">30 €</b></label>
       <input type="range" id="biciCauzione" min="30" max="200" step="5" value="30" style="width:100%;accent-color:#3B8BFF">
-      <p class="nota">La decidi tu (minimo 30 €). In beta si lascia in contanti al ritiro e la ridai alla restituzione.</p>
+      <p class="nota">La decidi tu (minimo 30 €). Durante la prova non si paga: presto verrà bloccata sulla carta di chi noleggia.</p>
       <label class="etichetta">🕐 Quando si può noleggiare</label>
       <div class="fasce" id="biciOrari"></div>
       <p class="nota" style="margin-top:6px">Mattina 6-12 · Pomeriggio 12-18 · Sera 18-23 · Weekend tutto il giorno</p>
@@ -345,6 +345,7 @@ button,a,.btn{touch-action:manipulation}
       <p class="nota" id="testoRitiro" style="margin-top:6px">Se non lo scegli, sulla mappa la bici appare vicino al centro del quartiere.</p>
       <label class="casella"><input type="checkbox" id="biciLucchetto"><span>🔒 Do il lucchetto insieme alla bici (obbligatorio)</span></label>
       <label class="casella" style="margin-top:10px"><input type="checkbox" id="biciCasco"><span>🪖 Presto anche il casco</span></label>
+      <label class="casella" style="margin-top:10px"><input type="checkbox" id="biciMinimo2"><span>⏱️ Noleggio minimo 2 ore (niente noleggi da 1 ora)</span></label>
       <div id="rigaMonopattino" class="nascosto">
         <p class="nota" style="margin-top:12px"><b>Il monopattino per legge ha bisogno di:</b></p>
         <label class="casella" style="margin-top:8px"><input type="checkbox" id="biciTarghino"><span>Contrassegno (targhino)</span></label>
@@ -442,14 +443,14 @@ const contieneContatti = s => /(\+?\d[\d\s.\-]{7,}\d)/.test(s) || /[\w.+-]+@[\w-
 const mezzoEuro = x => Math.round(x * 2) / 2;
 function prezzoPer(b, d) {
   switch (d.id) {
-    case "ORA1": return mezzoEuro(Math.max(1.5, b.prezzo * 0.4));
+    case "ORA1": return (b.minimoOre || 1) >= 2 ? null : mezzoEuro(Math.max(1.5, b.prezzo * 0.4));
     case "ORE2": return mezzoEuro(Math.max(2.5, b.prezzo * 0.6));
     case "ORE5": return b.prezzo;
     case "SETTIMANA": return b.prezzoMese ? mezzoEuro(b.prezzoMese * 0.35) : null;
     case "MESE": return b.prezzoMese ?? null;
   }
 }
-const commissionePer = (p, d) => d.lunga ? Math.max(COMMISSIONE, Math.round(p * 10) / 100) : COMMISSIONE;
+const commissionePer = (p, d) => Date.now() < FINE_PROMO ? 0 : d.lunga ? Math.max(COMMISSIONE, Math.round(p * 10) / 100) : COMMISSIONE;
 const euro = x => (Math.round(x * 100) / 100).toLocaleString("it-IT", { minimumFractionDigits: x % 1 ? 2 : 0, maximumFractionDigits: 2 }) + " €";
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const numero = () => 1000000 + Math.floor(Math.random() * 2000000000);
@@ -642,7 +643,7 @@ function rigaControllo(n) {
 }
 
 // ---------------- promo di lancio e Pionieri ----------------
-const FINE_PROMO = new Date(2027, 2, 1).getTime(), FINE_PIONIERI = new Date(2026, 11, 1).getTime();
+const FINE_PROMO = Date.UTC(2027, 1, 28, 23, 0), FINE_PIONIERI = new Date(2026, 11, 1).getTime();
 const giorniPionieri = () => Math.max(0, Math.floor((FINE_PIONIERI - Date.now()) / 86400000));
 if (Date.now() >= FINE_PROMO) document.querySelectorAll("[data-promo]").forEach(e => e.remove());
 try { if (sessionStorage.getItem("promoVista")) $("promoMappa")?.remove(); } catch (e) {}
@@ -730,6 +731,7 @@ function apriBici(id) {
       <span class="chip">🛡️ Cauzione ${euro(cauzione)}</span>
       ${b.lucchetto !== false ? `<span class="chip">🔒 Lucchetto</span>` : ""}
       ${b.casco ? `<span class="chip">🪖 Casco</span>` : ""}
+      ${(b.minimoOre || 1) >= 2 ? `<span class="chip">⏱️ Minimo 2 ore</span>` : ""}
       <span class="chip">🕐 ${esc(testoOrari(b))}</span>
       ${typeof b.latRitiro === "number" ? `<span class="chip">📍 Punto di ritiro preciso</span>` : ""}
     </div>
@@ -750,7 +752,7 @@ function apriBici(id) {
     const p = prezzoPer(b, scelta), c = commissionePer(p, scelta);
     const promo = Date.now() < FINE_PROMO;
     $("fdTotale").innerHTML = PAGAMENTI_ATTIVI
-      ? `<div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>Commissione BikeFly</span><span>${promo ? `<s style="opacity:.5">${euro(c)}</s> <b style="color:var(--menta)">0 € 🎉</b>` : euro(c)}</span></div><div class="riga tra" style="font-weight:800;font-size:18px"><span>Totale</span><span>${euro(promo ? p : p + c)}</span></div><p class="nota">💳 Paghi con carta, Google Pay o Apple Pay. I soldi vengono solo <b>bloccati</b>: li prendiamo quando ritiri la bici. Se il proprietario rifiuta, tornano subito.</p>`
+      ? `<div class="riga tra"><span>Noleggio ${scelta.nome}</span><span>${euro(p)}</span></div><div class="riga tra"><span>Commissione BikeFly</span><span>${promo ? `<s style="opacity:.5">${euro(COMMISSIONE)}</s> <b style="color:var(--menta)">0 € 🎉</b>` : euro(c)}</span></div><div class="riga tra" style="font-weight:800;font-size:18px"><span>Totale</span><span>${euro(promo ? p : p + c)}</span></div><p class="nota">💳 Paghi con carta, Google Pay o Apple Pay. I soldi vengono solo <b>bloccati</b>: li prendiamo quando ritiri la bici. Se il proprietario rifiuta, tornano subito.</p>`
       : `<p style="color:#8DBBFF">Pagamenti in arrivo</p>`;
   };
   totale();
@@ -792,6 +794,29 @@ function apriBici(id) {
 // ---------------- noleggi ----------------
 const nomeFase = { IN_ATTESA: "In attesa", ACCETTATO: "Accettato", IN_CORSO: "In corso", CONCLUSO: "Concluso", RIFIUTATO: "Rifiutato", ANNULLATO: "Annullato" };
 function tempo(ms) { const m = Math.max(0, Math.round(ms / 60000)); return m < 60 ? m + " min" : Math.floor(m / 60) + " h " + (m % 60) + " min"; }
+// stato vero del pagamento, chiesto a Stripe tramite il server (una volta per fase)
+const statiPagamento = {};
+function rigaPagamento(n) {
+  const chiave = n.id + "|" + n.fase;
+  if (["RIFIUTATO", "ANNULLATO"].includes(n.fase)) return `<p class="nota" style="color:var(--menta);font-weight:700">💳 Soldi sbloccati: nessun addebito</p>`;
+  if (n.fase === "CONCLUSO") return `<p class="nota" style="color:var(--menta);font-weight:700">💳 Pagato ✓</p>`;
+  const st = statiPagamento[chiave];
+  if (!st) {
+    statiPagamento[chiave] = { stato: "attesa" };
+    servizioPagamenti("stato", n.id).then(r => {
+      statiPagamento[chiave] = r.stato ? { stato: r.stato, importo: r.importo } : { stato: r.errore === "rete" ? "errore" : "mancante" };
+      disegnaNoleggi();
+    });
+  }
+  const s = statiPagamento[chiave].stato, soldi = statiPagamento[chiave].importo ? euro(statiPagamento[chiave].importo / 100) + " " : "";
+  const [testo, colore] = s === "attesa" ? ["💳 Controllo il pagamento…", "inherit"]
+    : s === "succeeded" ? [`💳 Pagato ${soldi}✓`, "var(--menta)"]
+    : s === "requires_capture" ? [`💳 ${soldi}bloccati sulla carta: vengono presi al ritiro`, "var(--menta)"]
+    : s === "errore" ? ["💳 Non riesco a controllare il pagamento: riprova tra poco", "#FFB347"]
+    : n.ruolo === "cliente" ? ["💳 Pagamento in controllo: se qualcosa non va, i soldi vengono sbloccati da soli", "inherit"]
+    : ["⚠️ Pagamento non confermato: non consegnare la bici e scrivici", "var(--corallo)"];
+  return `<p class="nota" style="color:${colore};font-weight:700">${testo}</p>`;
+}
 function disegnaNoleggi() {
   const tutti = [...miei.map(n => ({ ...n, ruolo: "cliente" })), ...suoi.map(n => ({ ...n, ruolo: "proprietario" }))]
     .sort((a, b) => ["IN_CORSO", "ACCETTATO", "IN_ATTESA"].indexOf(b.fase) - ["IN_CORSO", "ACCETTATO", "IN_ATTESA"].indexOf(a.fase) || (b.creato || 0) - (a.creato || 0));
@@ -822,7 +847,7 @@ function disegnaNoleggi() {
     const chat = ["IN_ATTESA", "ACCETTATO", "IN_CORSO"].includes(n.fase) ? `<button class="btn vetro piccolo" data-a="chat" data-id="${n.id}">💬 Chat con ${esc(altro)}</button>` : "";
     return `<div class="card"><span class="stato s-${n.fase}">${nomeFase[n.fase] || n.fase}</span>
       <h3>${esc(b.nome)}</h3><p class="nota">${cliente ? "Noleggi da " + esc(altro) : "Noleggiata da " + esc(altro)} · ${euro(n.prezzo || b.prezzo || 0)}</p>
-      ${n.pi ? `<p class="nota" style="color:var(--menta);font-weight:700">💳 ${["IN_CORSO", "CONCLUSO"].includes(n.fase) ? "Pagato" : ["RIFIUTATO", "ANNULLATO"].includes(n.fase) ? "Soldi sbloccati: nessun addebito" : "Pagamento bloccato sulla carta: viene preso al ritiro"}</p>` : ""}
+      ${n.pi ? rigaPagamento(n) : ""}
       ${n.motivoFine ? `<p class="nota">${esc(n.motivoFine)}</p>` : ""}${azioni}${chat}</div>`;
   }).join("");
 }
@@ -855,7 +880,7 @@ $("listaNoleggi").addEventListener("click", async ev => {
       }
       case "avvia": if (!controlloOk(id)) return avvisa("Prima fai il controllo della bici");
         await updateDoc(ref, { fase: "IN_CORSO", inizioMs: Date.now() }); servizioPagamenti("cattura", id); avvisa("Buona pedalata! 🚴"); break;
-      case "restituisci": await updateDoc(ref, { fase: "CONCLUSO", fineMs: Date.now() }); avvisa("Bici restituita! Cauzione sbloccata 🛡️"); break;
+      case "restituisci": await updateDoc(ref, { fase: "CONCLUSO", fineMs: Date.now() }); avvisa("Bici restituita! Grazie 🚲"); break;
       case "voto": {
         const v = +el.dataset.v, n = miei.find(x => x.id === id);
         const lotto = writeBatch(db);
@@ -1064,7 +1089,7 @@ $("moduloBici").onsubmit = async ev => {
       prezzo: +$("biciPrezzo").value, prezzoMese: null, kit: false, soloFidati: 0, colore: COLORI[Math.floor(Math.random() * COLORI.length)],
       disponibile: true, rubata: false, sommaVoti: 0, numVoti: 0, proprietarioUid: utente.uid, proprietarioNome: (utente.displayName || "").slice(0, 30),
       foto: fotoBase64, creato: Date.now(),
-      cauzione: +$("biciCauzione").value, lucchetto: true, casco: $("biciCasco").checked || mono,
+      cauzione: +$("biciCauzione").value, lucchetto: true, casco: $("biciCasco").checked || mono, minimoOre: $("biciMinimo2").checked ? 2 : 1,
       orari: orariScelti.slice(0, 4), latRitiro: puntoRitiro ? puntoRitiro[0] : null, lonRitiro: puntoRitiro ? puntoRitiro[1] : null
     });
     lotto.set(doc(db, "utenti", utente.uid), { ultimaBici: serverTimestamp() }, { merge: true });
@@ -1090,7 +1115,7 @@ function disegnaProfilo() {
     ${Date.now() < FINE_PIONIERI ? `<div class="card pionieri"><h3>🚀 Pionieri di BikeFly</h3><div><span class="num" id="numPionieri">…</span> <span class="nota" style="color:#fff">già iscritti</span></div><p style="font-size:14px">${giorniPionieri() > 0 ? `Mancano ${giorniPionieri()} giorni: chi si iscrive prima del 1° dicembre diventa Pioniere per sempre.` : "Ultimo giorno per diventare Pioniere!"}</p><button class="btn bianco" id="pfPionieriWa">💬 Fallo sapere su WhatsApp</button><div class="social"><a class="wa" href="https://whatsapp.com/channel/0029VbDlrMn6mYPEUjBGuz1I" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.4-.3Z"/></svg>WhatsApp</a><a class="tt" href="https://www.tiktok.com/@bikefly0" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.6 2h-3.3v13.2a2.9 2.9 0 1 1-2.9-2.9c.3 0 .6 0 .8.1V9a6.2 6.2 0 1 0 5.4 6.2V8.4a7.9 7.9 0 0 0 4.4 1.4V6.5a4.6 4.6 0 0 1-4.4-4.5Z"/></svg>TikTok</a></div></div>` : ""}
     ${profiloMio.mioCodice ? `<div class="card" style="background:linear-gradient(135deg,#7C5CFF,#3B8BFF)"><h3>🎟️ I tuoi inviti</h3><p style="font-size:14px">Puoi invitare ancora ${Math.max(0, invito.max - invito.usi)} amici di fiducia.</p><div class="codice" id="mioCodice">${esc(profiloMio.mioCodice)}</div><button class="btn bianco" id="pfInvita">💬 Invita su WhatsApp</button><button class="btn vetro piccolo" id="pfInvitaAltro" style="margin-top:8px">Altre app</button><p style="font-size:12px;opacity:.85">Usati ${invito.usi} su ${invito.max}</p></div>` : ""}
     ${sonoAdmin ? `<div class="card"><h3>🛡️ Admin</h3><button class="btn vetro piccolo" id="pfCodice">Crea codice da 20 inviti</button><div id="pfCodiceNuovo" class="codice nascosto"></div><button class="btn primo piccolo" id="pfPionieri">🎟️ Codici per i Pionieri</button><p class="nota">Crea un codice invito per ogni email della lista d'attesa e prepara le email da mandare.</p></div>` : ""}
-    <div class="card"><h3>Le tue bici</h3>${mie.length ? mie.map(b => `<div class="riga tra"><span>${TIPI[b.tipo]?.[1] || "🚲"} ${esc(b.nome)} · ${euro(b.prezzo)}</span><span class="riga" style="gap:6px;flex:none"><button class="btn vetro piccolo" data-disp="${b.id}">${b.disponibile !== false ? "⏸️ Pausa" : "▶️ Riattiva"}</button><button class="btn vetro piccolo" data-elimina="${b.id}" aria-label="Elimina ${esc(b.nome)}">🗑️</button></span></div>`).join("") : `<p class="nota">Non hai ancora pubblicato bici.</p>`}</div>
+    <div class="card"><h3>Le tue bici</h3>${mie.length ? mie.map(b => `<div class="riga tra"><span>${TIPI[b.tipo]?.[1] || "🚲"} ${esc(b.nome)} · ${euro(b.prezzo)}</span><span class="riga" style="gap:6px;flex:none"><button class="btn vetro piccolo" data-disp="${b.id}">${b.disponibile !== false ? "⏸️ Pausa" : "▶️ Riattiva"}</button><button class="btn vetro piccolo" data-minimo="${b.id}" title="Noleggio minimo">⏱️ ${(b.minimoOre || 1) >= 2 ? "min 2h" : "min 1h"}</button><button class="btn vetro piccolo" data-elimina="${b.id}" aria-label="Elimina ${esc(b.nome)}">🗑️</button></span></div>`).join("") : `<p class="nota">Non hai ancora pubblicato bici.</p>`}</div>
     <div class="card"><h3>Installa BikeFly</h3><p class="nota">Su iPhone: tocca <b>Condividi</b> ↑ e poi <b>"Aggiungi alla schermata Home"</b>. Su Android puoi scaricare <a href="../bikefly.apk" style="color:var(--menta);font-weight:700">l'app completa</a>, con Fly, il social e tutto il resto.</p><a class="link" href="../installa/" style="margin-top:4px">Guida passo passo →</a></div>
     <button class="btn vetro" id="pfEsci">Esci</button>`;
   document.querySelectorAll("[data-conta]").forEach(contaSu);
@@ -1121,6 +1146,15 @@ function disegnaProfilo() {
       await updateDoc(doc(db, "bici", b.id), { disponibile: !pausa });
       if (pausa) for (const n of suoi.filter(n => n.biciDoc === b.id && n.fase === "IN_ATTESA")) await updateDoc(doc(db, "noleggi", n.id), { fase: "RIFIUTATO" }).then(() => servizioPagamenti("annulla", n.id)).catch(() => {});
       avvisa(pausa ? "In pausa: nessuno la vede sulla mappa ⏸️" : "È di nuovo sulla mappa! 🚲");
+    } catch (e) { avvisa("Non riuscito"); }
+  });
+  document.querySelectorAll("[data-minimo]").forEach(el => el.onclick = async () => {
+    const b = bici.find(x => x.id === el.dataset.minimo);
+    const nuovo = (b.minimoOre || 1) >= 2 ? 1 : 2;
+    try {
+      await updateDoc(doc(db, "bici", b.id), { minimoOre: nuovo });
+      b.minimoOre = nuovo; disegnaProfilo();
+      avvisa(nuovo === 2 ? "Noleggio minimo: 2 ore ⏱️" : "Ora si può noleggiare anche per 1 ora ⏱️");
     } catch (e) { avvisa("Non riuscito"); }
   });
   document.querySelectorAll("[data-elimina]").forEach(el => el.onclick = () => {
