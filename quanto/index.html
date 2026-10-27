@@ -132,7 +132,7 @@ footer a{color:var(--nebbia)}
   <p class="sotto dopo">Ferma, impolverata, dimenticata. Rispondi a 3 domande e scopri quanto potrebbe farti guadagnare ogni mese.</p>
 
   <section class="quiz dopo" id="quiz" aria-live="polite">
-    <div class="punti" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="punti" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 
     <div class="domanda attiva" data-passo="0">
       <h2>Hai una bici che non usi quasi mai?</h2>
@@ -146,6 +146,13 @@ footer a{color:var(--nebbia)}
     <div class="domanda" data-passo="1">
       <h2>Che bici è?</h2>
       <div class="opzioni" id="tipi"></div>
+      <button type="button" class="indietro" data-indietro>Indietro</button>
+    </div>
+
+    <div class="domanda" data-passo="bici">
+      <h2>Quante bici hai a disposizione?</h2>
+      <p class="nota">Anche quelle di famiglia che nessuno usa.</p>
+      <div class="chip" id="quante"><button type="button">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5+</button></div>
       <button type="button" class="indietro" data-indietro>Indietro</button>
     </div>
 
@@ -238,7 +245,7 @@ function scintille(btn) {
   }
 }
 window.scintille = scintille;
-let scelto = TIPI[0], volte = 2;
+let scelto = TIPI[0], volte = 2, bici = 1;
 const $ = id => document.getElementById(id);
 const euro = n => Math.round(n).toLocaleString("it-IT");
 
@@ -247,17 +254,17 @@ function disegnaTipi() {
 }
 function calcola() {
   const netto = scelto.prezzo - COMMISSIONE;
-  const mese = netto * volte * SETTIMANE;
+  const mese = netto * volte * SETTIMANE * bici;
   contaFino(mese);
   voluta = 0.05 + mese / 400;   // gradi al millisecondo
-  $("dettaglio").textContent = `${scelto.nome} a ${scelto.prezzo} € per 5 ore, prestata ${volte} ${volte === 1 ? "volta" : "volte"} a settimana. La cauzione la decidi tu e torna sempre indietro.`;
+  $("dettaglio").textContent = `${bici > 1 ? bici + " bici" : scelto.nome} a ${scelto.prezzo} € per 5 ore, ${bici > 1 ? "prestate" : "prestata"} ${volte} ${volte === 1 ? "volta" : "volte"} a settimana${bici > 1 ? " ciascuna" : ""}. Fino al 28 febbraio zero commissioni: tieni ancora di più. La cauzione la decidi tu e torna sempre indietro.`;
   return Math.round(mese);
 }
 // quiz: una domanda alla volta, si va avanti toccando una risposta
 const storia = [];
 function vai(passo) {
   document.querySelectorAll(".domanda").forEach(d => d.classList.toggle("attiva", d.dataset.passo === String(passo)));
-  const n = passo === "noleggio" ? 3 : Number(passo);
+  const n = { "0": 0, "1": 1, "bici": 2, "2": 3, "noleggio": 4 }[String(passo)];
   document.querySelectorAll(".punti i").forEach((p, i) => p.classList.toggle("fatto", i < n));
 }
 function avanti(passo) { storia.push(document.querySelector(".domanda.attiva").dataset.passo); vai(passo); }
@@ -274,7 +281,12 @@ document.querySelector("[data-passo='0'] .opzioni").onclick = e => {
 $("tipi").onclick = e => {
   const b = e.target.closest("[data-id]"); if (!b) return;
   scelto = TIPI.find(t => t.id === b.dataset.id); b.classList.add("si");
-  setTimeout(() => { b.classList.remove("si"); avanti(2); }, calmo ? 0 : 220);
+  setTimeout(() => { b.classList.remove("si"); avanti("bici"); }, calmo ? 0 : 220);
+};
+$("quante").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  bici = parseInt(b.textContent, 10);
+  setTimeout(() => avanti(2), calmo ? 0 : 200);
 };
 $("volte").onclick = e => {
   const b = e.target.closest("button"); if (!b) return;
@@ -304,7 +316,7 @@ function immagine(mese) {
   g.strokeStyle = "#00D2A0"; g.beginPath(); g.arc(370, 560, 150, -0.6, 4.6); g.stroke();
   g.strokeStyle = "#3B8BFF"; g.beginPath(); g.arc(710, 560, 150, 0.6, 5.6); g.stroke();
   g.textAlign = "center";
-  g.fillStyle = "#8496B3"; g.font = "700 40px Figtree, sans-serif"; g.fillText("LA MIA BICI IN CANTINA VALE", 540, 900);
+  g.fillStyle = "#8496B3"; g.font = "700 40px Figtree, sans-serif"; g.fillText(bici > 1 ? `LE MIE ${bici} BICI IN CANTINA VALGONO` : "LA MIA BICI IN CANTINA VALE", 540, 900);
   g.fillStyle = "#F3F6FB"; g.font = "800 260px 'Bricolage Grotesque', sans-serif"; g.fillText(euro(mese) + " €", 540, 1160);
   g.fillStyle = "#8496B3"; g.font = "700 56px Figtree, sans-serif"; g.fillText("al mese", 540, 1250);
   g.fillStyle = "#00D2A0"; g.font = "800 48px Figtree, sans-serif"; g.fillText("E la tua quanto vale? 👀", 540, 1480);
