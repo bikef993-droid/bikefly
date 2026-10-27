@@ -419,6 +419,7 @@ const CONFINI = [[44.97, 9.39], [45.12, 9.82]];
 const TIPI = { CITY: ["City", "🚲"], MOUNTAIN: ["Mountain", "🚵"], CORSA: ["Corsa", "🚴"], EBIKE: ["E-bike", "⚡"], MONOPATTINO: ["Monopattino", "🛴"] };
 const MENSILE_ATTIVO = false, PAGAMENTI_ATTIVI = true;
 const SERVER_PAGAMENTI = "https://bikefly-pagamenti.bikef993.workers.dev";
+const APERTURA = Date.UTC(2026, 10, 30, 23, 0);   // 1 dicembre 2026, mezzanotte italiana
 const ORA = 3600000;
 const DURATE = [
   { id: "ORA1", nome: "1 ora", ms: ORA, lunga: false },
@@ -1551,7 +1552,7 @@ $("chiudiHome").onclick = () => { homeChiuso = true; try { localStorage.setItem(
 
 function mostraVista() {
   const dentro = !!utente;
-  const serveInvito = dentro && profiloMio.caricato && !profiloMio.ammesso && !sonoAdmin;
+  const serveInvito = dentro && profiloMio.caricato && !profiloMio.ammesso && !sonoAdmin && Date.now() < APERTURA;   // dal 1 dicembre: aperta a tutti
   $("accesso").classList.toggle("nascosto", dentro);
   $("invito").classList.toggle("nascosto", !serveInvito);
   $("app").classList.toggle("nascosto", !dentro);
@@ -1583,7 +1584,7 @@ onAuthStateChanged(auth, u => {
       const dati = d.data() || {};
       const prima = profiloMio.mioCodice;
       profiloMio = { caricato: true, ammesso: dati.ammesso === true, mioCodice: dati.mioCodice || null, paese: dati.paese || null, aliSpese: Number.isInteger(dati.aliSpese) ? dati.aliSpese : 0, aliOggetti: Array.isArray(dati.aliOggetti) ? dati.aliOggetti : [], regoleVersione: Number.isInteger(dati.regoleVersione) ? dati.regoleVersione : 0 };
-      if (profiloMio.ammesso && !profiloMio.paese) setTimeout(chiediPaese, 600);
+      if ((profiloMio.ammesso || Date.now() >= APERTURA) && !profiloMio.paese) setTimeout(chiediPaese, 600);
       if (profiloMio.paese && !paeseVisto) { paeseVisto = true; setTimeout(() => vaiAlPaese(profiloMio.paese), 300); }
       if (!dati.creato) setDoc(doc(db, "utenti", u.uid), { creato: serverTimestamp() }, { merge: true }).catch(() => {});
       if (profiloMio.ammesso && !profiloMio.mioCodice) creaMioCodice();

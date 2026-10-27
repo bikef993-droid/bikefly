@@ -22,7 +22,7 @@ return exists(/databases/$(database)/documents/segnalati/$(io()))
 &amp;&amp; get(/databases/$(database)/documents/segnalati/$(io())).data.get(&#x27;riattivato&#x27;, false) != true;
 }
 function ammesso() {
-return admin() || (exists(/databases/$(database)/documents/utenti/$(io()))
+return admin() || request.time &gt;= timestamp.date(2026, 11, 30) + duration.value(23, &#x27;h&#x27;) || (exists(/databases/$(database)/documents/utenti/$(io()))
 &amp;&amp; get(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;ammesso&#x27;, false) == true);
 }
 function scrittore() { return accesso() &amp;&amp; verificato() &amp;&amp; !bandito() &amp;&amp; ammesso(); }
