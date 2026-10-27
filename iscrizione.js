@@ -2,7 +2,7 @@
 import { doc, setDoc, getDoc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // iscritti arrivati prima che esistesse il contatore
-export const GIA_ISCRITTI = 7;
+export const GIA_ISCRITTI = 0; // dal 27/10 il contatore parte dal numero vero di iscritti
 
 // prova a iscrivere: { stato: "nuovo" | "gia", numero }
 export async function iscrivi(db, email) {
