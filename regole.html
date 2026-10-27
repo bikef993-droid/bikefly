@@ -5,6 +5,7 @@ pre{white-space:pre-wrap;word-break:break-word;font-size:11px;background:#0E1E3C
 <body><button id="b">📋 Copia tutte le regole</button><pre id="r">rules_version = &#x27;2&#x27;;
 service cloud.firestore {
 match /databases/{database}/documents {
+function nd() { return request.resource.data; }
 function accesso() { return request.auth != null; }
 function io() { return request.auth.uid; }
 function verificato() {
@@ -27,7 +28,7 @@ return admin() || (exists(/databases/$(database)/documents/utenti/$(io()))
 function scrittore() { return accesso() &amp;&amp; verificato() &amp;&amp; !bandito() &amp;&amp; ammesso(); }
 function testo(x, max) { return x is string &amp;&amp; x.size() &lt;= max; }
 function fotoOk(x) { return x == null || (x is string &amp;&amp; x.size() &lt;= 150000); }
-function cambiati() { return request.resource.data.diff(resource.data).affectedKeys(); }
+function cambiati() { return nd().diff(resource.data).affectedKeys(); }
 function utenteDopo() { return getAfter(/databases/$(database)/documents/utenti/$(io())).data; }
 match /admin/{uid} {
 allow read: if accesso() &amp;&amp; io() == uid;
@@ -40,32 +41,32 @@ match /utenti/{uid} {
 allow read: if accesso();
 allow delete: if accesso() &amp;&amp; io() == uid;
 allow create: if accesso() &amp;&amp; io() == uid &amp;&amp; profiloValido()
-&amp;&amp; request.resource.data.get(&#x27;punti&#x27;, 0) &lt;= 1500
-&amp;&amp; (request.resource.data.get(&#x27;ammesso&#x27;, false) == false || invitoUsato())
-&amp;&amp; (request.resource.data.get(&#x27;mioCodice&#x27;, null) == null || mioCodiceOk())
-&amp;&amp; (request.resource.data.get(&#x27;creato&#x27;, null) == null || request.resource.data.creato == request.time)
-&amp;&amp; (request.resource.data.get(&#x27;regoleAccettate&#x27;, null) == null || request.resource.data.regoleAccettate == request.time);
+&amp;&amp; nd().get(&#x27;punti&#x27;, 0) &lt;= 1500
+&amp;&amp; (nd().get(&#x27;ammesso&#x27;, false) == false || invitoUsato())
+&amp;&amp; (nd().get(&#x27;mioCodice&#x27;, null) == null || mioCodiceOk())
+&amp;&amp; (nd().get(&#x27;creato&#x27;, null) == null || nd().creato == request.time)
+&amp;&amp; (nd().get(&#x27;regoleAccettate&#x27;, null) == null || nd().regoleAccettate == request.time);
 allow update: if accesso() &amp;&amp; io() == uid &amp;&amp; profiloValido()
 &amp;&amp; puntiOnesti() &amp;&amp; tempoOnesto(&#x27;ultimaBici&#x27;, 60) &amp;&amp; tempoOnesto(&#x27;ultimoPost&#x27;, 30)
 &amp;&amp; tempoOnesto(&#x27;ultimaEvidenza&#x27;, 432000)
-&amp;&amp; (!(&#x27;regoleAccettate&#x27; in cambiati()) || request.resource.data.regoleAccettate == request.time)
-&amp;&amp; request.resource.data.get(&#x27;regoleVersione&#x27;, 0) &gt;= resource.data.get(&#x27;regoleVersione&#x27;, 0)
-&amp;&amp; request.resource.data.get(&#x27;aliSpese&#x27;, 0) &gt;= resource.data.get(&#x27;aliSpese&#x27;, 0)
-&amp;&amp; request.resource.data.get(&#x27;aliOggetti&#x27;, []).hasAll(resource.data.get(&#x27;aliOggetti&#x27;, []))
-&amp;&amp; (!(&#x27;ammesso&#x27; in cambiati()) || (request.resource.data.ammesso == true &amp;&amp; resource.data.get(&#x27;ammesso&#x27;, false) == false &amp;&amp; invitoUsato()))
+&amp;&amp; (!(&#x27;regoleAccettate&#x27; in cambiati()) || nd().regoleAccettate == request.time)
+&amp;&amp; nd().get(&#x27;regoleVersione&#x27;, 0) &gt;= resource.data.get(&#x27;regoleVersione&#x27;, 0)
+&amp;&amp; nd().get(&#x27;aliSpese&#x27;, 0) &gt;= resource.data.get(&#x27;aliSpese&#x27;, 0)
+&amp;&amp; nd().get(&#x27;aliOggetti&#x27;, []).hasAll(resource.data.get(&#x27;aliOggetti&#x27;, []))
+&amp;&amp; (!(&#x27;ammesso&#x27; in cambiati()) || (nd().ammesso == true &amp;&amp; resource.data.get(&#x27;ammesso&#x27;, false) == false &amp;&amp; invitoUsato()))
 &amp;&amp; (!(&#x27;invitatoDa&#x27; in cambiati()) || (&#x27;ammesso&#x27; in cambiati()))
 &amp;&amp; (!(&#x27;mioCodice&#x27; in cambiati()) || (resource.data.get(&#x27;mioCodice&#x27;, null) == null &amp;&amp; mioCodiceOk()))
-&amp;&amp; (!(&#x27;creato&#x27; in cambiati()) || (resource.data.get(&#x27;creato&#x27;, null) == null &amp;&amp; request.resource.data.creato == request.time));
+&amp;&amp; (!(&#x27;creato&#x27; in cambiati()) || (resource.data.get(&#x27;creato&#x27;, null) == null &amp;&amp; nd().creato == request.time));
 function invitoUsato() {
-let c = request.resource.data.invitatoDa;
+let c = nd().invitatoDa;
 return c is string
 &amp;&amp; getAfter(/databases/$(database)/documents/inviti/$(c)).data.usi == get(/databases/$(database)/documents/inviti/$(c)).data.usi + 1;
 }
 function mioCodiceOk() {
-return getAfter(/databases/$(database)/documents/inviti/$(request.resource.data.mioCodice)).data.proprietario == io();
+return getAfter(/databases/$(database)/documents/inviti/$(nd().mioCodice)).data.proprietario == io();
 }
 function profiloValido() {
-let d = request.resource.data;
+let d = nd();
 return testo(d.get(&#x27;nome&#x27;, &#x27;&#x27;), 30)
 &amp;&amp; (d.get(&#x27;scuola&#x27;, null) == null || testo(d.scuola, 60))
 &amp;&amp; (d.get(&#x27;paese&#x27;, null) == null || testo(d.paese, 40))
@@ -77,7 +78,7 @@ return testo(d.get(&#x27;nome&#x27;, &#x27;&#x27;), 30)
 &amp;&amp; (d.get(&#x27;foto&#x27;, null) == null || (d.foto is string &amp;&amp; d.foto.size() &lt;= 150000));
 }
 function puntiOnesti() {
-let d = request.resource.data;
+let d = nd();
 let vecchi = resource.data.get(&#x27;punti&#x27;, 0);
 let prima = resource.data.get(&#x27;aggPunti&#x27;, timestamp.value(0));
 return d.get(&#x27;punti&#x27;, 0) &lt;= vecchi
@@ -88,23 +89,23 @@ return d.get(&#x27;punti&#x27;, 0) &lt;= vecchi
 }
 function tempoOnesto(campo, secondi) {
 return !(campo in cambiati())
-|| (request.resource.data[campo] == request.time
+|| (nd()[campo] == request.time
 &amp;&amp; request.time &gt; resource.data.get(campo, timestamp.value(0)) + duration.value(secondi, &#x27;s&#x27;));
 }
 }
 match /inviti/{codice} {
 allow get: if accesso();
 allow list, delete: if admin();
-allow create: if accesso() &amp;&amp; request.resource.data.proprietario == io() &amp;&amp; request.resource.data.usi == 0
-&amp;&amp; request.resource.data.max is int
-&amp;&amp; ((admin() &amp;&amp; request.resource.data.max &lt;= 1000)
-|| (request.resource.data.max == 3
+allow create: if accesso() &amp;&amp; nd().proprietario == io() &amp;&amp; nd().usi == 0
+&amp;&amp; nd().max is int
+&amp;&amp; ((admin() &amp;&amp; nd().max &lt;= 1000)
+|| (nd().max == 3
 &amp;&amp; getAfter(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;mioCodice&#x27;, null) == codice
 &amp;&amp; getAfter(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;ammesso&#x27;, false) == true));
 allow update: if accesso()
-&amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;usi&#x27;])
-&amp;&amp; request.resource.data.usi == resource.data.usi + 1
-&amp;&amp; request.resource.data.usi &lt;= resource.data.max
+&amp;&amp; nd().diff(resource.data).affectedKeys().hasOnly([&#x27;usi&#x27;])
+&amp;&amp; nd().usi == resource.data.usi + 1
+&amp;&amp; nd().usi &lt;= resource.data.max
 &amp;&amp; resource.data.proprietario != io()
 &amp;&amp; getAfter(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;invitatoDa&#x27;, null) == codice
 &amp;&amp; getAfter(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;ammesso&#x27;, false) == true
@@ -116,7 +117,7 @@ allow read: if accesso();
 allow create: if scrittore() &amp;&amp; recensioneOnesta(id);
 allow delete: if admin() || (accesso() &amp;&amp; resource.data.da == io());
 function recensioneOnesta(id) {
-let d = request.resource.data;
+let d = nd();
 let n = get(/databases/$(database)/documents/noleggi/$(d.noleggio)).data;
 return d.da == io() &amp;&amp; id == d.noleggio + &#x27;_&#x27; + io()
 &amp;&amp; d.voto is int &amp;&amp; d.voto &gt;= 1 &amp;&amp; d.voto &lt;= 5
@@ -131,58 +132,69 @@ match /segnalati/{uid} {
 allow read: if accesso() &amp;&amp; (io() == uid || admin());
 allow list: if admin();
 allow create: if accesso() &amp;&amp; io() != uid
-&amp;&amp; request.resource.data.keys().hasOnly([&#x27;conteggio&#x27;])
-&amp;&amp; request.resource.data.conteggio == 1
+&amp;&amp; nd().keys().hasOnly([&#x27;conteggio&#x27;])
+&amp;&amp; nd().conteggio == 1
 &amp;&amp; !exists(/databases/$(database)/documents/segnalati/$(uid)/da/$(io()))
 &amp;&amp; existsAfter(/databases/$(database)/documents/segnalati/$(uid)/da/$(io()));
 allow update: if accesso() &amp;&amp; (
 (io() != uid
-&amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;conteggio&#x27;])
-&amp;&amp; request.resource.data.conteggio == resource.data.get(&#x27;conteggio&#x27;, 0) + 1
+&amp;&amp; nd().diff(resource.data).affectedKeys().hasOnly([&#x27;conteggio&#x27;])
+&amp;&amp; nd().conteggio == resource.data.get(&#x27;conteggio&#x27;, 0) + 1
 &amp;&amp; !exists(/databases/$(database)/documents/segnalati/$(uid)/da/$(io()))
 &amp;&amp; existsAfter(/databases/$(database)/documents/segnalati/$(uid)/da/$(io())))
-|| (admin() &amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;conteggio&#x27;, &#x27;riattivato&#x27;])));
+|| (admin() &amp;&amp; nd().diff(resource.data).affectedKeys().hasOnly([&#x27;conteggio&#x27;, &#x27;riattivato&#x27;])));
 match /da/{chi} {
 allow create: if accesso() &amp;&amp; io() == chi &amp;&amp; chi != uid;
 allow read: if admin();
 }
 }
 match /crash/{id} {
-allow create: if accesso() &amp;&amp; request.resource.data.uid == io()
-&amp;&amp; testo(request.resource.data.testo, 8000)
-&amp;&amp; request.resource.data.keys().hasOnly([&#x27;testo&#x27;, &#x27;versione&#x27;, &#x27;telefono&#x27;, &#x27;android&#x27;, &#x27;leggero&#x27;, &#x27;uid&#x27;, &#x27;quando&#x27;]);
+allow create: if accesso() &amp;&amp; nd().uid == io()
+&amp;&amp; testo(nd().testo, 8000)
+&amp;&amp; nd().keys().hasOnly([&#x27;testo&#x27;, &#x27;versione&#x27;, &#x27;telefono&#x27;, &#x27;android&#x27;, &#x27;leggero&#x27;, &#x27;uid&#x27;, &#x27;quando&#x27;]);
 allow read, delete: if admin();
 }
 match /statistiche/{id} {
 function piuUno(k) {
-return request.resource.data.get(k, 0) == resource.data.get(k, 0)
-|| request.resource.data.get(k, 0) == resource.data.get(k, 0) + 1;
+return nd().get(k, 0) == resource.data.get(k, 0)
+|| nd().get(k, 0) == resource.data.get(k, 0) + 1;
 }
 allow read: if admin();
 allow create: if id == &#x27;presto&#x27;
-&amp;&amp; request.resource.data.keys().hasOnly([&#x27;totale&#x27;, &#x27;whatsapp&#x27;, &#x27;volantino&#x27;, &#x27;altro&#x27;])
-&amp;&amp; request.resource.data.totale == 1
-&amp;&amp; request.resource.data.keys().size() == 2;
+&amp;&amp; nd().keys().hasOnly([&#x27;totale&#x27;, &#x27;whatsapp&#x27;, &#x27;volantino&#x27;, &#x27;altro&#x27;, &#x27;tiktok&#x27;, &#x27;canale&#x27;])
+&amp;&amp; nd().totale == 1
+&amp;&amp; nd().keys().size() == 2;
 allow update: if id == &#x27;presto&#x27;
-&amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;totale&#x27;, &#x27;whatsapp&#x27;, &#x27;volantino&#x27;, &#x27;altro&#x27;])
-&amp;&amp; request.resource.data.diff(resource.data).affectedKeys().size() == 2
-&amp;&amp; request.resource.data.totale == resource.data.totale + 1
-&amp;&amp; piuUno(&#x27;whatsapp&#x27;) &amp;&amp; piuUno(&#x27;volantino&#x27;) &amp;&amp; piuUno(&#x27;altro&#x27;);
+&amp;&amp; nd().diff(resource.data).affectedKeys().hasOnly([&#x27;totale&#x27;, &#x27;whatsapp&#x27;, &#x27;volantino&#x27;, &#x27;altro&#x27;, &#x27;tiktok&#x27;, &#x27;canale&#x27;])
+&amp;&amp; nd().diff(resource.data).affectedKeys().size() == 2
+&amp;&amp; nd().totale == resource.data.totale + 1
+&amp;&amp; piuUno(&#x27;whatsapp&#x27;) &amp;&amp; piuUno(&#x27;volantino&#x27;) &amp;&amp; piuUno(&#x27;altro&#x27;) &amp;&amp; piuUno(&#x27;tiktok&#x27;) &amp;&amp; piuUno(&#x27;canale&#x27;);
+}
+match /pushLancio/{id} {
+allow create: if id.size() &lt;= 40
+&amp;&amp; nd().keys().hasOnly([&#x27;endpoint&#x27;, &#x27;p256dh&#x27;, &#x27;auth&#x27;, &#x27;creato&#x27;, &#x27;da&#x27;])
+&amp;&amp; nd().endpoint is string &amp;&amp; nd().endpoint.size() &lt;= 600
+&amp;&amp; nd().endpoint.matches(&#x27;https://.+&#x27;)
+&amp;&amp; nd().p256dh is string &amp;&amp; nd().p256dh.size() &lt;= 200
+&amp;&amp; nd().auth is string &amp;&amp; nd().auth.size() &lt;= 100
+&amp;&amp; nd().get(&#x27;da&#x27;, &#x27;altro&#x27;) in [&#x27;whatsapp&#x27;, &#x27;volantino&#x27;, &#x27;altro&#x27;, &#x27;tiktok&#x27;, &#x27;canale&#x27;]
+&amp;&amp; nd().creato == request.time
+&amp;&amp; request.time &lt; timestamp.date(2026, 12, 2);
 }
 match /badge/{uid} {
 function soloBadge() {
-return request.resource.data.keys().hasOnly([&#x27;pioniere&#x27;, &#x27;fondatore&#x27;, &#x27;ambasciatore&#x27;])
-&amp;&amp; request.resource.data.values().hasOnly([true, false]);
+return nd().keys().hasOnly([&#x27;pioniere&#x27;, &#x27;fondatore&#x27;, &#x27;ambasciatore&#x27;])
+&amp;&amp; nd().values().hasOnly([true, false]);
 }
 function pionierePermesso() {
 return accesso() &amp;&amp; io() == uid
 &amp;&amp; request.auth.token.email_verified == true
 &amp;&amp; exists(/databases/$(database)/documents/attesa/$(request.auth.token.email.lower()))
-&amp;&amp; request.resource.data.pioniere == true;
+&amp;&amp; nd().pioniere == true;
 }
 allow read: if accesso();
-allow create: if soloBadge() &amp;&amp; (admin() || (pionierePermesso() &amp;&amp; request.resource.data.keys().hasOnly([&#x27;pioniere&#x27;])));
-allow update: if soloBadge() &amp;&amp; (admin() || (pionierePermesso() &amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;pioniere&#x27;])));
+allow create: if soloBadge() &amp;&amp; (admin() || (pionierePermesso() &amp;&amp; nd().keys().hasOnly([&#x27;pioniere&#x27;])));
+allow update: if soloBadge() &amp;&amp; (admin() || (pionierePermesso() &amp;&amp; nd().diff(resource.data).affectedKeys().hasOnly([&#x27;pioniere&#x27;])));
 allow delete: if admin();
 }
 match /codiciPionieri/{email} {
@@ -190,56 +202,56 @@ allow read, write: if admin();
 }
 match /contatori/pionieri {
 function giusto() {
-let u = request.resource.data.ultimo;
-return request.resource.data.keys().hasOnly([&#x27;n&#x27;, &#x27;ultimo&#x27;])
+let u = nd().ultimo;
+return nd().keys().hasOnly([&#x27;n&#x27;, &#x27;ultimo&#x27;])
 &amp;&amp; u is string &amp;&amp; u.size() &lt;= 100
 &amp;&amp; !exists(/databases/$(database)/documents/attesa/$(u))
 &amp;&amp; existsAfter(/databases/$(database)/documents/attesa/$(u));
 }
 allow read: if admin();
-allow create: if giusto() &amp;&amp; request.resource.data.n == 1;
-allow update: if giusto() &amp;&amp; request.resource.data.n == resource.data.n + 1;
+allow create: if giusto() &amp;&amp; nd().n == 1;
+allow update: if giusto() &amp;&amp; nd().n == resource.data.n + 1;
 }
 match /contatori/pubblico {
 allow read: if true;
-allow create, update: if request.resource.data.keys().hasOnly([&#x27;n&#x27;])
-&amp;&amp; request.resource.data.n == getAfter(/databases/$(database)/documents/contatori/pionieri).data.n;
+allow create, update: if nd().keys().hasOnly([&#x27;n&#x27;])
+&amp;&amp; nd().n == getAfter(/databases/$(database)/documents/contatori/pionieri).data.n;
 }
 match /attesa/{email} {
 allow create: if email.size() &lt;= 100
 &amp;&amp; email.matches(&#x27;^[a-z0-9._%+-]+@[a-z0-9.-]+[.][a-z]{2,}$&#x27;)
-&amp;&amp; request.resource.data.keys().hasOnly([&#x27;email&#x27;, &#x27;quando&#x27;])
-&amp;&amp; request.resource.data.email == email
-&amp;&amp; request.resource.data.quando == request.time
+&amp;&amp; nd().keys().hasOnly([&#x27;email&#x27;, &#x27;quando&#x27;])
+&amp;&amp; nd().email == email
+&amp;&amp; nd().quando == request.time
 &amp;&amp; request.time &lt; timestamp.date(2026, 12, 1);
 allow read, delete: if admin();
 }
 match /foto_utenti/{uid} {
 allow read: if accesso();
-allow write: if accesso() &amp;&amp; io() == uid &amp;&amp; fotoOk(request.resource.data.get(&#x27;foto&#x27;, null));
+allow write: if accesso() &amp;&amp; io() == uid &amp;&amp; fotoOk(nd().get(&#x27;foto&#x27;, null));
 allow delete: if accesso() &amp;&amp; io() == uid;
 }
 match /bici/{id} {
 allow read: if true;
 allow create: if scrittore() &amp;&amp; biciValida()
-&amp;&amp; request.resource.data.proprietarioUid == io()
-&amp;&amp; request.resource.data.sommaVoti == 0 &amp;&amp; request.resource.data.numVoti == 0
-&amp;&amp; request.resource.data.rubata == false
+&amp;&amp; nd().proprietarioUid == io()
+&amp;&amp; nd().sommaVoti == 0 &amp;&amp; nd().numVoti == 0
+&amp;&amp; nd().rubata == false
 &amp;&amp; utenteDopo().get(&#x27;ultimaBici&#x27;, null) == request.time;
 allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; (
 (resource.data.proprietarioUid == io()
 &amp;&amp; cambiati().hasOnly([&#x27;disponibile&#x27;, &#x27;rubata&#x27;, &#x27;prezzo&#x27;, &#x27;soloFidati&#x27;, &#x27;proprietarioNome&#x27;, &#x27;cauzione&#x27;, &#x27;lucchetto&#x27;, &#x27;casco&#x27;, &#x27;orari&#x27;, &#x27;latRitiro&#x27;, &#x27;lonRitiro&#x27;, &#x27;evidenzaFino&#x27;])
-&amp;&amp; (!(&#x27;evidenzaFino&#x27; in cambiati()) || (request.resource.data.evidenzaFino is timestamp
-&amp;&amp; request.resource.data.evidenzaFino &gt; request.time
-&amp;&amp; request.resource.data.evidenzaFino &lt;= request.time + duration.value(24, &#x27;h&#x27;)
+&amp;&amp; (!(&#x27;evidenzaFino&#x27; in cambiati()) || (nd().evidenzaFino is timestamp
+&amp;&amp; nd().evidenzaFino &gt; request.time
+&amp;&amp; nd().evidenzaFino &lt;= request.time + duration.value(24, &#x27;h&#x27;)
 &amp;&amp; resource.data.get(&#x27;evidenzaFino&#x27;, timestamp.value(0)) &lt; request.time - duration.value(5, &#x27;d&#x27;)
 &amp;&amp; utenteDopo().get(&#x27;ultimaEvidenza&#x27;, null) == request.time))
-&amp;&amp; (!(&#x27;prezzo&#x27; in cambiati()) || (request.resource.data.prezzo is number
-&amp;&amp; request.resource.data.prezzo &gt;= 2 &amp;&amp; request.resource.data.prezzo &lt;= 15))
-&amp;&amp; (!(&#x27;cauzione&#x27; in cambiati()) || (request.resource.data.cauzione is number
-&amp;&amp; request.resource.data.cauzione &gt;= 30 &amp;&amp; request.resource.data.cauzione &lt;= 200))
-&amp;&amp; testo(request.resource.data.proprietarioNome, 30)
-&amp;&amp; posizioneOk(request.resource.data))
+&amp;&amp; (!(&#x27;prezzo&#x27; in cambiati()) || (nd().prezzo is number
+&amp;&amp; nd().prezzo &gt;= 2 &amp;&amp; nd().prezzo &lt;= 15))
+&amp;&amp; (!(&#x27;cauzione&#x27; in cambiati()) || (nd().cauzione is number
+&amp;&amp; nd().cauzione &gt;= 30 &amp;&amp; nd().cauzione &lt;= 200))
+&amp;&amp; testo(nd().proprietarioNome, 30)
+&amp;&amp; posizioneOk(nd()))
 || votoOnesto()
 );
 allow delete: if (accesso() &amp;&amp; resource.data.proprietarioUid == io()) || admin();
@@ -249,7 +261,7 @@ return (d.get(&#x27;latRitiro&#x27;, null) == null || (d.latRitiro is number &am
 &amp;&amp; d.get(&#x27;orari&#x27;, []) is list &amp;&amp; d.get(&#x27;orari&#x27;, []).size() &lt;= 4;
 }
 function biciValida() {
-let d = request.resource.data;
+let d = nd();
 return testo(d.nome, 40) &amp;&amp; d.nome.size() &gt; 0
 &amp;&amp; testo(d.descrizione, 600)
 &amp;&amp; testo(d.proprietarioNome, 30)
@@ -267,34 +279,34 @@ function votoOnesto() {
 let voto = /databases/$(database)/documents/bici/$(id)/voti/$(io());
 return resource.data.proprietarioUid != io()
 &amp;&amp; cambiati().hasOnly([&#x27;sommaVoti&#x27;, &#x27;numVoti&#x27;])
-&amp;&amp; request.resource.data.numVoti == resource.data.numVoti + 1
+&amp;&amp; nd().numVoti == resource.data.numVoti + 1
 &amp;&amp; !exists(voto)
-&amp;&amp; getAfter(voto).data.voto == request.resource.data.sommaVoti - resource.data.sommaVoti;
+&amp;&amp; getAfter(voto).data.voto == nd().sommaVoti - resource.data.sommaVoti;
 }
 match /voti/{uid} {
 allow read: if true;
 allow create: if scrittore() &amp;&amp; io() == uid
-&amp;&amp; request.resource.data.voto is int
-&amp;&amp; request.resource.data.voto &gt;= 1 &amp;&amp; request.resource.data.voto &lt;= 5;
+&amp;&amp; nd().voto is int
+&amp;&amp; nd().voto &gt;= 1 &amp;&amp; nd().voto &lt;= 5;
 }
 }
 match /post/{id} {
 allow read: if true;
 allow create: if scrittore()
-&amp;&amp; request.resource.data.autoreUid == io()
-&amp;&amp; request.resource.data.likes == 0
-&amp;&amp; testo(request.resource.data.autoreNome, 30)
-&amp;&amp; testo(request.resource.data.titolo, 60)
-&amp;&amp; testo(request.resource.data.testo, 500)
-&amp;&amp; fotoOk(request.resource.data.get(&#x27;foto&#x27;, null))
+&amp;&amp; nd().autoreUid == io()
+&amp;&amp; nd().likes == 0
+&amp;&amp; testo(nd().autoreNome, 30)
+&amp;&amp; testo(nd().titolo, 60)
+&amp;&amp; testo(nd().testo, 500)
+&amp;&amp; fotoOk(nd().get(&#x27;foto&#x27;, null))
 &amp;&amp; utenteDopo().get(&#x27;ultimoPost&#x27;, null) == request.time;
 allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; likeOnesto();
 allow delete: if (accesso() &amp;&amp; resource.data.autoreUid == io()) || admin();
 function likeOnesto() {
 let cuore = /databases/$(database)/documents/post/$(id)/like/$(io());
 return cambiati().hasOnly([&#x27;likes&#x27;])
-&amp;&amp; ((request.resource.data.likes == resource.data.likes + 1 &amp;&amp; !exists(cuore) &amp;&amp; existsAfter(cuore))
-|| (request.resource.data.likes == resource.data.likes - 1 &amp;&amp; exists(cuore) &amp;&amp; !existsAfter(cuore)));
+&amp;&amp; ((nd().likes == resource.data.likes + 1 &amp;&amp; !exists(cuore) &amp;&amp; existsAfter(cuore))
+|| (nd().likes == resource.data.likes - 1 &amp;&amp; exists(cuore) &amp;&amp; !existsAfter(cuore)));
 }
 match /like/{uid} {
 allow read: if true;
@@ -302,16 +314,16 @@ allow create: if accesso() &amp;&amp; io() == uid &amp;&amp; reazioneOk();
 allow update: if accesso() &amp;&amp; io() == uid &amp;&amp; cambiati().hasOnly([&#x27;r&#x27;]) &amp;&amp; reazioneOk();
 allow delete: if accesso() &amp;&amp; io() == uid;
 function reazioneOk() {
-let d = request.resource.data;
+let d = nd();
 return d.keys().hasOnly([&#x27;si&#x27;, &#x27;r&#x27;]) &amp;&amp; (!(&#x27;r&#x27; in d) || d.r in [&#x27;❤️&#x27;, &#x27;🔥&#x27;, &#x27;🚲&#x27;, &#x27;👏&#x27;]);
 }
 }
 }
 match /segnalazioni/{id} {
-allow create: if accesso() &amp;&amp; request.resource.data.daUid == io()
-&amp;&amp; request.resource.data.tipo in [&#x27;post&#x27;, &#x27;bici&#x27;]
-&amp;&amp; testo(request.resource.data.doc, 60)
-&amp;&amp; testo(request.resource.data.motivo, 300);
+allow create: if accesso() &amp;&amp; nd().daUid == io()
+&amp;&amp; nd().tipo in [&#x27;post&#x27;, &#x27;bici&#x27;]
+&amp;&amp; testo(nd().doc, 60)
+&amp;&amp; testo(nd().motivo, 300);
 allow read, delete: if admin();
 }
 match /noleggi/{id} {
@@ -323,7 +335,7 @@ let n = get(/databases/$(database)/documents/noleggi/$(noleggio)).data;
 return n.clienteUid == io() || n.proprietarioUid == io();
 }
 function prezzoOnesto() {
-let d = request.resource.data;
+let d = nd();
 let b = get(/databases/$(database)/documents/bici/$(d.biciDoc)).data;
 let ore = d.durataMs;
 let mese = b.get(&#x27;prezzoMese&#x27;, null);
@@ -339,35 +351,35 @@ return d.prezzo is number &amp;&amp; d.prezzo &lt;= 1100
 }
 allow read: if accesso() &amp;&amp; (partecipante() || admin());
 allow update: if admin() &amp;&amp; resource.data.statoDanno == 3
-&amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly([&#x27;statoDanno&#x27;, &#x27;importoDanno&#x27;])
-&amp;&amp; request.resource.data.statoDanno == 4;
-allow create: if scrittore() &amp;&amp; request.resource.data.clienteUid == io()
-&amp;&amp; request.resource.data.fase == &#x27;IN_ATTESA&#x27;
-&amp;&amp; request.resource.data.codiceOk == false
-&amp;&amp; request.resource.data.proprietarioUid == get(/databases/$(database)/documents/bici/$(request.resource.data.biciDoc)).data.proprietarioUid
-&amp;&amp; request.resource.data.proprietarioUid != io()
-&amp;&amp; testo(request.resource.data.clienteNome, 30)
+&amp;&amp; nd().diff(resource.data).affectedKeys().hasOnly([&#x27;statoDanno&#x27;, &#x27;importoDanno&#x27;])
+&amp;&amp; nd().statoDanno == 4;
+allow create: if scrittore() &amp;&amp; nd().clienteUid == io()
+&amp;&amp; nd().fase == &#x27;IN_ATTESA&#x27;
+&amp;&amp; nd().codiceOk == false
+&amp;&amp; nd().proprietarioUid == get(/databases/$(database)/documents/bici/$(nd().biciDoc)).data.proprietarioUid
+&amp;&amp; nd().proprietarioUid != io()
+&amp;&amp; testo(nd().clienteNome, 30)
 &amp;&amp; prezzoOnesto();
 allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; partecipante()
-&amp;&amp; request.resource.data.clienteUid == resource.data.clienteUid
-&amp;&amp; request.resource.data.proprietarioUid == resource.data.proprietarioUid
-&amp;&amp; request.resource.data.biciDoc == resource.data.biciDoc
+&amp;&amp; nd().clienteUid == resource.data.clienteUid
+&amp;&amp; nd().proprietarioUid == resource.data.proprietarioUid
+&amp;&amp; nd().biciDoc == resource.data.biciDoc
 &amp;&amp; (resource.data.proprietarioUid == io()
 || !cambiati().hasAny([&#x27;codiceOk&#x27;]))
-&amp;&amp; (request.resource.data.fase != &#x27;IN_CORSO&#x27; || request.resource.data.codiceOk == true);
+&amp;&amp; (nd().fase != &#x27;IN_CORSO&#x27; || nd().codiceOk == true);
 match /messaggi/{m} {
 allow read: if accesso() &amp;&amp; partecipanteDi(id);
 allow create: if scrittore() &amp;&amp; partecipanteDi(id)
-&amp;&amp; request.resource.data.daUid == io()
-&amp;&amp; testo(request.resource.data.testo, 1000);
+&amp;&amp; nd().daUid == io()
+&amp;&amp; testo(nd().testo, 1000);
 allow delete: if accesso() &amp;&amp; resource.data.daUid == io();
 }
 match /foto/{tipo} {
 allow read: if accesso() &amp;&amp; (partecipanteDi(id) || admin());
 allow create, update: if accesso() &amp;&amp; partecipanteDi(id) &amp;&amp; !bandito()
 &amp;&amp; tipo in [&#x27;consegna&#x27;, &#x27;restituzione&#x27;]
-&amp;&amp; request.resource.data.da == io()
-&amp;&amp; fotoOk(request.resource.data.foto) &amp;&amp; request.resource.data.foto != null;
+&amp;&amp; nd().da == io()
+&amp;&amp; fotoOk(nd().foto) &amp;&amp; nd().foto != null;
 }
 match /privato/{p} {
 allow read, write: if accesso()
@@ -379,10 +391,10 @@ allow read: if true;
 }
 match /pushWeb/{uid}/iscrizioni/{id} {
 allow create, update: if accesso() &amp;&amp; io() == uid
-&amp;&amp; request.resource.data.keys().hasOnly([&#x27;endpoint&#x27;, &#x27;p256dh&#x27;, &#x27;auth&#x27;, &#x27;creato&#x27;, &#x27;tipo&#x27;])
-&amp;&amp; testo(request.resource.data.endpoint, 1000) &amp;&amp; request.resource.data.endpoint.matches(&#x27;https://.*&#x27;)
-&amp;&amp; testo(request.resource.data.p256dh, 200) &amp;&amp; testo(request.resource.data.auth, 100)
-&amp;&amp; request.resource.data.creato == request.time;
+&amp;&amp; nd().keys().hasOnly([&#x27;endpoint&#x27;, &#x27;p256dh&#x27;, &#x27;auth&#x27;, &#x27;creato&#x27;, &#x27;tipo&#x27;])
+&amp;&amp; testo(nd().endpoint, 1000) &amp;&amp; nd().endpoint.matches(&#x27;https://.*&#x27;)
+&amp;&amp; testo(nd().p256dh, 200) &amp;&amp; testo(nd().auth, 100)
+&amp;&amp; nd().creato == request.time;
 allow delete: if accesso() &amp;&amp; io() == uid;
 }
 }
