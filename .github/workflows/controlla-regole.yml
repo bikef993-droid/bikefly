@@ -25,7 +25,8 @@ jobs:
           const rs = await (await fetch(base + rel.rulesetName, { headers: h })).json();
           const testo = (rs.source?.files || []).map(f => f.content).join("\n");
           const quando = rel.updateTime || "";
-          if (testo.includes("timestamp.date(2026, 11, 30)")) console.log("::notice::REGOLE 14.3 ATTIVE: apertura a tutti dal 1 dicembre (pubblicate " + quando + ")");
+          if (testo.includes("faseAvanti")) console.log("::notice::REGOLE 14.3.1 ATTIVE: minimo 2 ore e pagamenti protetti (pubblicate " + quando + ")");
+          else if (testo.includes("timestamp.date(2026, 11, 30)")) console.log("::warning::REGOLE 14.3 (manca la 14.3.1): apertura a tutti dal 1 dicembre (pubblicate " + quando + ")");
           else if (testo.includes("pushLancio")) console.log("::warning::REGOLE CON AVVISAMI ma senza apertura del 1 dicembre (pubblicate " + quando + ")");
           else if (testo.includes("regoleAccettate")) console.log("::warning::REGOLE DELLA 14.2, manca Avvisami (pubblicate " + quando + ")");
           else if (testo.includes("pushWeb")) console.log("::warning::REGOLE VECCHIE (14.1.5, pubblicate " + quando + ")");
