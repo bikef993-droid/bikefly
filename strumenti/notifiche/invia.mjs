@@ -39,6 +39,17 @@ for (const d of attivi.docs) {
       messaggi.push({ chiave: `f_${d.id}_${n.durataMs}`, a: n.clienteUid, titolo: "⏰ Mancano 15 minuti", testo: "Riporta la bici in tempo per non pagare la penale, oppure prolunga di 1 ora." });
   }
 }
+// 2b. agli admin: un nuovo Pioniere si è iscritto alla lista d'attesa
+const nPionieri = (await db.doc("contatori/pubblico").get()).data()?.n ?? 0;
+const rifVisti = db.doc("server/pionieriVisti");
+const visti = (await rifVisti.get()).data()?.n;
+if (visti == null) await rifVisti.set({ n: nPionieri });
+else if (nPionieri > visti) {
+  const adminDocs = await db.collection("admin").get();
+  for (const a of adminDocs.docs)
+    messaggi.push({ chiave: `p_${nPionieri}_${a.id}`, a: a.id, titolo: nPionieri - visti === 1 ? "🚀 Nuovo Pioniere!" : `🚀 +${nPionieri - visti} Pionieri!`, testo: `Siete a ${nPionieri} iscritti alla lista d'attesa` });
+  await rifVisti.set({ n: nPionieri });
+}
 // 3. niente doppioni: ogni avviso si manda una volta sola
 let inviati = 0, tolti = 0;
 for (const m of messaggi) {
