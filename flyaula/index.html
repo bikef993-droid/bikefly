@@ -22,6 +22,7 @@
   <select class="pill" id="materia" title="Materia">
     <option value="matematica">🧮 Matematica</option>
     <option value="economia">📊 Economia aziendale</option>
+    <option value="inglese">🇬🇧 Inglese</option>
   </select>
   <select class="pill" id="livello" title="Livello">
     <option value="elementari">Elementari</option>
@@ -69,7 +70,7 @@
     <button type="button" class="btn sec voce" id="voce" title="Parla (la voce resta su questo computer)">🎤</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.5 · ogni risposta controllata 2 volte (3 nei casi difficili) · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.6 · ogni risposta controllata 2 volte (3 nei casi difficili) · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -146,6 +147,11 @@
   <div class="riga-btn"><button class="btn" id="riaStampa">🖨️ Stampa o salva PDF</button><button class="btn sec" id="riaCopia">📋 Copia il testo</button><button class="btn sec" id="riaChiudi">Chiudi</button></div>
 </div></div>
 
+<div class="pannello" id="pCreaVer"><div class="box">
+  <h2>📄 Crea una verifica</h2>
+  <div id="cvCorpo"></div>
+</div></div>
+
 <div id="pin" class="sopra"></div>
 
 <div id="verifica" class="sopra">
@@ -164,11 +170,13 @@
 <script src="sicurezza.js"></script>
 <script src="classe.js"></script>
 <script src="gara.js"></script>
+<script src="programmi.js"></script>
 <script src="materie.js"></script>
 <script src="controllo.js"></script>
 <script src="disegni.js"></script>
 <script src="esame.js"></script>
 <script src="esercizi.js"></script>
+<script src="creaverifica.js"></script>
 <script src="orario.js"></script>
 <script src="voce.js"></script>
 <script src="app.js"></script>

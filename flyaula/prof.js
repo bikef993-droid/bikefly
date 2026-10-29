@@ -105,7 +105,8 @@ const Prof = (() => {
         <section class="verifica-box"><h3>📝 Verifica in classe</h3>
           <p class="nota-s">Fly Aula si mette in pausa: niente domande, niente esercizi, niente voce. Si sblocca da sola alla fine, o con il PIN.</p>
           <div class="riga-btn"><select id="pfDurata"><option value="30">30 min</option><option value="60" selected>1 ora</option><option value="90">1 ora e mezza</option><option value="120">2 ore</option></select>
-          <button class="btn" id="pfVerifica">📝 Inizia la verifica</button></div></section>
+          <button class="btn" id="pfVerifica">📝 Inizia la verifica</button></div>
+          <div class="riga-btn" style="margin-bottom:0"><button class="btn sec" id="pfCrea">📄 Crea una verifica da stampare</button></div></section>
       </div>
       <div class="riga-btn"><button class="btn" id="pfSalva">✓ Salva</button><button class="btn sec" id="pfPin">🔑 Cambia PIN</button><button class="btn sec chiudi-prof">Chiudi</button></div>`;
     el("pfModo").value = imp.modo; el("pfTema").value = imp.tema;
@@ -115,6 +116,7 @@ const Prof = (() => {
     el("pfSalva").onclick = () => { prendi(); chiudi(); };
     el("pfPin").onclick = async () => { prendi(); await chiediPin("Nuovo PIN del prof", { nuovo: true }); };
     el("pfVerifica").onclick = () => { prendi(); chiudi(); iniziaVerifica(+el("pfDurata").value); };
+    el("pfCrea").onclick = () => { prendi(); chiudi(); CreaVerifica.apri(); };
     p.querySelector(".chiudi-prof").onclick = () => { prendi(); chiudi(); };
   }
   const escapeP = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

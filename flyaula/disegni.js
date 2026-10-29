@@ -147,9 +147,122 @@ function disMappa(spec) {
   return box("Mappa concettuale", `<div class="mappa"><div class="m-centro">${e(parti[0])}</div><div class="m-rami">${rami}</div></div>`);
 }
 
+// 📈 grafico di una funzione: y = 2x + 1, y = x^2 - 4x + 3 …
+function compilaFunzione(espr) {
+  const s = String(espr).toLowerCase().replace(/^\s*(y|f\s*\(\s*x\s*\))\s*=\s*/, "").replace(/−/g, "-").replace(/[×·]/g, "*").replace(/:/g, "/")
+    .replace(/²/g, "^2").replace(/³/g, "^3").replace(/(\d),(\d)/g, "$1.$2").replace(/\s+/g, "");
+  if (!s || !/^[0-9x+\-*/^().]+$/.test(s)) return null;
+  const tok = s.match(/\d+(?:\.\d+)?|x|[+\-*/^()]/g) || [];
+  if (tok.join("") !== s) return null;
+  // moltiplicazioni sottintese: 2x, 3(x+1), (x+1)(x-1), x(x-2)
+  const t = [];
+  tok.forEach((k, i) => { const p = tok[i - 1]; if (i && (/[\dx)]$/.test(p)) && (k === "x" || k === "(" || /^\d/.test(k)) && !(/^\d/.test(p) && /^\d/.test(k))) t.push("*"); t.push(k); });
+  let i = 0;
+  const vedi = () => t[i], prendi = () => t[i++];
+  function somma() { let f = prodotto(); while (vedi() === "+" || vedi() === "-") { const o = prendi(), g = prodotto(), h = f; f = o === "+" ? x => h(x) + g(x) : x => h(x) - g(x); } return f; }
+  function prodotto() { let f = unario(); while (vedi() === "*" || vedi() === "/") { const o = prendi(), g = unario(), h = f; f = o === "*" ? x => h(x) * g(x) : x => h(x) / g(x); } return f; }
+  function unario() { if (vedi() === "-") { prendi(); const g = unario(); return x => -g(x); } if (vedi() === "+") { prendi(); return unario(); } return potenza(); }
+  function potenza() { const b = atomo(); if (vedi() === "^") { prendi(); const e = unario(); return x => Math.pow(b(x), e(x)); } return b; }
+  function atomo() {
+    const k = prendi();
+    if (k === "x") return x => x;
+    if (k === "(") { const f = somma(); if (prendi() !== ")") throw new Error("parentesi"); return f; }
+    if (k !== undefined && /^\d/.test(k)) { const v = Number(k); return () => v; }
+    throw new Error("formula");
+  }
+  const f = somma();
+  if (i !== t.length) return null;
+  return f;
+}
+function disGrafico(espr, da = -10, a = 10, auto = false) {
+  const f = compilaFunzione(espr);
+  if (!f || !(a > da)) return null;
+  if (auto) {
+    // finestra automatica: si stringe intorno ai punti interessanti (zeri, vertici)
+    const xs0 = [];
+    for (let k = 0; k <= 400; k++) { const x = -10 + k / 20, y0 = f(x), y1 = f(x + 0.05), y2 = f(x + 0.1);
+      if (isFinite(y0) && isFinite(y1) && (y0 === 0 || y0 * y1 < 0 || (isFinite(y2) && (y1 - y0) * (y2 - y1) < 0))) xs0.push(x); }
+    if (xs0.length) {
+      const lo = Math.min(...xs0), hi = Math.max(...xs0), m = Math.max(2, (hi - lo) * 0.6);
+      return disGrafico(espr, Math.min(-1, Math.floor(lo - m)), Math.max(1, Math.ceil(hi + m)), false);
+    }
+  }
+  const N = 600, xs = [], ys = [];
+  for (let k = 0; k <= N; k++) { const x = da + (a - da) * k / N; xs.push(x); ys.push(f(x)); }
+  const fin = ys.filter(isFinite); if (fin.length < N / 2) return null;
+  let ylo = Math.min(0, ...fin), yhi = Math.max(0, ...fin);
+  if (yhi - ylo > 400) { const ord = fin.slice().sort((p, q) => p - q); ylo = Math.min(0, ord[Math.floor(ord.length * .05)]); yhi = Math.max(0, ord[Math.floor(ord.length * .95)]); }
+  if (yhi - ylo < 1e-9) { ylo -= 1; yhi += 1; }
+  const pad = (yhi - ylo) * .1; ylo -= pad; yhi += pad;
+  const W = 560, H = 380, L = 40, R = 16, T = 16, B = 30;
+  const px = x => L + (x - da) / (a - da) * (W - L - R), py = y => T + (yhi - y) / (yhi - ylo) * (H - T - B);
+  const passo = v => { const g = Math.pow(10, Math.floor(Math.log10(v / 6))); return [1, 2, 5, 10].map(m => m * g).find(m => v / m <= 10); };
+  const sx = passo(a - da), sy = passo(yhi - ylo);
+  let griglia = "";
+  for (let x = Math.ceil(da / sx) * sx; x <= a + 1e-9; x += sx) griglia += `<line x1="${px(x)}" y1="${T}" x2="${px(x)}" y2="${H - B}" stroke="rgba(255,255,255,.07)"/>${Math.abs(x) > 1e-9 ? `<text x="${px(x)}" y="${Math.min(H - B + 18, Math.max(T + 12, py(0) + 16))}" fill="#93A6C3" font-size="12" text-anchor="middle">${fmt(x)}</text>` : ""}`;
+  for (let y = Math.ceil(ylo / sy) * sy; y <= yhi + 1e-9; y += sy) griglia += `<line x1="${L}" y1="${py(y)}" x2="${W - R}" y2="${py(y)}" stroke="rgba(255,255,255,.07)"/>${Math.abs(y) > 1e-9 ? `<text x="${Math.max(L - 4, Math.min(W - R - 4, px(0) - 6))}" y="${py(y) + 4}" fill="#93A6C3" font-size="12" text-anchor="end">${fmt(y)}</text>` : ""}`;
+  const assi = `${0 >= da && 0 <= a ? `<line x1="${px(0)}" y1="${T}" x2="${px(0)}" y2="${H - B}" stroke="#F3F6FB" stroke-width="2"/>` : ""}<line x1="${L}" y1="${py(0)}" x2="${W - R}" y2="${py(0)}" stroke="#F3F6FB" stroke-width="2"/>`;
+  let d = "", su = false;
+  xs.forEach((x, k) => { const y = ys[k]; const ok = isFinite(y) && y > ylo - (yhi - ylo) && y < yhi + (yhi - ylo); if (ok) { d += (su ? "L" : "M") + px(x).toFixed(1) + " " + py(y).toFixed(1); su = true; } else su = false; });
+  // i punti importanti, calcolati da noi
+  const punti = [];
+  const zero = (p, q) => { let fp = f(p); for (let k = 0; k < 60; k++) { const m = (p + q) / 2, fm = f(m); if (fp * fm <= 0) q = m; else { p = m; fp = fm; } } return (p + q) / 2; };
+  for (let k = 0; k < N; k++) {
+    const y0 = ys[k], y1 = ys[k + 1];
+    if (!isFinite(y0) || !isFinite(y1)) continue;
+    if (y0 === 0) punti.push({ x: xs[k], y: 0, tipo: "zero" });
+    else if (y0 * y1 < 0 && Math.abs(y1 - y0) < (yhi - ylo)) punti.push({ x: zero(xs[k], xs[k + 1]), y: 0, tipo: "zero" });
+    if (k > 0 && isFinite(ys[k - 1]) && (y0 - ys[k - 1]) * (y1 - y0) < 0) {
+      let p = xs[k - 1], q = xs[k + 1]; const max = y0 > ys[k - 1];
+      for (let j = 0; j < 80; j++) { const m1 = p + (q - p) / 3, m2 = q - (q - p) / 3; if ((f(m1) < f(m2)) === max) p = m1; else q = m2; }
+      const xv = (p + q) / 2; punti.push({ x: xv, y: f(xv), tipo: max ? "massimo" : "minimo" });
+    }
+  }
+  const tondo = v => (Math.abs(v - Math.round(v)) < 1e-6 ? Math.round(v) : Math.round(v * 100) / 100) || 0;
+  const visti = new Set(), finali = [];
+  for (const p of punti) { const k = tondo(p.x) + ":" + p.tipo; if (!visti.has(k)) { visti.add(k); finali.push({ ...p, x: tondo(p.x), y: tondo(p.y) }); } }
+  const y0 = 0 >= da && 0 <= a ? f(0) : NaN;
+  const etich = [...finali.slice(0, 6), ...(isFinite(y0) && !finali.some(p => p.x === 0) ? [{ x: 0, y: tondo(y0), tipo: "asse y" }] : [])];
+  const pallini = etich.map((p, k) => `<circle cx="${px(p.x)}" cy="${py(p.y)}" r="6" fill="${p.tipo === "zero" ? "#FFD23F" : p.tipo === "asse y" ? "#00D2A0" : "#FF5A5F"}" class="salta" style="animation-delay:${1.2 + k * .15}s"/><text x="${px(p.x) + 8}" y="${py(p.y) + (p.tipo === "minimo" ? 22 : p.tipo === "zero" && k % 2 ? 20 : -9)}" fill="#F3F6FB" font-size="13" font-weight="700" class="salta" style="animation-delay:${1.2 + k * .15}s">(${fmt(p.x)}; ${fmt(p.y)})</text>`).join("");
+  const zeri = finali.filter(p => p.tipo === "zero"), ext = finali.filter(p => p.tipo !== "zero");
+  const cap = [zeri.length ? `Taglia l'asse x in ${zeri.map(p => `x = <b>${fmt(p.x)}</b>`).join(" e ")}` : "Non taglia l'asse x qui", isFinite(y0) ? `asse y in <b>(0; ${fmt(tondo(y0))})</b>` : "", ...ext.map(p => `${p.tipo} in <b>(${fmt(p.x)}; ${fmt(p.y)})</b>`)].filter(Boolean).join(" · ");
+  const nome = String(espr).replace(/^\s*(y|f\(x\))\s*=\s*/i, "").replace(/\*/g, "·").replace(/\^2/g, "²").replace(/\^3/g, "³");
+  return box(`grafico di y = ${nome.replace(/[<>&]/g, "")}`, `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px">${griglia}${assi}<path d="${d}" fill="none" stroke="#3B8BFF" stroke-width="4" stroke-linecap="round" class="traccia" style="stroke-dasharray:4000;stroke-dashoffset:4000"/>${pallini}</svg><div class="cap-dis">${cap}</div>`);
+}
+
+// 📒 partita doppia: la scrittura in tabella e il controllo Dare = Avere
+const euro = v => v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+const escD = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function disScrittura(spec) {
+  const s = leggiScrittura(spec); if (!s) return null;
+  const righe = s.righe.map((r, i) => `<tr style="animation-delay:${i * .15}s"><td class="${r.lato === "A" ? "rientro" : ""}">${r.lato === "A" ? "a " : ""}${escD(r.conto)}</td><td class="num">${r.lato === "D" ? euro(r.importo) : ""}</td><td class="num">${r.lato === "A" ? euro(r.importo) : ""}</td></tr>`).join("");
+  return box("scrittura in partita doppia", `<table class="pd"><thead><tr><th>Conto</th><th>Dare</th><th>Avere</th></tr></thead><tbody>${righe}</tbody>
+    <tfoot><tr><td>Totale</td><td class="num">${euro(s.dare)}</td><td class="num">${euro(s.avere)}</td></tr></tfoot></table>
+    <div class="cap-dis">${s.quadra ? `<span class="verificato">✓ calcolatrice</span> Dare = Avere: la scrittura <b>quadra</b>` : `<span class="corretto">⚠️ NON quadra</span> Dare ${euro(s.dare)} ≠ Avere ${euro(s.avere)}: da correggere con il prof`}</div>`);
+}
+function disMastrino(spec) {
+  const parti = spec.replace(/^\s*mastrino\s*/i, "").split("|").map(x => x.trim()).filter(Boolean);
+  if (parti.length < 2) return null;
+  const nome = parti[0], mov = parti.slice(1).map(p => { const m = p.match(/^(D|A|Dare|Avere)\s+(-?\d+(?:[.,]\d+)*)/i); return m ? { lato: m[1][0].toUpperCase(), v: leggiNumero(m[2]) } : null; });
+  if (mov.some(m => !m || !isFinite(m.v))) return null;
+  const D = mov.filter(m => m.lato === "D"), A = mov.filter(m => m.lato === "A");
+  const td = D.reduce((x, m) => x + m.v, 0), ta = A.reduce((x, m) => x + m.v, 0), saldo = Math.round((td - ta) * 100) / 100;
+  const col = l => l.map((m, i) => `<div style="animation-delay:${i * .12}s">${euro(m.v)}</div>`).join("");
+  return box(`mastrino ${escD(nome)}`, `<div class="mastrino"><div class="m-nome">${escD(nome)}</div><div class="m-lati"><div><b>Dare</b>${col(D)}<div class="tot">${euro(td)}</div></div><div><b>Avere</b>${col(A)}<div class="tot">${euro(ta)}</div></div></div></div>
+    <div class="cap-dis">Saldo: ${euro(td)} − ${euro(ta)} = <b>${saldo === 0 ? "0 € (conto chiuso)" : euro(Math.abs(saldo)) + (saldo > 0 ? " in Dare" : " in Avere")}</b> <span class="verificato">✓ calcolatrice</span></div>`);
+}
+
 // lettura del comando scritto dal cervello
 function disegna(spec) {
   if (/^\s*mappa\b/i.test(spec)) { try { return disMappa(spec); } catch (e) { return null; } }
+  if (/^\s*scrittura\b/i.test(spec)) { try { return disScrittura(spec); } catch (e) { return null; } }
+  if (/^\s*mastrino\b/i.test(spec)) { try { return disMastrino(spec); } catch (e) { return null; } }
+  if (/^\s*grafico\b/i.test(spec)) {
+    try {
+      const m = spec.match(/^\s*grafico\s+(.+?)(?:\s+da\s+(-?[\d.,]+)\s+a\s+(-?[\d.,]+))?\s*$/i);
+      return m ? disGrafico(m[1], m[2] != null ? Number(m[2].replace(",", ".")) : -10, m[3] != null ? Number(m[3].replace(",", ".")) : 10, m[2] == null) : null;
+    } catch (e) { return null; }
+  }
   const s = spec.toLowerCase().replace(/\s+/g, " ").trim();
   let m;
   try {

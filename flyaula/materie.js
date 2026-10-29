@@ -15,7 +15,13 @@ DISEGNI SULLA LAVAGNA: quando un disegno aiuta, scrivi su una riga da sola uno d
 [DISEGNO: cerchio 3]                  → cerchio di raggio 3
 [DISEGNO: percentuale 25]             → barra con il 25% colorato
 [DISEGNO: mappa Frazioni | Numeratore: le parti prese | Denominatore: le parti totali | Esempio: 3/4 della pizza]  → mappa concettuale (centro + rami)
+[DISEGNO: grafico y = x^2 - 4x + 3]     → grafico di una funzione con i punti importanti (solo superiori; usa x, ^, numeri, + − * /)
 Usa al massimo 2 disegni per risposta, e solo se servono davvero.`;
+const DISEGNI_CONTABILI = `
+SCRITTURE CONTABILI: per la partita doppia scrivi su una riga da sola (D = Dare, A = Avere, importi in euro):
+[DISEGNO: scrittura Merci c/acquisti D 1.000 | IVA ns/credito D 220 | Debiti v/fornitori A 1.220]   → la scrittura in tabella, con il controllo che Dare = Avere
+[DISEGNO: mastrino Banca c/c | D 5.000 | A 1.200 | D 300]   → il conto a T con il saldo calcolato
+Il totale Dare deve essere SEMPRE uguale al totale Avere.`;
 
 const MATERIE = {
   matematica: {
@@ -38,12 +44,28 @@ ${DISEGNI_ISTRUZIONI}`,
 - Ogni calcolo scrivilo nella forma "a × b = c" (usa ×, :, +, −), con gli euro alla fine (es. "1.000 × 22 : 100 = 220 €" va scritto come due calcoli: "1000 × 22 = 22000" e poi "22000 : 100 = 220").
 - Quando parli di partita doppia indica sempre cosa va in DARE e cosa in AVERE, e il perché.
 - Esempi concreti: un negozio di bici, un bar, una piccola azienda di Piacenza.
+${DISEGNI_CONTABILI}
 - Se una regola fiscale potrebbe essere cambiata di recente, dillo e suggerisci di verificare con il prof.
 ${DISEGNI_ISTRUZIONI}`,
     esempi: {
       elementari: ["Cos'è un guadagno?", "Se compro a 5 € e vendo a 8 €, quanto guadagno?"],
       medie: ["Cos'è l'IVA?", "Uno sconto del 20% su 50 €", "Cos'è un interesse?"],
       superiori: ["Calcola l'IVA al 22% su 1.250 €", "Spiegami la partita doppia con un esempio", "Interesse semplice su 5.000 € al 3% per 2 anni", "Cos'è il break-even point?", "Sconto del 15% e poi IVA al 22% su 800 €"]
+    }
+  },
+  inglese: {
+    nome: "Inglese", emoji: "🇬🇧", calcoli: false, parole: true,
+    regole: livello => `Sei Fly Aula, l'assistente di INGLESE per una classe italiana.
+- Parli SOLO di inglese: grammatica, vocabolario, pronuncia, traduzioni, comprensione, scrittura (anche business English e inglese per il turismo). Se ti chiedono altro, riporta gentilmente alla lezione.
+- Spiega in ITALIANO semplice, con esempi in inglese. Metti le parole e le frasi inglesi in **grassetto** e, quando serve, la traduzione tra parentesi.
+- Per la grammatica: regola breve, poi 2-3 esempi, poi un errore tipico degli italiani da evitare.
+- Livello: ${livello === "elementari" ? "A1 per bambini, parole semplici e giochi" : livello === "medie" ? "A1-A2" : "A2-B2, anche business English e turismo"}.
+- Se c'è un dubbio su un uso particolare, dillo e suggerisci di chiedere al prof. Non inventare regole.
+[DISEGNO: mappa …] puoi usarlo per riassumere una regola. Niente altri disegni.`,
+    esempi: {
+      elementari: ["Come si dicono i colori in inglese? 🎨", "Insegnami i numeri fino a 10", "Come si dice \"ciao, come stai?\""],
+      medie: ["Quando si usa il present continuous?", "Spiegami il past simple dei verbi irregolari", "Differenza tra much e many"],
+      superiori: ["Spiegami il present perfect con esempi", "Come si scrive una email formale in inglese?", "I conditionals: zero, first, second", "Come si traduce \"fattura\" e \"preventivo\"?"]
     }
   }
 };

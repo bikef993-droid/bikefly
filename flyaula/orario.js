@@ -6,7 +6,7 @@
 const GIORNI = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
 const ORE_STANDARD = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00"];   // inizio di ogni ora (si possono cambiare)
 const MATERIE_ORARIO = ["", "Matematica", "Economia aziendale", "Italiano", "Storia", "Inglese", "Seconda lingua", "Diritto", "Economia politica", "Informatica", "Scienze motorie", "Religione", "Geografia", "Scienze", "Fisica", "Chimica", "Altro"];
-const MATERIA_ATTIVA = { "Matematica": "matematica", "Economia aziendale": "economia" };   // le materie che Fly Aula sa già
+const MATERIA_ATTIVA = { "Matematica": "matematica", "Economia aziendale": "economia", "Inglese": "inglese" };   // le materie che Fly Aula sa già
 
 const Orario = {
   dati() { try { return JSON.parse(localStorage.getItem("flyaula_orario") || "null"); } catch (e) { return null; } },

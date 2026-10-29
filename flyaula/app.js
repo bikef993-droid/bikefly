@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.5 · il programma
+//  FLY AULA v0.6 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -172,7 +172,7 @@ async function chiedi(domanda, speciale = {}) {
   storia.push({ role: "user", content: domanda });
   const bolla = aggiungi("ai", '<span class="cursore"></span>');
   const materia = $("materia").value, livello = $("livello").value;
-  const sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni() + DSA.istruzioni();
+  const sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + istruzioniProgramma(materia, livello, $("classe").value) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni() + DSA.istruzioni();
   try {
     // 1) prima stesura (si vede mentre la scrive)
     let testo = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; });
@@ -296,18 +296,18 @@ async function nuovoEsercizio(argomento = "") {
   occupato = true;
   const card = aggiungi("ai", `<div class="lavoro">✏️ Preparo un esercizio e lo controllo 3 volte…</div>`);
   try {
-    const es = await creaEsercizio(cervello, MATERIE[$("materia").value].nome, $("livello").value, argomento);
+    const es = await creaEsercizio(cervello, MATERIE[$("materia").value].nome, $("livello").value, argomento || Prof.argomento, { chiave: $("materia").value });
     card.innerHTML = `<div class="esercizio"><div class="tag">✏️ ESERCIZIO ${punti.totali + 1} · ${es.riserva ? "risultato calcolato da Fly Aula ✓" : "risultato controllato 3 volte ✓✓✓"}</div>${escape(es.testo)}
-      <div class="risp"><input placeholder="La vostra risposta" inputmode="decimal"><button class="btn">Controlla</button><button class="btn sec b-aiuto">💡 Aiutino</button></div><div class="esito"></div></div>`;
+      <div class="risp"><input placeholder="La vostra risposta" ${es.tipo === "parola" ? 'autocapitalize="off" spellcheck="false"' : 'inputmode="decimal"'}><button class="btn">Controlla</button><button class="btn sec b-aiuto">💡 Aiutino</button></div><div class="esito"></div></div>`;
     const inp = card.querySelector("input"), esito = card.querySelector(".esito");
     let tentativi = 0;
     const verifica = async () => {
       if (!inp.value.trim()) return;
       tentativi++;
-      if (risultatoGiusto(inp.value, es.risultato)) {
+      if (risultatoGiusto(inp.value, es)) {
         punti.giuste++; punti.totali++;
         esito.className = "esito si";
-        esito.innerHTML = `<span class="applauso">🎉</span> Giusto! ${escape(formatta(es.risultato))} ${escape(es.unita)} · punteggio ${punti.giuste}/${punti.totali}
+        esito.innerHTML = `<span class="applauso">🎉</span> Giusto! ${escape(soluzioneDi(es))} · punteggio ${punti.giuste}/${punti.totali}
           <div class="azioni"><button class="b-altro">✏️ Un altro esercizio</button></div>`;
         esito.querySelector(".b-altro").onclick = () => nuovoEsercizio(argomento);
         inp.disabled = true;
@@ -318,8 +318,8 @@ async function nuovoEsercizio(argomento = "") {
         esito.className = "esito no";
         esito.innerHTML = `<div class="lavoro">Vi spiego dove si sbaglia…</div>`;
         inp.disabled = true; occupato = false;
-        await chiedi(`Esercizio: "${es.testo}". La classe ha risposto ${inp.value}, ma il risultato giusto è ${formatta(es.risultato)} ${es.unita}. Spiega con gentilezza dove probabilmente si è sbagliato e come si arriva al risultato giusto.`, { esercizio: true });
-        esito.innerHTML = `Il risultato era <b>${escape(formatta(es.risultato))} ${escape(es.unita)}</b> · punteggio ${punti.giuste}/${punti.totali}<div class="azioni"><button class="b-altro">✏️ Un altro esercizio</button></div>`;
+        await chiedi(`Esercizio: "${es.testo}". La classe ha risposto ${inp.value}, ma la risposta giusta è ${soluzioneDi(es)}. Spiega con gentilezza dove probabilmente si è sbagliato e come si arriva al risultato giusto.`, { esercizio: true });
+        esito.innerHTML = `La risposta giusta era <b>${escape(soluzioneDi(es))}</b> · punteggio ${punti.giuste}/${punti.totali}<div class="azioni"><button class="b-altro">✏️ Un altro esercizio</button></div>`;
         esito.querySelector(".b-altro").onclick = () => nuovoEsercizio(argomento);
       }
     };
@@ -327,7 +327,7 @@ async function nuovoEsercizio(argomento = "") {
     inp.onkeydown = e => { if (e.key === "Enter") verifica(); };
     card.querySelector(".b-aiuto").onclick = () => {
       const primo = (es.spiegazione || "").split(/\n|(?=\d\.)/).find(x => x.trim());
-      esito.className = "esito no"; esito.textContent = "💡 " + (primo ? primo.trim() : "Leggete bene il testo e scrivete il conto da fare prima di calcolare.");
+      esito.className = "esito no"; esito.textContent = "💡 " + (primo ? primo.trim() : (es.tipo === "parola" ? "Leggete bene la frase: che tempo verbale o che parola serve?" : "Leggete bene il testo e scrivete il conto da fare prima di calcolare."));
     };
     inp.focus();
   } catch (e) { card.innerHTML = "⚠️ Non riesco a preparare l'esercizio: controlla che Ollama sia acceso."; }

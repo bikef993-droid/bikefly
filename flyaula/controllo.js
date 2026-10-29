@@ -87,6 +87,26 @@ function correggiConti(testo) {
   return { testo: out, corretti: n, conti: (testo.match(RE_CONTO) || []).length };
 }
 
+// 5) partita doppia: in ogni scrittura il totale Dare deve essere uguale al totale Avere
+function leggiScrittura(spec) {
+  const righe = spec.replace(/^\s*scrittura\s*/i, "").split("|").map(x => x.trim()).filter(Boolean).map(r => {
+    const m = r.match(/^(.+?)\s+(D|A|Dare|Avere)\s+(-?\d+(?:[.,]\d+)*)\s*€?$/i);
+    return m ? { conto: m[1].trim(), lato: m[2][0].toUpperCase(), importo: leggiNumero(m[3]) } : null;
+  });
+  if (!righe.length || righe.some(r => !r || !isFinite(r.importo))) return null;
+  const dare = righe.filter(r => r.lato === "D").reduce((a, r) => a + r.importo, 0), avere = righe.filter(r => r.lato === "A").reduce((a, r) => a + r.importo, 0);
+  return { righe, dare: Math.round(dare * 100) / 100, avere: Math.round(avere * 100) / 100, quadra: Math.abs(dare - avere) < 0.005 };
+}
+function controllaScritture(testo) {
+  const problemi = [];
+  for (const m of testo.matchAll(/\[DISEGNO:\s*(scrittura[^\]]*)\]/gi)) {
+    const s = leggiScrittura(m[1]);
+    if (!s) problemi.push(`la scrittura "${m[1].slice(0, 60)}" è scritta male (serve: conto D importo | conto A importo)`);
+    else if (!s.quadra) problemi.push(`la scrittura in partita doppia NON quadra: totale Dare ${formatta(s.dare)} ≠ totale Avere ${formatta(s.avere)}`);
+  }
+  return problemi;
+}
+
 // ===================================================================
 //  IL RICONTROLLO COMPLETO: SEMPRE 2 controlli, 3 nei casi speciali
 //  controllo 1 = calcolatrice (+ risultato giusto se la domanda è un conto)
@@ -104,8 +124,10 @@ async function ricontrolloCompleto(cervello, { domanda, testo, contesto, conto =
   ogniPasso(1);
   let c = correggiConti(esito.testo);
   esito.testo = c.testo; esito.contiCorretti += c.corretti; esito.controlli++;
-  const contiDaVerificare = c.conti;
-  const ctx = contesto + (conto ? ` FATTO SICURO (calcolatrice): ${conto.testo} = ${formatta(conto.risultato)}.` : "");
+  const scrittureSbagliate = controllaScritture(esito.testo);
+  const contiDaVerificare = c.conti + (esito.testo.match(/\[DISEGNO:\s*scrittura/gi) || []).length;
+  const ctx = contesto + (conto ? ` FATTO SICURO (calcolatrice): ${conto.testo} = ${formatta(conto.risultato)}.` : "")
+    + (scrittureSbagliate.length ? ` FATTO SICURO (calcolatrice): ${scrittureSbagliate.join("; ")}. Va corretta.` : "");
   // controllo 2: revisore (se non risponde bene, riprova una volta)
   ogniPasso(2);
   let r1 = await revisiona(cervello, domanda, esito.testo, ctx);
@@ -116,7 +138,7 @@ async function ricontrolloCompleto(cervello, { domanda, testo, contesto, conto =
     c = correggiConti(r1.correzione); esito.testo = c.testo; esito.contiCorretti += c.corretti;
   }
   // controllo 3: solo quando serve
-  const disaccordo = r1.ok === true && esito.contiCorretti > 0;
+  const disaccordo = (r1.ok === true && esito.contiCorretti > 0) || scrittureSbagliate.length > 0;
   const terzo = r1.ok !== true || disaccordo || speciale || contiDaVerificare === 0;
   if (terzo) {
     ogniPasso(3);
@@ -129,6 +151,9 @@ async function ricontrolloCompleto(cervello, { domanda, testo, contesto, conto =
       if (r1.ok === false) esito.stato = "dubbio";
     } else if (r2.ok === null && r1.ok === null) esito.stato = "dubbio";
   }
+  // la partita doppia deve quadrare anche alla fine: altrimenti è un dubbio
+  const restano = controllaScritture(esito.testo);
+  if (restano.length) { esito.stato = "dubbio"; esito.correzioni.push(restano[0]); }
   if (esito.stato !== "dubbio" && (esito.correzioni.length || esito.contiCorretti)) esito.stato = "corretta";
   // se la domanda era un conto secco, il risultato giusto deve esserci (salvo scelta del prof)
   if (conto && risultatoObbligatorio && !contieneRisultato(esito.testo, conto.risultato)) {

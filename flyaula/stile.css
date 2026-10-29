@@ -234,3 +234,16 @@ body.dsa .passo{margin:14px 0}
 .ria-testa{font:800 18px Figtree;color:var(--menta);margin-bottom:10px}
 .ria-testo{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:8px 26px 18px;font-size:20px;line-height:1.55}
 .ria-testo h3{font:900 24px Figtree;color:var(--sole);margin:18px 0 6px}
+/* v0.6 · crea verifica, partita doppia, mastrino */
+.cv-tab td{font-size:17px;line-height:1.45}
+.cv-es .cv-sol{margin-top:6px;color:var(--menta);font-size:15px}.cv-ok{font-size:12px;color:var(--nebbia);margin-left:6px}
+.cv-az{white-space:nowrap}.cv-az button{background:none;border:1px solid rgba(255,255,255,.18);color:var(--latte);border-radius:99px;padding:5px 11px;margin:2px;cursor:pointer}
+table.pd{width:auto;min-width:min(620px,100%);font-size:.72em;background:rgba(0,0,0,.2)}
+table.pd th{font-size:.75em}table.pd td.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--sole);font-weight:800}
+table.pd td.rientro{padding-left:48px}table.pd tbody tr{animation:entra .4s both}
+table.pd tfoot td{border-top:3px solid var(--latte);font-weight:900}
+.mastrino{display:inline-block;min-width:min(520px,100%);font-size:.75em}
+.m-nome{text-align:center;font-weight:900;border-bottom:4px solid var(--latte);padding-bottom:6px}
+.m-lati{display:grid;grid-template-columns:1fr 1fr}.m-lati>div{padding:8px 16px;text-align:right;font-variant-numeric:tabular-nums}
+.m-lati>div:first-child{border-right:4px solid var(--latte)}.m-lati b{display:block;text-align:center;color:var(--nebbia);font-size:.85em}
+.m-lati>div>div{animation:entra .35s both;color:var(--sole);font-weight:800}.m-lati .tot{border-top:2px solid rgba(255,255,255,.4);margin-top:6px;padding-top:4px;color:var(--latte)!important}
