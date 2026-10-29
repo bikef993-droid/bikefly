@@ -46,6 +46,7 @@ const Gara = (() => {
   }
   function chiudi() { clearInterval(timer); st = null; el("pGara").style.display = "none"; }
   function parti(a, b, n, t) {
+    if (window.conta) conta("gare");
     st = { nomi: [a, b], punti: [0, 0], turno: 0, fatte: 0, totali: n * 2, tempo: t, materia: el("materia").value, livello: el("livello").value };
     nuovaDomanda();
   }

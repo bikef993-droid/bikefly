@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.6 · il programma
+//  FLY AULA v0.7 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -117,6 +117,7 @@ async function riassumi() {
   if (s) storia = [{ role: "user", content: "Riassunto della lezione finora: " + s }, { role: "assistant", content: "Va bene, continuo da qui." }, ...storia.slice(-4)];
 }
 async function nuovaLezione(salva = true) {
+  if (storia.length) conta("lezioni");
   if (salva && storia.length) { const s = await riassunto(); if (s) scrivi(chiaveRiassunto(), s); }
   storia = []; inizioLezione = Date.now(); avvisoRipasso = false;
   Pagine.svuota();
@@ -194,7 +195,7 @@ async function chiedi(domanda, speciale = {}) {
       ogniPasso: n => { const l = $("lavoroRev"); if (l) l.textContent = passi[n]; }
     });
     testo = es.testo;
-    conta("ricontrollate"); conta(es.controlli >= 3 ? "tripli" : "doppi");
+    conta("ricontrollate"); conta(es.controlli >= 3 ? "tripli" : "doppi"); contaGiorno(materia);
     if (es.contiCorretti) { conta("contiCorretti", es.contiCorretti); annotaErrore("Conto sbagliato (corretto dalla calcolatrice)", `${es.contiCorretti} ${es.contiCorretti === 1 ? "conto corretto" : "conti corretti"}`); }
     es.correzioni.forEach(c => { conta("correttiRevisore"); annotaErrore("Corretta dal ricontrollo", c); });
     const quante = es.controlli >= 3 ? "3 volte ✓✓✓" : "2 volte ✓✓";
@@ -297,6 +298,7 @@ async function nuovoEsercizio(argomento = "") {
   const card = aggiungi("ai", `<div class="lavoro">✏️ Preparo un esercizio e lo controllo 3 volte…</div>`);
   try {
     const es = await creaEsercizio(cervello, MATERIE[$("materia").value].nome, $("livello").value, argomento || Prof.argomento, { chiave: $("materia").value });
+    conta("esercizi");
     card.innerHTML = `<div class="esercizio"><div class="tag">✏️ ESERCIZIO ${punti.totali + 1} · ${es.riserva ? "risultato calcolato da Fly Aula ✓" : "risultato controllato 3 volte ✓✓✓"}</div>${escape(es.testo)}
       <div class="risp"><input placeholder="La vostra risposta" ${es.tipo === "parola" ? 'autocapitalize="off" spellcheck="false"' : 'inputmode="decimal"'}><button class="btn">Controlla</button><button class="btn sec b-aiuto">💡 Aiutino</button></div><div class="esito"></div></div>`;
     const inp = card.querySelector("input"), esito = card.querySelector(".esito");
@@ -494,6 +496,10 @@ $("apriOrario").onclick = () => { Orario.disegnaEditor($("editorOrario")); apri(
 $("orFatto").onclick = () => { $("pOrario").style.display = "none"; aggiornaOrario(); };
 $("orCancella").onclick = () => { try { localStorage.removeItem("flyaula_orario"); } catch (e) {} Orario.disegnaEditor($("editorOrario")); aggiornaOrario(); };
 $("apriEsercizi").onclick = () => nuovoEsercizio();
+$("apriReport").onclick = () => { $("menu").classList.remove("aperto"); Report.apri(); };
+$("rpStampa").onclick = () => Report.stampaReport();
+$("apriDemo").onclick = () => { $("menu").classList.remove("aperto"); Demo.apri(); };
+Demo.collega();
 $("dsa").onclick = () => DSA.cambia();
 DSA.applica();
 $("lingua").innerHTML = `<option value="">🌍 Solo italiano</option>` + Object.entries(LINGUE).map(([k, l]) => `<option value="${k}">${l.bandiera} + ${l.nome}${l.prova ? " (in prova)" : ""}</option>`).join("");

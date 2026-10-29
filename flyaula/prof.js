@@ -147,7 +147,7 @@ const Prof = (() => {
   }
 
   return {
-    apri, istruzioni, bloccata, verificaAttiva, mostraVerifica, sbloccaVerifica, applicaTema, aggiornaPill,
+    apri, accesso, istruzioni, bloccata, verificaAttiva, mostraVerifica, sbloccaVerifica, applicaTema, aggiornaPill,
     get modo() { return imp.modo; }, get argomento() { return imp.argomento; }
   };
 })();

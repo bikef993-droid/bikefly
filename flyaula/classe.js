@@ -132,6 +132,7 @@ async function aggiungiTraduzione(bolla, testoIt, codice) {
       return;
     }
     if (e.stato === "corretta") annotaErrore("Corretta dal ricontrollo", `traduzione in ${L.nome} corretta dal revisore`);
+    conta("traduzioni");
     box.lang = codice; if (L.rtl) box.dir = "rtl";
     box.innerHTML = `<div class="tag">${L.bandiera} ${escC(L.nome)} · traduzione controllata ${e.controlli >= 3 ? "3 volte ✓✓✓" : "2 volte ✓✓"}${L.prova ? " · lingua in prova" : ""}</div>
       <div class="testo-trad">${e.testo.split(/\n+/).filter(r => r.trim()).map(r => `<div>${escC(r)}</div>`).join("")}</div>

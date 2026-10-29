@@ -54,6 +54,8 @@
       <button id="apriRipasso">🔁 Ripasso veloce</button>
       <button id="apriRiassunto">📒 Riassunto per gli assenti</button>
       <button id="apriEsame">📝 Esame delle domande</button>
+      <button id="apriReport">📈 Report per la scuola</button>
+      <button id="apriDemo">🎬 Presentazione per la preside</button>
       <button id="apriOrario">📅 Orario della classe</button>
       <button id="apriRegistro">📊 Tabella degli errori (<span id="nErrori">0</span>)</button>
       <button id="apriInstallaPc">💻 Installa sul PC della classe</button>
@@ -70,7 +72,7 @@
     <button type="button" class="btn sec voce" id="voce" title="Parla (la voce resta su questo computer)">🎤</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.6 · ogni risposta controllata 2 volte (3 nei casi difficili) · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.7 · ogni risposta controllata 2 volte (3 nei casi difficili) · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -152,6 +154,17 @@
   <div id="cvCorpo"></div>
 </div></div>
 
+<div class="pannello" id="pReport"><div class="box">
+  <h2>📈 Report per la scuola</h2>
+  <div id="rpCorpo"></div>
+  <div class="riga-btn"><button class="btn" id="rpStampa">🖨️ Stampa o salva PDF</button><button class="btn sec chiudi">Chiudi</button></div>
+</div></div>
+
+<div id="pDemo" class="sopra">
+  <div id="demoSlide"></div>
+  <div class="demo-barra"><button class="btn sec" id="demoEsci">✕ Esci</button><div id="demoPunti"></div><button class="btn sec" id="demoIndietro">◀</button><button class="btn" id="demoAvanti">Avanti ▶</button></div>
+</div>
+
 <div id="pin" class="sopra"></div>
 
 <div id="verifica" class="sopra">
@@ -177,6 +190,8 @@
 <script src="esame.js"></script>
 <script src="esercizi.js"></script>
 <script src="creaverifica.js"></script>
+<script src="report.js"></script>
+<script src="demo.js"></script>
 <script src="orario.js"></script>
 <script src="voce.js"></script>
 <script src="app.js"></script>
