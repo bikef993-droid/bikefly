@@ -8,411 +8,98 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#071226">
 <link rel="icon" href="icona-192.png">
-<style>
-@font-face{font-family:Bricolage;src:url(../font/Bricolage.ttf)}
-@font-face{font-family:Figtree;src:url(../font/Figtree.ttf)}
-:root{--notte:#071226;--notte2:#0E1E3C;--notte3:#162A4D;--latte:#F3F6FB;--nebbia:#93A6C3;--menta:#00D2A0;--cielo:#3B8BFF;--sole:#FFD23F;--corallo:#FF5A5F}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{background:radial-gradient(circle at 15% 10%,rgba(0,210,160,.16),transparent 45%),radial-gradient(circle at 90% 90%,rgba(59,139,255,.2),transparent 50%),var(--notte);color:var(--latte);font-family:Figtree,system-ui,sans-serif;display:flex;flex-direction:column}
-header{display:flex;align-items:center;gap:18px;padding:14px 24px;border-bottom:1px solid rgba(255,255,255,.08)}
-header .nome{font-family:Bricolage,system-ui;font-size:30px;letter-spacing:-.5px}header .nome b{color:var(--cielo)}
-.pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--latte);border-radius:99px;padding:8px 14px;font:700 16px Figtree,system-ui}
-select.pill{appearance:none;cursor:pointer}
-.spazio{flex:1}
-#stato{font-size:14px;font-weight:700;padding:6px 12px;border-radius:99px;background:rgba(255,210,63,.15);color:var(--sole)}
-#stato.ok{background:rgba(0,210,160,.15);color:var(--menta)}#stato.ko{background:rgba(255,90,95,.15);color:var(--corallo)}
-#timer{font:800 18px Figtree;color:var(--nebbia);min-width:150px;text-align:right}
-main{flex:1;overflow:auto;padding:24px 6vw 12px;scroll-behavior:smooth}
-.msg{max-width:1100px;margin:0 auto 22px;animation:entra .35s cubic-bezier(.2,1.4,.4,1) both}
-.msg.io{text-align:right}
-.msg.io .bolla{display:inline-block;background:var(--cielo);color:#fff;border-radius:26px 26px 6px 26px;padding:14px 22px;font-size:clamp(20px,2.2vw,30px);font-weight:700;text-align:left}
-.msg.ai .bolla{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:26px 26px 26px 6px;padding:20px 26px;font-size:clamp(20px,2.3vw,32px);line-height:1.5}
-.msg.ai .chi{font:800 15px Figtree;color:var(--menta);margin:0 0 6px 8px;display:flex;align-items:center;gap:8px}
-.passo{display:flex;gap:14px;margin:10px 0}.passo .n{flex:none;width:1.6em;height:1.6em;border-radius:50%;background:var(--menta);color:#04241C;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:.8em;margin-top:.15em}
-.conto{color:var(--sole);font-weight:800;white-space:nowrap}
-.verificato{font-size:.55em;font-weight:800;background:rgba(0,210,160,.16);color:var(--menta);border-radius:99px;padding:2px 10px;margin-left:6px;vertical-align:middle;white-space:nowrap}
-.corretto{font-size:.55em;font-weight:800;background:rgba(255,210,63,.16);color:var(--sole);border-radius:99px;padding:2px 10px;margin-left:6px;vertical-align:middle;white-space:nowrap}
-.cursore{display:inline-block;width:.5em;height:1em;background:var(--menta);vertical-align:-.1em;animation:lampeggia 1s steps(2) infinite;border-radius:2px}
-.vuoto{max-width:1000px;margin:6vh auto 0;text-align:center}
-.vuoto h1{font-family:Bricolage;font-size:clamp(34px,4.5vw,64px);margin:18px 0 10px;letter-spacing:-1px}
-.vuoto p{color:var(--nebbia);font-size:clamp(18px,1.8vw,24px);margin:0 0 26px}
-.esempi{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-.esempi button{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:var(--latte);border-radius:18px;padding:14px 20px;font:700 clamp(17px,1.6vw,22px) Figtree;cursor:pointer;transition:transform .15s}
-.esempi button:hover{transform:translateY(-2px);background:rgba(255,255,255,.12)}
-#ricordo{max-width:900px;margin:0 auto 20px;background:rgba(255,210,63,.1);border:1px solid rgba(255,210,63,.3);color:#FFE38A;border-radius:18px;padding:12px 18px;font-size:18px;display:none}
-footer{padding:14px 6vw 20px}
-form{max-width:1100px;margin:0 auto;display:flex;gap:12px}
-#domanda{flex:1;background:var(--notte2);border:2px solid rgba(255,255,255,.12);color:var(--latte);border-radius:22px;padding:18px 22px;font:600 clamp(20px,2vw,28px) Figtree;outline:none}
-#domanda:focus{border-color:var(--cielo)}
-.btn{border:0;border-radius:22px;padding:0 26px;font:900 clamp(18px,1.8vw,24px) Figtree;cursor:pointer;color:#fff;background:linear-gradient(90deg,var(--menta),var(--cielo))}
-.btn:disabled{opacity:.5}
-.btn.voce{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:0 20px}
-.btn.voce.on{background:var(--corallo);animation:pulsa 1s infinite}
-.nota{text-align:center;color:var(--nebbia);font-size:13px;margin-top:8px}
-#aiuto{position:fixed;inset:0;background:rgba(4,10,22,.92);display:none;align-items:center;justify-content:center;padding:24px;z-index:9}
-#aiuto .box{max-width:760px;background:var(--notte2);border:1px solid rgba(255,255,255,.12);border-radius:26px;padding:28px 32px;font-size:18px;line-height:1.55}
-#aiuto code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px;font-size:16px}
-#aiuto h2{font-family:Bricolage;margin:0 0 10px}
-.azioni{margin:8px 0 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.azioni button{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--nebbia);border-radius:99px;padding:6px 14px;font:700 14px Figtree;cursor:pointer}
-.azioni button:hover{color:var(--latte);border-color:rgba(255,255,255,.35)}
-.azioni input{background:var(--notte2);border:1px solid rgba(255,255,255,.2);color:var(--latte);border-radius:12px;padding:8px 12px;font:600 15px Figtree;min-width:280px}
-.azioni .grazie{color:var(--menta);font:800 14px Figtree}
-#registro{position:fixed;inset:0;background:#071226;display:none;z-index:8;overflow:auto;padding:30px 4vw}
-#registro .box{max-width:1200px;margin:0 auto}
-#registro h2{font-family:Bricolage;font-size:38px;margin:0 0 16px}
-.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
-.stat div{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:14px 16px}
-.stat b{display:block;font:900 34px Figtree;color:var(--menta)}.stat span{color:var(--nebbia);font-size:14px;font-weight:700}
-table{width:100%;border-collapse:collapse;font-size:15px;background:rgba(255,255,255,.03);border-radius:14px;overflow:hidden}
-th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top}
-th{color:var(--nebbia);font-size:13px;text-transform:uppercase;letter-spacing:.5px}
-.tipo{font-weight:800;white-space:nowrap}.tipo.calc{color:var(--sole)}.tipo.prof{color:var(--corallo)}
-.riga-btn{display:flex;gap:10px;margin:16px 0}
-@keyframes entra{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
-@keyframes lampeggia{50%{opacity:0}}
-@keyframes pulsa{50%{transform:scale(1.06)}}
-.logo .neu{animation:neuroni 2.4s ease-in-out infinite}.logo .neu:nth-of-type(2){animation-delay:.3s}.logo .neu:nth-of-type(3){animation-delay:.6s}
-@keyframes neuroni{50%{opacity:.35}}
-</style>
+<link rel="stylesheet" href="stile.css">
 </head>
 <body>
 <header>
-  <svg class="logo" width="62" height="46" viewBox="25 60 250 160" aria-hidden="true">
+  <svg class="logo" width="58" height="42" viewBox="25 60 250 160" aria-hidden="true">
     <circle cx="100" cy="140" r="70" fill="none" stroke="#00D2A0" stroke-width="16"/>
     <circle cx="200" cy="140" r="70" fill="none" stroke="#3B8BFF" stroke-width="16"/>
     <path d="M100 140 L150 70 L200 140 Z" fill="none" stroke="#F3F6FB" stroke-width="8" stroke-linejoin="round"/>
     <circle class="neu" cx="100" cy="140" r="14" fill="#F3F6FB"/><circle class="neu" cx="150" cy="70" r="14" fill="#FFD23F"/><circle class="neu" cx="200" cy="140" r="14" fill="#F3F6FB"/>
   </svg>
   <div class="nome">Fly<b>Aula</b></div>
-  <span class="pill">🧮 Matematica</span>
+  <select class="pill" id="materia" title="Materia">
+    <option value="matematica">🧮 Matematica</option>
+    <option value="economia">📊 Economia aziendale</option>
+  </select>
   <select class="pill" id="livello" title="Livello">
     <option value="elementari">Elementari</option>
     <option value="medie" selected>Medie</option>
     <option value="superiori">Superiori</option>
   </select>
-  <input class="pill" id="classe" value="3ªB" maxlength="8" style="width:90px" title="Classe">
+  <input class="pill" id="classe" value="3ªB" maxlength="8" style="width:86px" title="Classe">
   <select class="pill" id="durata" title="Durata della lezione">
-    <option value="60">Lezione 1 ora</option>
-    <option value="120">Lezione 2 ore</option>
+    <option value="60">1 ora</option>
+    <option value="120">2 ore</option>
   </select>
+  <span id="lezione"></span>
   <div class="spazio"></div>
   <span id="timer"></span>
   <span id="stato">Mi collego…</span>
-  <button class="pill" id="installa" style="display:none;background:var(--menta);color:#04241C;border:0">⬇️ Installa Fly Aula</button>
-  <button class="pill" id="apriRegistro" title="Tabella degli errori">📊 Errori <span id="nErrori">0</span></button>
+  <button class="pill" id="apriEsercizi">✏️ Esercizi</button>
+  <button class="pill" id="leggiAuto" title="Leggi le risposte ad alta voce">🔇</button>
   <button class="pill" id="nuova" title="Cancella la memoria e inizia una nuova lezione">🧹 Nuova lezione</button>
-</header>
-
-<main id="chat">
-  <div id="ricordo"></div>
-  <div class="vuoto" id="vuoto">
-    <h1>Ciao! Sono Fly Aula 👋</h1>
-    <p>Ti spiego la matematica passo passo. Tutto resta su questo computer: niente internet.</p>
-    <div class="esempi">
-      <button>Spiegami come si fanno le divisioni</button>
-      <button>Fammi 320 : 8 passo passo</button>
-      <button>Cos'è una frazione? Usa la pizza 🍕</button>
-      <button>Dammi 3 esercizi sulle percentuali</button>
-      <button>Come si calcola l'area di un triangolo?</button>
+  <div class="menu" id="menu">
+    <button class="pill" id="apriMenu">☰</button>
+    <div class="tendina">
+      <button id="apriEsame">📝 Esame delle domande</button>
+      <button id="apriOrario">📅 Orario della classe</button>
+      <button id="apriRegistro">📊 Tabella degli errori (<span id="nErrori">0</span>)</button>
+      <button id="installa" style="display:none">⬇️ Installa Fly Aula</button>
     </div>
   </div>
-</main>
+</header>
+
+<main id="chat"></main>
 
 <footer>
   <form id="modulo">
-    <input id="domanda" placeholder="Scrivi una domanda di matematica…" autocomplete="off">
-    <button type="button" class="btn voce" id="voce" title="Parla">🎤</button>
+    <input id="domanda" placeholder="Scrivi o tocca 🎤 e parla…" autocomplete="off">
+    <button type="button" class="btn sec voce" id="voce" title="Parla (la voce resta su questo computer)">🎤</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota">Fly Aula prototipo v0.2 · i conti vengono controllati da una calcolatrice · le spiegazioni le verifica sempre il prof</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.3 · ogni risposta viene ricontrollata · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
-<div id="registro"><div class="box">
+
+<div class="pannello" id="pRegistro"><div class="box">
   <h2>📊 Tabella degli errori</h2>
   <div class="stat" id="stat"></div>
-  <div class="riga-btn"><button class="btn" style="padding:12px 20px" id="scaricaCsv">⬇️ Scarica (Excel/CSV)</button><button class="btn voce" style="padding:12px 20px" id="svuota">🗑️ Svuota</button><button class="btn voce" style="padding:12px 20px" id="chiudiRegistro">Chiudi</button></div>
+  <div class="riga-btn"><button class="btn" id="scaricaCsv">⬇️ Scarica (Excel)</button><button class="btn sec" id="svuota">🗑️ Svuota</button><button class="btn sec chiudi">Chiudi</button></div>
   <table><thead><tr><th>Quando</th><th>Classe</th><th>Tipo</th><th>Domanda</th><th>Cosa era sbagliato</th></tr></thead><tbody id="righe"></tbody></table>
-  <p class="nota" style="text-align:left;margin-top:14px">Il registro resta solo su questo computer. Serve a migliorare Fly Aula: ogni errore segnalato diventa una regola o una spiegazione migliore.</p>
+  <p class="nota" style="text-align:left;margin-top:14px">Il registro resta solo su questo computer, senza nomi di alunni. Ogni errore diventa una regola o una spiegazione migliore.</p>
 </div></div>
 
-<script>
-// ===================================================================
-//  FLY AULA v0.1 · prototipo
-//  Il "cervello" gira sul computer (Ollama), questa pagina è la LIM.
-//  Niente internet: domande e risposte restano sul computer.
-// ===================================================================
-const OLLAMA = "http://localhost:11434";
-const MODELLI = ["qwen2.5:7b", "qwen2.5:14b", "gemma3:12b", "qwen3:8b", "llama3.1:8b"];
-let modello = null;
-const $ = id => document.getElementById(id);
-const chat = $("chat");
+<div class="pannello" id="pEsame"><div class="box">
+  <h2>📝 Esame di Fly Aula</h2>
+  <p style="color:var(--nebbia);font-size:18px;margin-top:-6px">Fly Aula risponde da sola a domande con il risultato già noto (calcolato da noi). Così sappiamo quanto sbaglia, <b>prima</b> e <b>dopo</b> i controlli. Su questo computer servono circa 5-10 secondi per domanda.</p>
+  <div class="riga-btn">
+    <label>Quante domande <select class="pill" id="esN"><option>20</option><option>50</option><option selected>200</option></select></label>
+    <label>Livello <select class="pill" id="esLivello"><option value="elementari">Elementari</option><option value="medie" selected>Medie</option><option value="superiori">Superiori</option></select></label>
+    <button class="btn" id="esVia">▶️ Inizia l'esame</button><button class="btn sec" id="esStop" style="display:none">⏹️ Ferma</button>
+    <button class="btn sec" id="esCsv" style="display:none">⬇️ Scarica risultati</button><button class="btn sec chiudi">Chiudi</button>
+  </div>
+  <div class="barra"><div id="esBarra"></div></div>
+  <div id="esRisultato"></div>
+</div></div>
 
-// ---------- memoria della lezione ----------
-// la memoria vive solo per la durata della lezione; alla fine resta un mini-riassunto della classe
-let storia = [];                 // [{role, content}]
-let inizioLezione = Date.now();
-const chiaveRiassunto = () => "flyaula_riassunto_" + ($("classe").value || "classe").trim();
-function leggi(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-function scrivi(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-// ---------- tabella degli errori (resta solo su questo computer) ----------
-let domandaCorrente = "";
-function registro() { try { return JSON.parse(leggi("flyaula_errori") || "[]"); } catch (e) { return []; } }
-function statistiche() { try { return JSON.parse(leggi("flyaula_stat") || "{}"); } catch (e) { return {}; } }
-function conta(campo, n = 1) { const s = statistiche(); s[campo] = (s[campo] || 0) + n; scrivi("flyaula_stat", JSON.stringify(s)); }
-function annotaErrore(tipo, dettaglio) {
-  const r = registro();
-  r.unshift({ quando: new Date().toLocaleString("it-IT"), classe: $("classe").value, livello: $("livello").value, modello, tipo, domanda: domandaCorrente.slice(0, 200), dettaglio: String(dettaglio).slice(0, 400) });
-  scrivi("flyaula_errori", JSON.stringify(r.slice(0, 500)));
-  $("nErrori").textContent = r.length;
-}
-function disegnaRegistro() {
-  const r = registro(), s = statistiche();
-  const controllati = (s.contiOk || 0) + (s.contiCorretti || 0);
-  const affid = s.risposte ? Math.round(100 * (1 - (s.segnalate || 0) / s.risposte)) : 100;
-  $("stat").innerHTML = `
-    <div><b>${s.risposte || 0}</b><span>risposte date</span></div>
-    <div><b>${controllati}</b><span>conti controllati</span></div>
-    <div><b style="color:var(--sole)">${s.contiCorretti || 0}</b><span>conti corretti dalla calcolatrice</span></div>
-    <div><b style="color:var(--corallo)">${s.segnalate || 0}</b><span>risposte segnalate dal prof</span></div>
-    <div><b>${affid}%</b><span>risposte senza segnalazioni</span></div>`;
-  $("righe").innerHTML = r.length ? r.map(e => `<tr><td>${escape(e.quando)}</td><td>${escape(e.classe)}<br><small>${escape(e.livello || "")}</small></td><td class="tipo ${e.tipo.startsWith("Conto") ? "calc" : "prof"}">${escape(e.tipo)}</td><td>${escape(e.domanda)}</td><td>${escape(e.dettaglio)}</td></tr>`).join("")
-    : `<tr><td colspan="5" style="text-align:center;color:var(--nebbia);padding:24px">Nessun errore registrato 🎉</td></tr>`;
-}
-function scaricaCsv() {
-  const r = registro(), q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
-  const csv = "\ufeff" + ["Quando;Classe;Livello;Modello;Tipo;Domanda;Cosa era sbagliato", ...r.map(e => [e.quando, e.classe, e.livello, e.modello, e.tipo, e.domanda, e.dettaglio].map(q).join(";"))].join("\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  a.download = "fly-aula-errori.csv"; a.click();
-}
+<div class="pannello" id="pOrario"><div class="box">
+  <h2>📅 Orario della classe</h2>
+  <p style="color:var(--nebbia);font-size:18px;margin-top:-6px">Si scrive una volta sola. Poi Fly Aula sa da sola che lezione c'è e quando finisce.</p>
+  <div id="editorOrario"></div>
+  <div class="riga-btn"><button class="btn" id="orFatto">✓ Fatto</button><button class="btn sec" id="orCancella">🗑️ Cancella orario</button></div>
+</div></div>
 
-function mostraRicordo() {
-  const r = leggi(chiaveRiassunto());
-  $("ricordo").style.display = r ? "block" : "none";
-  if (r) $("ricordo").innerHTML = "📒 <b>L'ultima volta con la " + escape($("classe").value) + ":</b> " + escape(r);
-}
-
-function istruzioni() {
-  const livello = $("livello").value;
-  const ricordo = leggi(chiaveRiassunto());
-  return `Sei Fly Aula, l'assistente di MATEMATICA della classe ${$("classe").value} (scuola: ${livello}), proiettato sulla lavagna interattiva (LIM). Parli in italiano semplice e caldo, come un bravo prof.
-REGOLE:
-- Parli SOLO di matematica. Se ti chiedono altro, rispondi gentilmente che sei l'assistente di matematica e riporta alla lezione.
-- Spiega PASSO PASSO: ogni passaggio su una riga che inizia con "1.", "2.", "3."… Massimo 8 passaggi.
-- Ogni calcolo scrivilo nella forma "a × b = c" (usa ×, ÷, +, −). Niente LaTeX, niente simboli strani, niente tabelle.
-- Usa esempi della vita vera adatti a ragazzi (pizza, soldi, bici, sport).
-- Non dare solo il risultato: fai capire il perché. Alla fine fai UNA domanda breve per controllare che la classe abbia capito, oppure proponi un esercizio simile.
-- Se non sei sicuro di qualcosa, dillo chiaramente e suggerisci di chiedere al prof. Non inventare mai.
-- Risposte brevi: si leggono sulla LIM da lontano.
-${ricordo ? "Nella lezione precedente con questa classe: " + ricordo : ""}`;
-}
-
-// ---------- calcolatrice che controlla i conti ----------
-const num = s => Number(String(s).replace(/\./g, "").replace(",", "."));
-const numDot = s => Number(String(s).replace(",", "."));
-function leggiNumero(s) { return /,\d/.test(s) || /^\d{1,3}(\.\d{3})+$/.test(s) ? num(s) : numDot(s); }
-function formatta(x) {
-  if (!isFinite(x)) return null;
-  const r = Math.round(x * 1e6) / 1e6;
-  return r.toLocaleString("it-IT", { maximumFractionDigits: 6 }).replace(/ /g, "");
-}
-// "320 : 8 = 40", "3,5 × 2 = 7", "12 - 5 = 7"… → ricalcola e, se serve, corregge
-const RE_CONTO = /(\d+(?:[.,]\d+)?)\s*([+\-−×x*·÷:\/])\s*(\d+(?:[.,]\d+)?)\s*=\s*(-?\d+(?:[.,]\d+)?)/g;
-let contiOk = 0, contiCorretti = 0;
-function controllaConti(testo) {
-  return testo.replace(RE_CONTO, (tutto, a, op, b, c) => {
-    const A = leggiNumero(a), B = leggiNumero(b), C = leggiNumero(c);
-    let giusto;
-    if ("+".includes(op)) giusto = A + B;
-    else if ("-−".includes(op)) giusto = A - B;
-    else if ("×x*·".includes(op)) giusto = A * B;
-    else giusto = B === 0 ? NaN : A / B;
-    if (!isFinite(giusto)) return tutto;
-    const opBella = { "x": "×", "*": "×", "·": "×", "/": "÷", ":": ":", "-": "−" }[op] || op;
-    if (Math.abs(giusto - C) < 1e-6 * Math.max(1, Math.abs(giusto))) {
-      contiOk++; conta("contiOk");
-      return `<span class="conto">${a} ${opBella} ${b} = ${c}</span><span class="verificato">✓ calcolatrice</span>`;
-    }
-    contiCorretti++; conta("contiCorretti");
-    annotaErrore("Conto sbagliato (corretto dalla calcolatrice)", `${a} ${opBella} ${b} = ${c} → giusto: ${formatta(giusto)}`);
-    return `<span class="conto">${a} ${opBella} ${b} = ${formatta(giusto)}</span><span class="corretto">✎ corretto dalla calcolatrice</span>`;
-  });
-}
-
-// ---------- disegno delle risposte (passaggi numerati) ----------
-function escape(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
-function impagina(testo, finito) {
-  const righe = escape(testo).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").split(/\n+/).filter(r => r.trim());
-  const html = righe.map(r => {
-    const m = r.match(/^\s*(\d+)[.)]\s+(.*)$/);
-    const corpo = finito ? controllaConti(m ? m[2] : r) : (m ? m[2] : r);
-    return m ? `<div class="passo"><span class="n">${m[1]}</span><span>${corpo}</span></div>` : `<div>${corpo}</div>`;
-  }).join("");
-  return html + (finito ? "" : '<span class="cursore"></span>');
-}
-function aggiungi(chi, html) {
-  $("vuoto") && $("vuoto").remove();
-  const d = document.createElement("div");
-  d.className = "msg " + chi;
-  d.innerHTML = chi === "ai" ? `<div class="chi">🧠 Fly Aula</div><div class="bolla">${html}</div>` : `<div class="bolla">${html}</div>`;
-  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
-  return d.querySelector(".bolla");
-}
-
-// ---------- parlare con il cervello (Ollama) ----------
-async function chiedi(domanda) {
-  if (!modello) return mostraAiuto();
-  storia.push({ role: "user", content: domanda });
-  domandaCorrente = domanda;
-  aggiungi("io", escape(domanda));
-  const bolla = aggiungi("ai", '<span class="cursore"></span>');
-  $("invia").disabled = true;
-  let testo = "";
-  try {
-    const r = await fetch(OLLAMA + "/api/chat", {
-      method: "POST",
-      body: JSON.stringify({
-        model: modello, stream: true, keep_alive: "2h",
-        options: { temperature: 0.2, num_ctx: 8192 },
-        messages: [{ role: "system", content: istruzioni() }, ...storia.slice(-16)]
-      })
-    });
-    const lettore = r.body.getReader(), dec = new TextDecoder();
-    let resto = "";
-    for (;;) {
-      const { value, done } = await lettore.read();
-      if (done) break;
-      resto += dec.decode(value, { stream: true });
-      const righe = resto.split("\n"); resto = righe.pop();
-      for (const l of righe) {
-        if (!l.trim()) continue;
-        const j = JSON.parse(l);
-        testo += j.message?.content || "";
-        const visibile = testo.replace(/<think>[\s\S]*?(<\/think>|$)/g, "");
-        bolla.innerHTML = impagina(visibile, false);
-        chat.scrollTop = chat.scrollHeight;
-      }
-    }
-    testo = testo.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-    bolla.innerHTML = impagina(testo, true);
-    conta("risposte");
-    aggiungiAzioni(bolla, domanda, testo);
-    storia.push({ role: "assistant", content: testo });
-    if (storia.length > 14) riassumi();
-  } catch (e) {
-    bolla.innerHTML = "⚠️ Non riesco a parlare con il cervello di Fly Aula. Controlla che Ollama sia acceso.";
-    controlla();
-  }
-  $("invia").disabled = false;
-  chat.scrollTop = chat.scrollHeight;
-}
-
-// sotto ogni risposta: il prof può segnalare un errore
-function aggiungiAzioni(bolla, domanda, testo) {
-  const d = document.createElement("div"); d.className = "azioni";
-  d.innerHTML = `<button>👎 Segnala un errore</button>`;
-  bolla.parentElement.appendChild(d);
-  d.querySelector("button").onclick = () => {
-    d.innerHTML = `<input placeholder="Cosa era sbagliato? (es. il passaggio 3)" maxlength="300"><button>Invia</button><button>Annulla</button>`;
-    const [inp, invia, annulla] = [d.querySelector("input"), ...d.querySelectorAll("button")];
-    inp.focus();
-    const manda = () => {
-      const prima = domandaCorrente; domandaCorrente = domanda;
-      annotaErrore("Segnalato dal prof", (inp.value.trim() || "(nessuna nota)") + " · risposta: " + testo.slice(0, 160));
-      domandaCorrente = prima; conta("segnalate");
-      d.innerHTML = `<span class="grazie">✓ Segnalato: grazie, servirà a migliorare Fly Aula</span>`;
-    };
-    invia.onclick = manda; inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); manda(); } };
-    annulla.onclick = () => { d.remove(); aggiungiAzioni(bolla, domanda, testo); };
-  };
-}
-
-// riassunto per non riempire la memoria (lezioni lunghe) e per la volta dopo
-async function riassunto() {
-  if (!modello || storia.length < 2) return null;
-  try {
-    const r = await fetch(OLLAMA + "/api/chat", {
-      method: "POST",
-      body: JSON.stringify({
-        model: modello, stream: false, options: { temperature: 0.1 },
-        messages: [{ role: "system", content: "Riassumi in massimo 2 frasi cosa ha fatto la classe in questa lezione di matematica e dove si è bloccata. Niente nomi di persone." },
-          { role: "user", content: storia.map(m => (m.role === "user" ? "Classe: " : "Fly Aula: ") + m.content).join("\n").slice(-6000) }]
-      })
-    });
-    const j = await r.json();
-    return (j.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-  } catch (e) { return null; }
-}
-async function riassumi() {
-  const s = await riassunto();
-  if (s) storia = [{ role: "user", content: "Riassunto della lezione finora: " + s }, { role: "assistant", content: "Va bene, continuo da qui." }, ...storia.slice(-4)];
-}
-async function nuovaLezione(salva = true) {
-  if (salva) { const s = await riassunto(); if (s) scrivi(chiaveRiassunto(), s); }
-  storia = []; inizioLezione = Date.now(); contiOk = 0; contiCorretti = 0;
-  chat.innerHTML = '<div id="ricordo"></div>';
-  mostraRicordo();
-}
-
-// ---------- timer della lezione: alla fine la memoria si cancella ----------
-setInterval(() => {
-  const totale = Number($("durata").value) * 60000, passato = Date.now() - inizioLezione, resta = totale - passato;
-  if (resta <= 0) { nuovaLezione(true); return; }
-  const m = Math.floor(resta / 60000);
-  $("timer").textContent = `⏱️ ${Math.floor(m / 60) ? Math.floor(m / 60) + " h " : ""}${m % 60} min`;
-}, 5000);
-
-// ---------- controllo che il cervello sia acceso ----------
-async function controlla() {
-  try {
-    const r = await fetch(OLLAMA + "/api/tags");
-    const j = await r.json();
-    const presenti = (j.models || []).map(m => m.name);
-    modello = MODELLI.find(m => presenti.includes(m)) || presenti[0] || null;
-    if (modello) { $("stato").textContent = "🧠 " + modello + " · offline"; $("stato").className = "ok"; $("aiuto").style.display = "none"; }
-    else { $("stato").textContent = "Manca il modello"; $("stato").className = "ko"; mostraAiuto(true); }
-  } catch (e) {
-    modello = null; $("stato").textContent = "Cervello spento"; $("stato").className = "ko"; mostraAiuto(false);
-  }
-}
-function mostraAiuto(acceso) {
-  $("aiutoBox").innerHTML = acceso
-    ? `<h2>Manca il cervello di Fly Aula</h2><p>Ollama è acceso, ma non c'è ancora il modello. Apri <b>PowerShell</b> e scrivi:</p><p><code>ollama pull qwen2.5:7b</code></p><p>(circa 4,7 GB, si scarica una volta sola). Poi <b>ricarica questa pagina</b>.</p>`
-    : `<h2>Fly Aula non trova il suo cervello</h2><p>1. Controlla che <b>Ollama</b> sia aperto (icona del lama vicino all'orologio).</p><p>2. Se è aperto ma non va, apri <b>PowerShell</b> e scrivi:<br><code>setx OLLAMA_ORIGINS "*"</code><br>poi chiudi Ollama (tasto destro sull'icona → Quit) e riaprilo.</p><p>3. Se Chrome chiede il permesso per la <b>rete locale</b>, tocca <b>Consenti</b>.</p><p>Poi ricarica la pagina.</p><button class="btn" style="padding:14px 24px" onclick="controlla()">Riprova</button>`;
-  $("aiuto").style.display = "flex";
-}
-
-// ---------- voce (prototipo: usa il riconoscimento vocale del browser) ----------
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (!SR) $("voce").style.display = "none";
-$("voce").onclick = () => {
-  const r = new SR(); r.lang = "it-IT"; r.interimResults = false;
-  $("voce").classList.add("on");
-  r.onresult = e => { const t = e.results[0][0].transcript; $("domanda").value = t; chiedi(t); $("domanda").value = ""; };
-  r.onend = () => $("voce").classList.remove("on");
-  r.start();
-};
-
-$("modulo").onsubmit = e => { e.preventDefault(); const d = $("domanda").value.trim(); if (d) { $("domanda").value = ""; chiedi(d); } };
-document.querySelectorAll(".esempi button").forEach(b => b.onclick = () => chiedi(b.textContent));
-$("nuova").onclick = () => nuovaLezione(true);
-$("classe").onchange = () => { nuovaLezione(false); };
-// app installabile: icona sul desktop, si apre a schermo intero senza la barra di Chrome
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
-let invitoInstalla = null;
-addEventListener("beforeinstallprompt", e => { e.preventDefault(); invitoInstalla = e; $("installa").style.display = ""; });
-$("installa").onclick = async () => { if (!invitoInstalla) return; invitoInstalla.prompt(); await invitoInstalla.userChoice; invitoInstalla = null; $("installa").style.display = "none"; };
-addEventListener("appinstalled", () => { $("installa").style.display = "none"; });
-$("apriRegistro").onclick = () => { disegnaRegistro(); $("registro").style.display = "block"; };
-$("chiudiRegistro").onclick = () => { $("registro").style.display = "none"; };
-$("scaricaCsv").onclick = scaricaCsv;
-$("svuota").onclick = () => { scrivi("flyaula_errori", "[]"); scrivi("flyaula_stat", "{}"); $("nErrori").textContent = 0; disegnaRegistro(); };
-$("nErrori").textContent = registro().length;
-mostraRicordo();
-controlla();
-</script>
+<script src="sicurezza.js"></script>
+<script src="materie.js"></script>
+<script src="controllo.js"></script>
+<script src="disegni.js"></script>
+<script src="esame.js"></script>
+<script src="esercizi.js"></script>
+<script src="orario.js"></script>
+<script src="voce.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

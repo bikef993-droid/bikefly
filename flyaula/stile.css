@@ -1,0 +1,128 @@
+@font-face{font-family:Bricolage;src:url(../font/Bricolage.ttf)}
+@font-face{font-family:Figtree;src:url(../font/Figtree.ttf)}
+:root{--notte:#071226;--notte2:#0E1E3C;--notte3:#162A4D;--latte:#F3F6FB;--nebbia:#93A6C3;--menta:#00D2A0;--cielo:#3B8BFF;--sole:#FFD23F;--corallo:#FF5A5F;--viola:#7C5CFF}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:radial-gradient(circle at 15% 10%,rgba(0,210,160,.16),transparent 45%),radial-gradient(circle at 90% 90%,rgba(59,139,255,.2),transparent 50%),var(--notte);color:var(--latte);font-family:Figtree,system-ui,sans-serif;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+header .nome{font-family:Bricolage,system-ui;font-size:28px;letter-spacing:-.5px}header .nome b{color:var(--cielo)}
+.pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--latte);border-radius:99px;padding:8px 14px;font:700 16px Figtree,system-ui;cursor:pointer}
+select.pill{appearance:none}select.pill option{background:var(--notte2)}
+input.pill{cursor:text}
+.pill.on{background:var(--menta);color:#04241C;border-color:transparent}
+.spazio{flex:1}
+#stato{font-size:14px;font-weight:700;padding:6px 12px;border-radius:99px;background:rgba(255,210,63,.15);color:var(--sole)}
+#stato.ok{background:rgba(0,210,160,.15);color:var(--menta)}#stato.ko{background:rgba(255,90,95,.15);color:var(--corallo)}
+#lezione{font:800 16px Figtree;color:var(--latte);background:rgba(124,92,255,.18);border-radius:99px;padding:7px 14px;display:none}
+#timer{font:800 16px Figtree;color:var(--nebbia)}
+.menu{position:relative}
+.menu .tendina{position:absolute;right:0;top:46px;background:var(--notte2);border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:8px;display:none;min-width:240px;z-index:7;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.menu.aperto .tendina{display:block}
+.tendina button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--latte);font:700 17px Figtree;padding:12px 14px;border-radius:12px;cursor:pointer}
+.tendina button:hover{background:rgba(255,255,255,.08)}
+main{flex:1;overflow:auto;padding:24px 6vw 12px;scroll-behavior:smooth}
+.msg{max-width:1100px;margin:0 auto 22px;animation:entra .35s cubic-bezier(.2,1.4,.4,1) both}
+.msg.io{text-align:right}
+.msg.io .bolla{display:inline-block;background:var(--cielo);color:#fff;border-radius:26px 26px 6px 26px;padding:14px 22px;font-size:clamp(20px,2.2vw,30px);font-weight:700;text-align:left}
+.msg.ai .bolla{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:26px 26px 26px 6px;padding:20px 26px;font-size:clamp(20px,2.3vw,32px);line-height:1.5;transition:opacity .3s}
+.msg.ai .bolla.controllo{opacity:.55}
+.msg.ai .chi{font:800 15px Figtree;color:var(--menta);margin:0 0 6px 8px;display:flex;align-items:center;gap:8px}
+.passo{display:flex;gap:14px;margin:10px 0}.passo .n{flex:none;width:1.6em;height:1.6em;border-radius:50%;background:var(--menta);color:#04241C;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:.8em;margin-top:.15em}
+.conto{color:var(--sole);font-weight:800;white-space:nowrap}
+.verificato,.corretto,.timbro{font-size:.55em;font-weight:800;border-radius:99px;padding:2px 10px;margin-left:6px;vertical-align:middle;white-space:nowrap}
+.verificato{background:rgba(0,210,160,.16);color:var(--menta)}
+.corretto{background:rgba(255,210,63,.16);color:var(--sole)}
+.timbri{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.timbro{margin:0;font-size:15px;padding:5px 12px;background:rgba(0,210,160,.14);color:var(--menta)}
+.timbro.giallo{background:rgba(255,210,63,.14);color:var(--sole)}.timbro.rosso{background:rgba(255,90,95,.14);color:var(--corallo)}
+.lavoro{font:800 16px Figtree;color:var(--nebbia);display:flex;align-items:center;gap:10px;margin-top:10px}
+.lavoro::before{content:"";width:16px;height:16px;border-radius:50%;border:3px solid var(--menta);border-top-color:transparent;animation:gira .8s linear infinite}
+.cursore{display:inline-block;width:.5em;height:1em;background:var(--menta);vertical-align:-.1em;animation:lampeggia 1s steps(2) infinite;border-radius:2px}
+.vuoto{max-width:1000px;margin:5vh auto 0;text-align:center}
+.vuoto h1{font-family:Bricolage;font-size:clamp(34px,4.5vw,64px);margin:18px 0 10px;letter-spacing:-1px}
+.vuoto p{color:var(--nebbia);font-size:clamp(18px,1.8vw,24px);margin:0 0 26px}
+.esempi{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.esempi button{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:var(--latte);border-radius:18px;padding:14px 20px;font:700 clamp(17px,1.6vw,22px) Figtree;cursor:pointer;transition:transform .15s}
+.esempi button:hover{transform:translateY(-2px);background:rgba(255,255,255,.12)}
+#ricordo{max-width:900px;margin:0 auto 20px;background:rgba(255,210,63,.1);border:1px solid rgba(255,210,63,.3);color:#FFE38A;border-radius:18px;padding:12px 18px;font-size:18px;display:none}
+#avvisoMateria{max-width:900px;margin:0 auto 20px;background:rgba(124,92,255,.14);border:1px solid rgba(124,92,255,.4);border-radius:18px;padding:16px 20px;font-size:20px;display:none;text-align:center}
+footer{padding:14px 6vw 20px}
+form{max-width:1100px;margin:0 auto;display:flex;gap:12px}
+#domanda{flex:1;background:var(--notte2);border:2px solid rgba(255,255,255,.12);color:var(--latte);border-radius:22px;padding:18px 22px;font:600 clamp(20px,2vw,28px) Figtree;outline:none;min-width:0}
+#domanda:focus{border-color:var(--cielo)}
+.btn{border:0;border-radius:22px;padding:0 26px;font:900 clamp(18px,1.8vw,24px) Figtree;cursor:pointer;color:#fff;background:linear-gradient(90deg,var(--menta),var(--cielo))}
+.btn:disabled{opacity:.5}
+.btn.sec{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:0 20px}
+.btn.voce.on{background:var(--corallo);animation:pulsa 1s infinite}
+.nota{text-align:center;color:var(--nebbia);font-size:13px;margin-top:8px}
+.azioni{margin:8px 0 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.azioni button{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--nebbia);border-radius:99px;padding:6px 14px;font:700 14px Figtree;cursor:pointer}
+.azioni button:hover{color:var(--latte);border-color:rgba(255,255,255,.35)}
+.azioni input{background:var(--notte2);border:1px solid rgba(255,255,255,.2);color:var(--latte);border-radius:12px;padding:8px 12px;font:600 15px Figtree;min-width:280px}
+.azioni .grazie{color:var(--menta);font:800 14px Figtree}
+/* pannelli a tutto schermo */
+.pannello{position:fixed;inset:0;background:var(--notte);display:none;z-index:8;overflow:auto;padding:30px 4vw}
+.pannello .box{max-width:1200px;margin:0 auto}
+.pannello h2{font-family:Bricolage;font-size:38px;margin:0 0 16px}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.stat div{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:14px 16px}
+.stat b{display:block;font:900 34px Figtree;color:var(--menta)}.stat span{color:var(--nebbia);font-size:14px;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:15px;background:rgba(255,255,255,.03);border-radius:14px;overflow:hidden}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top}
+th{color:var(--nebbia);font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+.tipo{font-weight:800}.tipo.calc{color:var(--sole)}.tipo.prof{color:var(--corallo)}.tipo.rev{color:var(--viola)}.tipo.sic{color:var(--cielo)}
+.riga-btn{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;align-items:center}
+.riga-btn .btn{padding:12px 20px}
+.riga-btn label{font-weight:700;color:var(--nebbia);display:flex;gap:8px;align-items:center}
+.barra{height:14px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin:10px 0 18px}
+.barra div{height:100%;width:0;background:linear-gradient(90deg,var(--menta),var(--cielo));transition:width .3s}
+.voto{font:900 64px Figtree}.voto small{font-size:20px;color:var(--nebbia);font-weight:700}
+.tab-orario select,.tab-orario input{background:var(--notte2);color:var(--latte);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;font:700 15px Figtree;width:100%}
+.tab-orario select.attiva{border-color:var(--menta);color:var(--menta)}
+.tab-orario input.ora{width:80px}
+#aiuto{position:fixed;inset:0;background:rgba(4,10,22,.95);display:none;align-items:center;justify-content:center;padding:24px;z-index:9}
+#aiuto .box{max-width:760px;background:var(--notte2);border:1px solid rgba(255,255,255,.12);border-radius:26px;padding:28px 32px;font-size:18px;line-height:1.55}
+#aiuto code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px;font-size:16px}
+#aiuto h2{font-family:Bricolage;margin:0 0 10px}
+/* esercizi */
+.esercizio{background:linear-gradient(135deg,rgba(124,92,255,.18),rgba(0,210,160,.1));border:1px solid rgba(124,92,255,.4);border-radius:26px;padding:24px 28px;font-size:clamp(22px,2.4vw,34px);line-height:1.45}
+.esercizio .tag{font:800 15px Figtree;color:#B9A7FF;margin-bottom:8px}
+.esercizio .risp{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
+.esercizio input{background:var(--notte2);border:2px solid rgba(255,255,255,.18);color:var(--latte);border-radius:18px;padding:14px 18px;font:800 clamp(22px,2.4vw,32px) Figtree;width:260px}
+.esercizio .esito{margin-top:16px;font-weight:800}
+.esito.si{color:var(--menta)}.esito.no{color:var(--sole)}
+.applauso{display:inline-block;animation:salto .6s cubic-bezier(.3,1.8,.5,1) both}
+/* disegni */
+.disegno{margin:16px 0;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:14px 18px 16px}
+.titolo-dis{font:800 15px Figtree;color:var(--nebbia);margin-bottom:8px}
+.riga-dis{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.cap-dis{font-size:.8em;margin-top:8px;animation:entra .4s both}
+.fetta{animation:fetta .45s cubic-bezier(.2,1.5,.4,1) both;transform-origin:100px 100px}
+.divcol{display:grid;font:800 clamp(30px,3.4vw,48px) "Figtree",monospace;line-height:1.25;width:max-content;column-gap:2px;margin:6px 0}
+.cd{text-align:center;animation:entra .35s both;min-width:1.1em}
+.cd.div{color:var(--cielo);text-align:left;padding-left:.3em}
+.cd.quoz{color:var(--sole);text-align:left;padding-left:.3em}
+.cd.resto{color:var(--nebbia)}
+.cd.giu{color:var(--menta)}
+.cd.op{color:var(--latte)}
+.cd.barra-v{border-left:4px solid var(--latte);grid-row:1/12!important;margin-left:.15em}
+.cd.barra-o{border-top:4px solid var(--latte);align-self:start;width:100%;min-width:3em}
+.cd.barra-col{border-top:4px solid var(--latte);align-self:center;height:0}
+.gruppi{gap:16px}.gruppo{border:2px dashed rgba(255,255,255,.2);border-radius:18px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:4px;max-width:260px;position:relative;font-size:36px}
+.gruppo.avanzo{border-color:var(--corallo)}
+.etg{position:absolute;top:-14px;right:10px;background:var(--notte);font:900 16px Figtree;color:var(--sole);padding:0 6px}
+.ogg{animation:salto .5s cubic-bezier(.3,1.8,.5,1) both;display:inline-block}
+.cento{display:grid;grid-template-columns:repeat(20,1fr);gap:4px;max-width:640px}
+.cento span{aspect-ratio:1;border-radius:4px;background:rgba(255,255,255,.08)}
+.cento span.pieno{background:var(--menta);animation:entra .3s both}
+.salta{animation:salto .8s cubic-bezier(.3,1.8,.5,1) both}
+.traccia{stroke-dasharray:1400;stroke-dashoffset:1400;animation:traccia 1.6s ease forwards}
+@keyframes entra{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes fetta{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes salto{from{opacity:0;transform:scale(.2) translateY(20px)}to{opacity:1;transform:none}}
+@keyframes traccia{to{stroke-dashoffset:0}}
+@keyframes lampeggia{50%{opacity:0}}
+@keyframes pulsa{50%{transform:scale(1.06)}}
+@keyframes gira{to{transform:rotate(360deg)}}
+.logo .neu{animation:neuroni 2.4s ease-in-out infinite}.logo .neu:nth-of-type(2){animation-delay:.3s}.logo .neu:nth-of-type(3){animation-delay:.6s}
+@keyframes neuroni{50%{opacity:.35}}
