@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fly Aula · Matematica</title>
+<style>
+@font-face{font-family:Bricolage;src:url(../font/Bricolage.ttf)}
+@font-face{font-family:Figtree;src:url(../font/Figtree.ttf)}
+:root{--notte:#071226;--notte2:#0E1E3C;--notte3:#162A4D;--latte:#F3F6FB;--nebbia:#93A6C3;--menta:#00D2A0;--cielo:#3B8BFF;--sole:#FFD23F;--corallo:#FF5A5F}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:radial-gradient(circle at 15% 10%,rgba(0,210,160,.16),transparent 45%),radial-gradient(circle at 90% 90%,rgba(59,139,255,.2),transparent 50%),var(--notte);color:var(--latte);font-family:Figtree,system-ui,sans-serif;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:18px;padding:14px 24px;border-bottom:1px solid rgba(255,255,255,.08)}
+header .nome{font-family:Bricolage,system-ui;font-size:30px;letter-spacing:-.5px}header .nome b{color:var(--cielo)}
+.pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--latte);border-radius:99px;padding:8px 14px;font:700 16px Figtree,system-ui}
+select.pill{appearance:none;cursor:pointer}
+.spazio{flex:1}
+#stato{font-size:14px;font-weight:700;padding:6px 12px;border-radius:99px;background:rgba(255,210,63,.15);color:var(--sole)}
+#stato.ok{background:rgba(0,210,160,.15);color:var(--menta)}#stato.ko{background:rgba(255,90,95,.15);color:var(--corallo)}
+#timer{font:800 18px Figtree;color:var(--nebbia);min-width:150px;text-align:right}
+main{flex:1;overflow:auto;padding:24px 6vw 12px;scroll-behavior:smooth}
+.msg{max-width:1100px;margin:0 auto 22px;animation:entra .35s cubic-bezier(.2,1.4,.4,1) both}
+.msg.io{text-align:right}
+.msg.io .bolla{display:inline-block;background:var(--cielo);color:#fff;border-radius:26px 26px 6px 26px;padding:14px 22px;font-size:clamp(20px,2.2vw,30px);font-weight:700;text-align:left}
+.msg.ai .bolla{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:26px 26px 26px 6px;padding:20px 26px;font-size:clamp(20px,2.3vw,32px);line-height:1.5}
+.msg.ai .chi{font:800 15px Figtree;color:var(--menta);margin:0 0 6px 8px;display:flex;align-items:center;gap:8px}
+.passo{display:flex;gap:14px;margin:10px 0}.passo .n{flex:none;width:1.6em;height:1.6em;border-radius:50%;background:var(--menta);color:#04241C;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:.8em;margin-top:.15em}
+.conto{color:var(--sole);font-weight:800;white-space:nowrap}
+.verificato{font-size:.55em;font-weight:800;background:rgba(0,210,160,.16);color:var(--menta);border-radius:99px;padding:2px 10px;margin-left:6px;vertical-align:middle;white-space:nowrap}
+.corretto{font-size:.55em;font-weight:800;background:rgba(255,210,63,.16);color:var(--sole);border-radius:99px;padding:2px 10px;margin-left:6px;vertical-align:middle;white-space:nowrap}
+.cursore{display:inline-block;width:.5em;height:1em;background:var(--menta);vertical-align:-.1em;animation:lampeggia 1s steps(2) infinite;border-radius:2px}
+.vuoto{max-width:1000px;margin:6vh auto 0;text-align:center}
+.vuoto h1{font-family:Bricolage;font-size:clamp(34px,4.5vw,64px);margin:18px 0 10px;letter-spacing:-1px}
+.vuoto p{color:var(--nebbia);font-size:clamp(18px,1.8vw,24px);margin:0 0 26px}
+.esempi{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.esempi button{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:var(--latte);border-radius:18px;padding:14px 20px;font:700 clamp(17px,1.6vw,22px) Figtree;cursor:pointer;transition:transform .15s}
+.esempi button:hover{transform:translateY(-2px);background:rgba(255,255,255,.12)}
+#ricordo{max-width:900px;margin:0 auto 20px;background:rgba(255,210,63,.1);border:1px solid rgba(255,210,63,.3);color:#FFE38A;border-radius:18px;padding:12px 18px;font-size:18px;display:none}
+footer{padding:14px 6vw 20px}
+form{max-width:1100px;margin:0 auto;display:flex;gap:12px}
+#domanda{flex:1;background:var(--notte2);border:2px solid rgba(255,255,255,.12);color:var(--latte);border-radius:22px;padding:18px 22px;font:600 clamp(20px,2vw,28px) Figtree;outline:none}
+#domanda:focus{border-color:var(--cielo)}
+.btn{border:0;border-radius:22px;padding:0 26px;font:900 clamp(18px,1.8vw,24px) Figtree;cursor:pointer;color:#fff;background:linear-gradient(90deg,var(--menta),var(--cielo))}
+.btn:disabled{opacity:.5}
+.btn.voce{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:0 20px}
+.btn.voce.on{background:var(--corallo);animation:pulsa 1s infinite}
+.nota{text-align:center;color:var(--nebbia);font-size:13px;margin-top:8px}
+#aiuto{position:fixed;inset:0;background:rgba(4,10,22,.92);display:none;align-items:center;justify-content:center;padding:24px;z-index:9}
+#aiuto .box{max-width:760px;background:var(--notte2);border:1px solid rgba(255,255,255,.12);border-radius:26px;padding:28px 32px;font-size:18px;line-height:1.55}
+#aiuto code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px;font-size:16px}
+#aiuto h2{font-family:Bricolage;margin:0 0 10px}
+@keyframes entra{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes lampeggia{50%{opacity:0}}
+@keyframes pulsa{50%{transform:scale(1.06)}}
+.logo .neu{animation:neuroni 2.4s ease-in-out infinite}.logo .neu:nth-of-type(2){animation-delay:.3s}.logo .neu:nth-of-type(3){animation-delay:.6s}
+@keyframes neuroni{50%{opacity:.35}}
+</style>
+</head>
+<body>
+<header>
+  <svg class="logo" width="62" height="46" viewBox="25 60 250 160" aria-hidden="true">
+    <circle cx="100" cy="140" r="70" fill="none" stroke="#00D2A0" stroke-width="16"/>
+    <circle cx="200" cy="140" r="70" fill="none" stroke="#3B8BFF" stroke-width="16"/>
+    <path d="M100 140 L150 70 L200 140 Z" fill="none" stroke="#F3F6FB" stroke-width="8" stroke-linejoin="round"/>
+    <circle class="neu" cx="100" cy="140" r="14" fill="#F3F6FB"/><circle class="neu" cx="150" cy="70" r="14" fill="#FFD23F"/><circle class="neu" cx="200" cy="140" r="14" fill="#F3F6FB"/>
+  </svg>
+  <div class="nome">Fly<b>Aula</b></div>
+  <span class="pill">🧮 Matematica</span>
+  <select class="pill" id="livello" title="Livello">
+    <option value="elementari">Elementari</option>
+    <option value="medie" selected>Medie</option>
+    <option value="superiori">Superiori</option>
+  </select>
+  <input class="pill" id="classe" value="3ªB" maxlength="8" style="width:90px" title="Classe">
+  <select class="pill" id="durata" title="Durata della lezione">
+    <option value="60">Lezione 1 ora</option>
+    <option value="120">Lezione 2 ore</option>
+  </select>
+  <div class="spazio"></div>
+  <span id="timer"></span>
+  <span id="stato">Mi collego…</span>
+  <button class="pill" id="nuova" title="Cancella la memoria e inizia una nuova lezione">🧹 Nuova lezione</button>
+</header>
+
+<main id="chat">
+  <div id="ricordo"></div>
+  <div class="vuoto" id="vuoto">
+    <h1>Ciao! Sono Fly Aula 👋</h1>
+    <p>Ti spiego la matematica passo passo. Tutto resta su questo computer: niente internet.</p>
+    <div class="esempi">
+      <button>Spiegami come si fanno le divisioni</button>
+      <button>Fammi 320 : 8 passo passo</button>
+      <button>Cos'è una frazione? Usa la pizza 🍕</button>
+      <button>Dammi 3 esercizi sulle percentuali</button>
+      <button>Come si calcola l'area di un triangolo?</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <form id="modulo">
+    <input id="domanda" placeholder="Scrivi una domanda di matematica…" autocomplete="off">
+    <button type="button" class="btn voce" id="voce" title="Parla">🎤</button>
+    <button class="btn" id="invia">Chiedi</button>
+  </form>
+  <div class="nota">Fly Aula prototipo v0.1 · i conti vengono controllati da una calcolatrice · le spiegazioni le verifica sempre il prof</div>
+</footer>
+
+<div id="aiuto"><div class="box" id="aiutoBox"></div></div>
+
+<script>
+// ===================================================================
+//  FLY AULA v0.1 · prototipo
+//  Il "cervello" gira sul computer (Ollama), questa pagina è la LIM.
+//  Niente internet: domande e risposte restano sul computer.
+// ===================================================================
+const OLLAMA = "http://localhost:11434";
+const MODELLI = ["qwen2.5:7b", "qwen2.5:14b", "gemma3:12b", "qwen3:8b", "llama3.1:8b"];
+let modello = null;
+const $ = id => document.getElementById(id);
+const chat = $("chat");
+
+// ---------- memoria della lezione ----------
+// la memoria vive solo per la durata della lezione; alla fine resta un mini-riassunto della classe
+let storia = [];                 // [{role, content}]
+let inizioLezione = Date.now();
+const chiaveRiassunto = () => "flyaula_riassunto_" + ($("classe").value || "classe").trim();
+function leggi(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function scrivi(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function mostraRicordo() {
+  const r = leggi(chiaveRiassunto());
+  $("ricordo").style.display = r ? "block" : "none";
+  if (r) $("ricordo").innerHTML = "📒 <b>L'ultima volta con la " + escape($("classe").value) + ":</b> " + escape(r);
+}
+
+function istruzioni() {
+  const livello = $("livello").value;
+  const ricordo = leggi(chiaveRiassunto());
+  return `Sei Fly Aula, l'assistente di MATEMATICA della classe ${$("classe").value} (scuola: ${livello}), proiettato sulla lavagna interattiva (LIM). Parli in italiano semplice e caldo, come un bravo prof.
+REGOLE:
+- Parli SOLO di matematica. Se ti chiedono altro, rispondi gentilmente che sei l'assistente di matematica e riporta alla lezione.
+- Spiega PASSO PASSO: ogni passaggio su una riga che inizia con "1.", "2.", "3."… Massimo 8 passaggi.
+- Ogni calcolo scrivilo nella forma "a × b = c" (usa ×, ÷, +, −). Niente LaTeX, niente simboli strani, niente tabelle.
+- Usa esempi della vita vera adatti a ragazzi (pizza, soldi, bici, sport).
+- Non dare solo il risultato: fai capire il perché. Alla fine fai UNA domanda breve per controllare che la classe abbia capito, oppure proponi un esercizio simile.
+- Se non sei sicuro di qualcosa, dillo chiaramente e suggerisci di chiedere al prof. Non inventare mai.
+- Risposte brevi: si leggono sulla LIM da lontano.
+${ricordo ? "Nella lezione precedente con questa classe: " + ricordo : ""}`;
+}
+
+// ---------- calcolatrice che controlla i conti ----------
+const num = s => Number(String(s).replace(/\./g, "").replace(",", "."));
+const numDot = s => Number(String(s).replace(",", "."));
+function leggiNumero(s) { return /,\d/.test(s) || /^\d{1,3}(\.\d{3})+$/.test(s) ? num(s) : numDot(s); }
+function formatta(x) {
+  if (!isFinite(x)) return null;
+  const r = Math.round(x * 1e6) / 1e6;
+  return r.toLocaleString("it-IT", { maximumFractionDigits: 6 }).replace(/ /g, "");
+}
+// "320 : 8 = 40", "3,5 × 2 = 7", "12 - 5 = 7"… → ricalcola e, se serve, corregge
+const RE_CONTO = /(\d+(?:[.,]\d+)?)\s*([+\-−×x*·÷:\/])\s*(\d+(?:[.,]\d+)?)\s*=\s*(-?\d+(?:[.,]\d+)?)/g;
+let contiOk = 0, contiCorretti = 0;
+function controllaConti(testo) {
+  return testo.replace(RE_CONTO, (tutto, a, op, b, c) => {
+    const A = leggiNumero(a), B = leggiNumero(b), C = leggiNumero(c);
+    let giusto;
+    if ("+".includes(op)) giusto = A + B;
+    else if ("-−".includes(op)) giusto = A - B;
+    else if ("×x*·".includes(op)) giusto = A * B;
+    else giusto = B === 0 ? NaN : A / B;
+    if (!isFinite(giusto)) return tutto;
+    const opBella = { "x": "×", "*": "×", "·": "×", "/": "÷", ":": ":", "-": "−" }[op] || op;
+    if (Math.abs(giusto - C) < 1e-6 * Math.max(1, Math.abs(giusto))) {
+      contiOk++;
+      return `<span class="conto">${a} ${opBella} ${b} = ${c}</span><span class="verificato">✓ calcolatrice</span>`;
+    }
+    contiCorretti++;
+    return `<span class="conto">${a} ${opBella} ${b} = ${formatta(giusto)}</span><span class="corretto">✎ corretto dalla calcolatrice</span>`;
+  });
+}
+
+// ---------- disegno delle risposte (passaggi numerati) ----------
+function escape(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function impagina(testo, finito) {
+  const righe = escape(testo).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").split(/\n+/).filter(r => r.trim());
+  const html = righe.map(r => {
+    const m = r.match(/^\s*(\d+)[.)]\s+(.*)$/);
+    const corpo = finito ? controllaConti(m ? m[2] : r) : (m ? m[2] : r);
+    return m ? `<div class="passo"><span class="n">${m[1]}</span><span>${corpo}</span></div>` : `<div>${corpo}</div>`;
+  }).join("");
+  return html + (finito ? "" : '<span class="cursore"></span>');
+}
+function aggiungi(chi, html) {
+  $("vuoto") && $("vuoto").remove();
+  const d = document.createElement("div");
+  d.className = "msg " + chi;
+  d.innerHTML = chi === "ai" ? `<div class="chi">🧠 Fly Aula</div><div class="bolla">${html}</div>` : `<div class="bolla">${html}</div>`;
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+  return d.querySelector(".bolla");
+}
+
+// ---------- parlare con il cervello (Ollama) ----------
+async function chiedi(domanda) {
+  if (!modello) return mostraAiuto();
+  storia.push({ role: "user", content: domanda });
+  aggiungi("io", escape(domanda));
+  const bolla = aggiungi("ai", '<span class="cursore"></span>');
+  $("invia").disabled = true;
+  let testo = "";
+  try {
+    const r = await fetch(OLLAMA + "/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        model: modello, stream: true, keep_alive: "2h",
+        options: { temperature: 0.2, num_ctx: 8192 },
+        messages: [{ role: "system", content: istruzioni() }, ...storia.slice(-16)]
+      })
+    });
+    const lettore = r.body.getReader(), dec = new TextDecoder();
+    let resto = "";
+    for (;;) {
+      const { value, done } = await lettore.read();
+      if (done) break;
+      resto += dec.decode(value, { stream: true });
+      const righe = resto.split("\n"); resto = righe.pop();
+      for (const l of righe) {
+        if (!l.trim()) continue;
+        const j = JSON.parse(l);
+        testo += j.message?.content || "";
+        const visibile = testo.replace(/<think>[\s\S]*?(<\/think>|$)/g, "");
+        bolla.innerHTML = impagina(visibile, false);
+        chat.scrollTop = chat.scrollHeight;
+      }
+    }
+    testo = testo.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+    bolla.innerHTML = impagina(testo, true);
+    storia.push({ role: "assistant", content: testo });
+    if (storia.length > 14) riassumi();
+  } catch (e) {
+    bolla.innerHTML = "⚠️ Non riesco a parlare con il cervello di Fly Aula. Controlla che Ollama sia acceso.";
+    controlla();
+  }
+  $("invia").disabled = false;
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// riassunto per non riempire la memoria (lezioni lunghe) e per la volta dopo
+async function riassunto() {
+  if (!modello || storia.length < 2) return null;
+  try {
+    const r = await fetch(OLLAMA + "/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        model: modello, stream: false, options: { temperature: 0.1 },
+        messages: [{ role: "system", content: "Riassumi in massimo 2 frasi cosa ha fatto la classe in questa lezione di matematica e dove si è bloccata. Niente nomi di persone." },
+          { role: "user", content: storia.map(m => (m.role === "user" ? "Classe: " : "Fly Aula: ") + m.content).join("\n").slice(-6000) }]
+      })
+    });
+    const j = await r.json();
+    return (j.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  } catch (e) { return null; }
+}
+async function riassumi() {
+  const s = await riassunto();
+  if (s) storia = [{ role: "user", content: "Riassunto della lezione finora: " + s }, { role: "assistant", content: "Va bene, continuo da qui." }, ...storia.slice(-4)];
+}
+async function nuovaLezione(salva = true) {
+  if (salva) { const s = await riassunto(); if (s) scrivi(chiaveRiassunto(), s); }
+  storia = []; inizioLezione = Date.now(); contiOk = 0; contiCorretti = 0;
+  chat.innerHTML = '<div id="ricordo"></div>';
+  mostraRicordo();
+}
+
+// ---------- timer della lezione: alla fine la memoria si cancella ----------
+setInterval(() => {
+  const totale = Number($("durata").value) * 60000, passato = Date.now() - inizioLezione, resta = totale - passato;
+  if (resta <= 0) { nuovaLezione(true); return; }
+  const m = Math.floor(resta / 60000);
+  $("timer").textContent = `⏱️ ${Math.floor(m / 60) ? Math.floor(m / 60) + " h " : ""}${m % 60} min`;
+}, 5000);
+
+// ---------- controllo che il cervello sia acceso ----------
+async function controlla() {
+  try {
+    const r = await fetch(OLLAMA + "/api/tags");
+    const j = await r.json();
+    const presenti = (j.models || []).map(m => m.name);
+    modello = MODELLI.find(m => presenti.includes(m)) || presenti[0] || null;
+    if (modello) { $("stato").textContent = "🧠 " + modello + " · offline"; $("stato").className = "ok"; $("aiuto").style.display = "none"; }
+    else { $("stato").textContent = "Manca il modello"; $("stato").className = "ko"; mostraAiuto(true); }
+  } catch (e) {
+    modello = null; $("stato").textContent = "Cervello spento"; $("stato").className = "ko"; mostraAiuto(false);
+  }
+}
+function mostraAiuto(acceso) {
+  $("aiutoBox").innerHTML = acceso
+    ? `<h2>Manca il cervello di Fly Aula</h2><p>Ollama è acceso, ma non c'è ancora il modello. Apri <b>PowerShell</b> e scrivi:</p><p><code>ollama pull qwen2.5:7b</code></p><p>(circa 4,7 GB, si scarica una volta sola). Poi <b>ricarica questa pagina</b>.</p>`
+    : `<h2>Fly Aula non trova il suo cervello</h2><p>1. Controlla che <b>Ollama</b> sia aperto (icona del lama vicino all'orologio).</p><p>2. Se è aperto ma non va, apri <b>PowerShell</b> e scrivi:<br><code>setx OLLAMA_ORIGINS "*"</code><br>poi chiudi Ollama (tasto destro sull'icona → Quit) e riaprilo.</p><p>3. Se Chrome chiede il permesso per la <b>rete locale</b>, tocca <b>Consenti</b>.</p><p>Poi ricarica la pagina.</p><button class="btn" style="padding:14px 24px" onclick="controlla()">Riprova</button>`;
+  $("aiuto").style.display = "flex";
+}
+
+// ---------- voce (prototipo: usa il riconoscimento vocale del browser) ----------
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) $("voce").style.display = "none";
+$("voce").onclick = () => {
+  const r = new SR(); r.lang = "it-IT"; r.interimResults = false;
+  $("voce").classList.add("on");
+  r.onresult = e => { const t = e.results[0][0].transcript; $("domanda").value = t; chiedi(t); $("domanda").value = ""; };
+  r.onend = () => $("voce").classList.remove("on");
+  r.start();
+};
+
+$("modulo").onsubmit = e => { e.preventDefault(); const d = $("domanda").value.trim(); if (d) { $("domanda").value = ""; chiedi(d); } };
+document.querySelectorAll(".esempi button").forEach(b => b.onclick = () => chiedi(b.textContent));
+$("nuova").onclick = () => nuovaLezione(true);
+$("classe").onchange = () => { nuovaLezione(false); };
+mostraRicordo();
+controlla();
+</script>
+</body>
+</html>
