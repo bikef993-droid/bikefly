@@ -54,6 +54,22 @@ form{max-width:1100px;margin:0 auto;display:flex;gap:12px}
 #aiuto .box{max-width:760px;background:var(--notte2);border:1px solid rgba(255,255,255,.12);border-radius:26px;padding:28px 32px;font-size:18px;line-height:1.55}
 #aiuto code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px;font-size:16px}
 #aiuto h2{font-family:Bricolage;margin:0 0 10px}
+.azioni{margin:8px 0 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.azioni button{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--nebbia);border-radius:99px;padding:6px 14px;font:700 14px Figtree;cursor:pointer}
+.azioni button:hover{color:var(--latte);border-color:rgba(255,255,255,.35)}
+.azioni input{background:var(--notte2);border:1px solid rgba(255,255,255,.2);color:var(--latte);border-radius:12px;padding:8px 12px;font:600 15px Figtree;min-width:280px}
+.azioni .grazie{color:var(--menta);font:800 14px Figtree}
+#registro{position:fixed;inset:0;background:#071226;display:none;z-index:8;overflow:auto;padding:30px 4vw}
+#registro .box{max-width:1200px;margin:0 auto}
+#registro h2{font-family:Bricolage;font-size:38px;margin:0 0 16px}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.stat div{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:14px 16px}
+.stat b{display:block;font:900 34px Figtree;color:var(--menta)}.stat span{color:var(--nebbia);font-size:14px;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:15px;background:rgba(255,255,255,.03);border-radius:14px;overflow:hidden}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top}
+th{color:var(--nebbia);font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+.tipo{font-weight:800;white-space:nowrap}.tipo.calc{color:var(--sole)}.tipo.prof{color:var(--corallo)}
+.riga-btn{display:flex;gap:10px;margin:16px 0}
 @keyframes entra{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes lampeggia{50%{opacity:0}}
 @keyframes pulsa{50%{transform:scale(1.06)}}
@@ -85,6 +101,7 @@ form{max-width:1100px;margin:0 auto;display:flex;gap:12px}
   <span id="timer"></span>
   <span id="stato">Mi collego…</span>
   <button class="pill" id="installa" style="display:none;background:var(--menta);color:#04241C;border:0">⬇️ Installa Fly Aula</button>
+  <button class="pill" id="apriRegistro" title="Tabella degli errori">📊 Errori <span id="nErrori">0</span></button>
   <button class="pill" id="nuova" title="Cancella la memoria e inizia una nuova lezione">🧹 Nuova lezione</button>
 </header>
 
@@ -109,10 +126,17 @@ form{max-width:1100px;margin:0 auto;display:flex;gap:12px}
     <button type="button" class="btn voce" id="voce" title="Parla">🎤</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota">Fly Aula prototipo v0.1 · i conti vengono controllati da una calcolatrice · le spiegazioni le verifica sempre il prof</div>
+  <div class="nota">Fly Aula prototipo v0.2 · i conti vengono controllati da una calcolatrice · le spiegazioni le verifica sempre il prof</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
+<div id="registro"><div class="box">
+  <h2>📊 Tabella degli errori</h2>
+  <div class="stat" id="stat"></div>
+  <div class="riga-btn"><button class="btn" style="padding:12px 20px" id="scaricaCsv">⬇️ Scarica (Excel/CSV)</button><button class="btn voce" style="padding:12px 20px" id="svuota">🗑️ Svuota</button><button class="btn voce" style="padding:12px 20px" id="chiudiRegistro">Chiudi</button></div>
+  <table><thead><tr><th>Quando</th><th>Classe</th><th>Tipo</th><th>Domanda</th><th>Cosa era sbagliato</th></tr></thead><tbody id="righe"></tbody></table>
+  <p class="nota" style="text-align:left;margin-top:14px">Il registro resta solo su questo computer. Serve a migliorare Fly Aula: ogni errore segnalato diventa una regola o una spiegazione migliore.</p>
+</div></div>
 
 <script>
 // ===================================================================
@@ -133,6 +157,38 @@ let inizioLezione = Date.now();
 const chiaveRiassunto = () => "flyaula_riassunto_" + ($("classe").value || "classe").trim();
 function leggi(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function scrivi(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+// ---------- tabella degli errori (resta solo su questo computer) ----------
+let domandaCorrente = "";
+function registro() { try { return JSON.parse(leggi("flyaula_errori") || "[]"); } catch (e) { return []; } }
+function statistiche() { try { return JSON.parse(leggi("flyaula_stat") || "{}"); } catch (e) { return {}; } }
+function conta(campo, n = 1) { const s = statistiche(); s[campo] = (s[campo] || 0) + n; scrivi("flyaula_stat", JSON.stringify(s)); }
+function annotaErrore(tipo, dettaglio) {
+  const r = registro();
+  r.unshift({ quando: new Date().toLocaleString("it-IT"), classe: $("classe").value, livello: $("livello").value, modello, tipo, domanda: domandaCorrente.slice(0, 200), dettaglio: String(dettaglio).slice(0, 400) });
+  scrivi("flyaula_errori", JSON.stringify(r.slice(0, 500)));
+  $("nErrori").textContent = r.length;
+}
+function disegnaRegistro() {
+  const r = registro(), s = statistiche();
+  const controllati = (s.contiOk || 0) + (s.contiCorretti || 0);
+  const affid = s.risposte ? Math.round(100 * (1 - (s.segnalate || 0) / s.risposte)) : 100;
+  $("stat").innerHTML = `
+    <div><b>${s.risposte || 0}</b><span>risposte date</span></div>
+    <div><b>${controllati}</b><span>conti controllati</span></div>
+    <div><b style="color:var(--sole)">${s.contiCorretti || 0}</b><span>conti corretti dalla calcolatrice</span></div>
+    <div><b style="color:var(--corallo)">${s.segnalate || 0}</b><span>risposte segnalate dal prof</span></div>
+    <div><b>${affid}%</b><span>risposte senza segnalazioni</span></div>`;
+  $("righe").innerHTML = r.length ? r.map(e => `<tr><td>${escape(e.quando)}</td><td>${escape(e.classe)}<br><small>${escape(e.livello || "")}</small></td><td class="tipo ${e.tipo.startsWith("Conto") ? "calc" : "prof"}">${escape(e.tipo)}</td><td>${escape(e.domanda)}</td><td>${escape(e.dettaglio)}</td></tr>`).join("")
+    : `<tr><td colspan="5" style="text-align:center;color:var(--nebbia);padding:24px">Nessun errore registrato 🎉</td></tr>`;
+}
+function scaricaCsv() {
+  const r = registro(), q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const csv = "\ufeff" + ["Quando;Classe;Livello;Modello;Tipo;Domanda;Cosa era sbagliato", ...r.map(e => [e.quando, e.classe, e.livello, e.modello, e.tipo, e.domanda, e.dettaglio].map(q).join(";"))].join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = "fly-aula-errori.csv"; a.click();
+}
+
 function mostraRicordo() {
   const r = leggi(chiaveRiassunto());
   $("ricordo").style.display = r ? "block" : "none";
@@ -177,10 +233,11 @@ function controllaConti(testo) {
     if (!isFinite(giusto)) return tutto;
     const opBella = { "x": "×", "*": "×", "·": "×", "/": "÷", ":": ":", "-": "−" }[op] || op;
     if (Math.abs(giusto - C) < 1e-6 * Math.max(1, Math.abs(giusto))) {
-      contiOk++;
+      contiOk++; conta("contiOk");
       return `<span class="conto">${a} ${opBella} ${b} = ${c}</span><span class="verificato">✓ calcolatrice</span>`;
     }
-    contiCorretti++;
+    contiCorretti++; conta("contiCorretti");
+    annotaErrore("Conto sbagliato (corretto dalla calcolatrice)", `${a} ${opBella} ${b} = ${c} → giusto: ${formatta(giusto)}`);
     return `<span class="conto">${a} ${opBella} ${b} = ${formatta(giusto)}</span><span class="corretto">✎ corretto dalla calcolatrice</span>`;
   });
 }
@@ -209,6 +266,7 @@ function aggiungi(chi, html) {
 async function chiedi(domanda) {
   if (!modello) return mostraAiuto();
   storia.push({ role: "user", content: domanda });
+  domandaCorrente = domanda;
   aggiungi("io", escape(domanda));
   const bolla = aggiungi("ai", '<span class="cursore"></span>');
   $("invia").disabled = true;
@@ -240,6 +298,8 @@ async function chiedi(domanda) {
     }
     testo = testo.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
     bolla.innerHTML = impagina(testo, true);
+    conta("risposte");
+    aggiungiAzioni(bolla, domanda, testo);
     storia.push({ role: "assistant", content: testo });
     if (storia.length > 14) riassumi();
   } catch (e) {
@@ -248,6 +308,26 @@ async function chiedi(domanda) {
   }
   $("invia").disabled = false;
   chat.scrollTop = chat.scrollHeight;
+}
+
+// sotto ogni risposta: il prof può segnalare un errore
+function aggiungiAzioni(bolla, domanda, testo) {
+  const d = document.createElement("div"); d.className = "azioni";
+  d.innerHTML = `<button>👎 Segnala un errore</button>`;
+  bolla.parentElement.appendChild(d);
+  d.querySelector("button").onclick = () => {
+    d.innerHTML = `<input placeholder="Cosa era sbagliato? (es. il passaggio 3)" maxlength="300"><button>Invia</button><button>Annulla</button>`;
+    const [inp, invia, annulla] = [d.querySelector("input"), ...d.querySelectorAll("button")];
+    inp.focus();
+    const manda = () => {
+      const prima = domandaCorrente; domandaCorrente = domanda;
+      annotaErrore("Segnalato dal prof", (inp.value.trim() || "(nessuna nota)") + " · risposta: " + testo.slice(0, 160));
+      domandaCorrente = prima; conta("segnalate");
+      d.innerHTML = `<span class="grazie">✓ Segnalato: grazie, servirà a migliorare Fly Aula</span>`;
+    };
+    invia.onclick = manda; inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); manda(); } };
+    annulla.onclick = () => { d.remove(); aggiungiAzioni(bolla, domanda, testo); };
+  };
 }
 
 // riassunto per non riempire la memoria (lezioni lunghe) e per la volta dopo
@@ -326,6 +406,11 @@ let invitoInstalla = null;
 addEventListener("beforeinstallprompt", e => { e.preventDefault(); invitoInstalla = e; $("installa").style.display = ""; });
 $("installa").onclick = async () => { if (!invitoInstalla) return; invitoInstalla.prompt(); await invitoInstalla.userChoice; invitoInstalla = null; $("installa").style.display = "none"; };
 addEventListener("appinstalled", () => { $("installa").style.display = "none"; });
+$("apriRegistro").onclick = () => { disegnaRegistro(); $("registro").style.display = "block"; };
+$("chiudiRegistro").onclick = () => { $("registro").style.display = "none"; };
+$("scaricaCsv").onclick = scaricaCsv;
+$("svuota").onclick = () => { scrivi("flyaula_errori", "[]"); scrivi("flyaula_stat", "{}"); $("nErrori").textContent = 0; disegnaRegistro(); };
+$("nErrori").textContent = registro().length;
 mostraRicordo();
 controlla();
 </script>
