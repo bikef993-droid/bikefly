@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Fly Aula · Matematica</title>
+<title>Fly Aula</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#071226">
+<link rel="icon" href="icona-192.png">
 <style>
 @font-face{font-family:Bricolage;src:url(../font/Bricolage.ttf)}
 @font-face{font-family:Figtree;src:url(../font/Figtree.ttf)}
@@ -81,6 +84,7 @@ form{max-width:1100px;margin:0 auto;display:flex;gap:12px}
   <div class="spazio"></div>
   <span id="timer"></span>
   <span id="stato">Mi collego…</span>
+  <button class="pill" id="installa" style="display:none;background:var(--menta);color:#04241C;border:0">⬇️ Installa Fly Aula</button>
   <button class="pill" id="nuova" title="Cancella la memoria e inizia una nuova lezione">🧹 Nuova lezione</button>
 </header>
 
@@ -316,6 +320,12 @@ $("modulo").onsubmit = e => { e.preventDefault(); const d = $("domanda").value.t
 document.querySelectorAll(".esempi button").forEach(b => b.onclick = () => chiedi(b.textContent));
 $("nuova").onclick = () => nuovaLezione(true);
 $("classe").onchange = () => { nuovaLezione(false); };
+// app installabile: icona sul desktop, si apre a schermo intero senza la barra di Chrome
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+let invitoInstalla = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); invitoInstalla = e; $("installa").style.display = ""; });
+$("installa").onclick = async () => { if (!invitoInstalla) return; invitoInstalla.prompt(); await invitoInstalla.userChoice; invitoInstalla = null; $("installa").style.display = "none"; };
+addEventListener("appinstalled", () => { $("installa").style.display = "none"; });
 mostraRicordo();
 controlla();
 </script>
