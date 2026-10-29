@@ -37,6 +37,13 @@ match /banditi/{uid} {
 allow read: if accesso() &amp;&amp; io() == uid;
 allow write: if admin();
 }
+match /conti/{uid} {
+allow read: if accesso() &amp;&amp; io() == uid;
+allow create, update: if accesso() &amp;&amp; io() == uid
+&amp;&amp; nd().keys().hasOnly([&#x27;conto&#x27;])
+&amp;&amp; nd().conto is string &amp;&amp; nd().conto.matches(&#x27;acct_[A-Za-z0-9]+&#x27;);
+allow delete: if accesso() &amp;&amp; io() == uid;
+}
 match /utenti/{uid} {
 allow read: if accesso();
 allow delete: if accesso() &amp;&amp; io() == uid;
@@ -375,7 +382,8 @@ allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; partecipante()
 &amp;&amp; faseAvanti(resource.data.fase, nd().fase)
 &amp;&amp; !(resource.data.get(&#x27;codiceOk&#x27;, false) == true &amp;&amp; nd().fase in [&#x27;ANNULLATO&#x27;, &#x27;RIFIUTATO&#x27;])
 &amp;&amp; nd().get(&#x27;pi&#x27;, null) == resource.data.get(&#x27;pi&#x27;, null)
-&amp;&amp; (resource.data.get(&#x27;pi&#x27;, null) == null || !cambiati().hasAny([&#x27;prezzo&#x27;, &#x27;durataMs&#x27;, &#x27;commissione&#x27;]));
+&amp;&amp; (resource.data.get(&#x27;pi&#x27;, null) == null || !cambiati().hasAny([&#x27;prezzo&#x27;, &#x27;durataMs&#x27;, &#x27;commissione&#x27;]))
+&amp;&amp; !cambiati().hasAny([&#x27;trasferito&#x27;, &#x27;trasferitoMs&#x27;]);
 function faseAvanti(da, a) {
 return da == a
 || (da == &#x27;IN_ATTESA&#x27; &amp;&amp; a in [&#x27;ACCETTATO&#x27;, &#x27;RIFIUTATO&#x27;, &#x27;ANNULLATO&#x27;])

@@ -1,0 +1,17 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>Conto collegato · BikeFly</title>
+<style>
+@font-face{font-family:Bricolage;src:url(../font/Bricolage.ttf)}@font-face{font-family:Figtree;src:url(../font/Figtree.ttf)}
+:root{--menta:#00D2A0}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 20% 15%,rgba(0,210,160,.3),transparent 45%),radial-gradient(circle at 85% 85%,rgba(124,92,255,.35),transparent 50%),#071226;color:#F3F6FB;font-family:Figtree,system-ui,sans-serif;padding:24px;box-sizing:border-box;text-align:center}
+main{max-width:420px}.emoji{font-size:72px;animation:pop .7s cubic-bezier(.3,1.6,.5,1) both}
+h1{font-family:Bricolage,system-ui;font-size:34px;margin:12px 0 8px}p{font-size:17px;line-height:1.5;opacity:.9}
+a{display:block;margin-top:22px;padding:16px;border-radius:99px;background:var(--menta);color:#04241C;font-weight:800;text-decoration:none;font-size:17px}
+@keyframes pop{from{transform:scale(0) rotate(-20deg)}to{transform:none}}
+</style></head><body><main id="m"></main>
+<script>
+const rifai = new URLSearchParams(location.search).has("rifai");
+document.getElementById("m").innerHTML = rifai
+  ? `<div class="emoji">⏳</div><h1>Il link è scaduto</h1><p>Nessun problema: torna su BikeFly e tocca di nuovo <b>"Collega il conto"</b>.</p><a href="../app/">Apri BikeFly Web</a>`
+  : `<div class="emoji">🏦</div><h1>Fatto!</h1><p>Il tuo conto è collegato. Da adesso, dopo ogni noleggio la tua parte arriva da sola.</p><p>Ora torna sull'app <b>BikeFly</b> (se Stripe sta ancora controllando i dati, te lo dice lì).</p><a href="../app/">Apri BikeFly Web</a>`;
+</script></body></html>
