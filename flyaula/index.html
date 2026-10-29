@@ -34,18 +34,23 @@
     <option value="120">2 ore</option>
   </select>
   <span id="lezione"></span>
+  <span id="pillProf" class="info-pill" style="display:none"></span>
+  <span id="pillPagine" class="info-pill pagine" style="display:none"></span>
   <div class="spazio"></div>
   <span id="timer"></span>
   <span id="stato">Mi collego…</span>
   <button class="pill" id="apriEsercizi">✏️ Esercizi</button>
+  <button class="pill" id="apriPagine" title="Fotografa le pagine del libro di oggi">📷 Pagine</button>
   <button class="pill" id="leggiAuto" title="Leggi le risposte ad alta voce">🔇</button>
   <button class="pill" id="nuova" title="Cancella la memoria e inizia una nuova lezione">🧹 Nuova lezione</button>
   <div class="menu" id="menu">
     <button class="pill" id="apriMenu">☰</button>
     <div class="tendina">
+      <button id="apriProf">👩‍🏫 Pannello del prof</button>
       <button id="apriEsame">📝 Esame delle domande</button>
       <button id="apriOrario">📅 Orario della classe</button>
       <button id="apriRegistro">📊 Tabella degli errori (<span id="nErrori">0</span>)</button>
+      <button id="apriInstallaPc">💻 Installa sul PC della classe</button>
       <button id="installa" style="display:none">⬇️ Installa Fly Aula</button>
     </div>
   </div>
@@ -59,7 +64,7 @@
     <button type="button" class="btn sec voce" id="voce" title="Parla (la voce resta su questo computer)">🎤</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.3 · ogni risposta viene ricontrollata · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.4 · ogni risposta controllata 2 volte (3 nei casi difficili) · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -92,6 +97,48 @@
   <div class="riga-btn"><button class="btn" id="orFatto">✓ Fatto</button><button class="btn sec" id="orCancella">🗑️ Cancella orario</button></div>
 </div></div>
 
+<div class="pannello" id="pProf"><div class="box">
+  <h2>👩‍🏫 Pannello del prof</h2>
+  <div id="profCorpo"></div>
+</div></div>
+
+<div class="pannello" id="pPagine"><div class="box">
+  <h2>📷 Pagine di oggi</h2>
+  <p class="sotto">Fotografa 2-5 pagine del libro della lezione: per quest'ora Fly Aula risponde usando quelle, e sbaglia molto meno. A fine lezione si cancellano da sole.</p>
+  <div id="pgQr"></div>
+  <div class="riga-btn"><label class="btn sec file-btn">🖼️ Carica foto dal computer<input type="file" accept="image/*" multiple id="pgFile" hidden></label><button class="btn sec" id="pgScrivi">✍️ Scrivi o incolla il testo</button></div>
+  <div id="pgLista"></div>
+  <div class="riga-btn"><button class="btn" id="pgUsa" disabled>✓ Usa queste pagine</button><button class="btn sec" id="pgCancella">🗑️ Cancella tutto</button><button class="btn sec" id="pgChiudi">Chiudi</button></div>
+</div></div>
+
+<div class="pannello" id="pInstalla"><div class="box">
+  <h2>💻 Installa Fly Aula sul PC della classe</h2>
+  <p class="sotto">Un solo file: scarica Fly Aula, il suo cervello e crea l'icona sul desktop. Poi funziona <b>senza internet</b>, a tutto schermo, senza barre del browser.</p>
+  <ol class="passi-inst">
+    <li>Scarica il file <a class="btn" href="installa/Installa-FlyAula.bat" download>⬇️ Installa-FlyAula.bat</a></li>
+    <li>Fai doppio clic sul file. Se Windows dice "PC protetto", tocca <b>Ulteriori informazioni → Esegui comunque</b>.</li>
+    <li>Aspetta 10-30 minuti: scarica circa 5 GB (una volta sola). Quando Windows chiede un permesso, tocca <b>Sì</b>: serve per le foto dal telefono.</li>
+    <li>Fatto! Da ora basta l'icona <b>Fly Aula</b> sul desktop. Si aggiorna da sola quando c'è internet.</li>
+  </ol>
+  <p class="nota-s">Serve Windows 10 o 11. Per rispondere veloce il computer deve essere abbastanza potente (meglio con una scheda video NVIDIA). Nelle scuole con computer bloccati dal tecnico, l'installazione va fatta da lui.</p>
+  <div class="riga-btn"><button class="btn sec chiudi">Chiudi</button></div>
+</div></div>
+
+<div id="pin" class="sopra"></div>
+
+<div id="verifica" class="sopra">
+  <div class="v-box">
+    <div class="v-ora"></div>
+    <h1>📝 Verifica in corso</h1>
+    <p>Fly Aula è in pausa. Buon lavoro a tutti! 🍀</p>
+    <div class="v-fine"></div>
+    <button class="btn sec" id="vSblocca">🔓 Sblocca (solo il prof)</button>
+  </div>
+</div>
+
+<script src="qr.js"></script>
+<script src="prof.js"></script>
+<script src="pagine.js"></script>
 <script src="sicurezza.js"></script>
 <script src="materie.js"></script>
 <script src="controllo.js"></script>

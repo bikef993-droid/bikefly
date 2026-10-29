@@ -126,3 +126,54 @@ th{color:var(--nebbia);font-size:13px;text-transform:uppercase;letter-spacing:.5
 @keyframes gira{to{transform:rotate(360deg)}}
 .logo .neu{animation:neuroni 2.4s ease-in-out infinite}.logo .neu:nth-of-type(2){animation-delay:.3s}.logo .neu:nth-of-type(3){animation-delay:.6s}
 @keyframes neuroni{50%{opacity:.35}}
+/* v0.4 · pannello del prof, pagine di oggi, installazione, verifica, tema LIM */
+.info-pill{font:800 15px Figtree;color:#04241C;background:var(--sole);border-radius:99px;padding:7px 14px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info-pill.pagine{background:var(--cielo);color:#fff}
+.sotto{color:var(--nebbia);font-size:18px;margin-top:-6px;line-height:1.5}
+.nota-s{color:var(--nebbia);font-size:14px;line-height:1.45;margin:8px 0 0}
+.prof-griglia{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.prof-griglia section{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:16px 18px}
+.prof-griglia h3{margin:0 0 10px;font:800 19px Figtree}
+.prof-griglia input:not([type=range]),.prof-griglia select,#pgLista textarea{width:100%;background:var(--notte2);border:1px solid rgba(255,255,255,.18);color:var(--latte);border-radius:14px;padding:12px 14px;font:600 17px Figtree;outline:none}
+.prof-griglia input:focus,.prof-griglia select:focus,#pgLista textarea:focus{border-color:var(--cielo)}
+.prof-griglia .riga-btn select{width:auto}
+.verifica-box{border-color:rgba(255,210,63,.35)!important;background:rgba(255,210,63,.06)!important}
+.zoom-riga{display:flex;align-items:center;gap:10px;margin-top:12px;font-weight:700;color:var(--nebbia)}.zoom-riga input{flex:1}
+.timbro.blu{background:rgba(59,139,255,.16);color:#8DB9FF}
+.qr-box{display:flex;gap:26px;align-items:center;flex-wrap:wrap;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:20px}
+.qr-box .qr{border-radius:16px;flex:none}
+.qr-box h3{margin:6px 0;font:800 22px Figtree}
+.avviso-pg{background:rgba(59,139,255,.12);border:1px solid rgba(59,139,255,.35);border-radius:18px;padding:14px 18px;font-size:17px;line-height:1.5}
+.file-btn{display:inline-flex;align-items:center;padding:12px 20px!important}
+.pg{display:flex;gap:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:14px;margin-top:12px;animation:entra .3s both}
+.pg-sx{flex:none;width:130px;display:flex;flex-direction:column;gap:8px;align-items:center;font-size:15px}
+.pg-sx img{width:130px;height:170px;object-fit:cover;border-radius:12px;background:#fff}
+.pg-testo-icona{width:130px;height:170px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:44px}
+.pg-via{background:none;border:1px solid rgba(255,255,255,.18);color:var(--nebbia);border-radius:99px;padding:3px 12px;cursor:pointer}
+.pg-dx{flex:1;min-width:0}.pg-dx textarea{min-height:150px;resize:vertical;font-size:15px!important;line-height:1.45}
+.pg-ok{color:var(--menta);font-weight:800;margin-bottom:6px}.pg-err{color:var(--sole);font-weight:700;margin-bottom:6px}
+.passi-inst{font-size:20px;line-height:1.6;padding-left:26px}.passi-inst li{margin:10px 0}
+.passi-inst .btn{display:inline-block;padding:8px 18px;text-decoration:none;font-size:18px;margin-left:8px}
+.sopra{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;z-index:20}
+#pin{background:rgba(4,10,22,.92);z-index:40}
+#pin .box{background:var(--notte2);border:1px solid rgba(255,255,255,.14);border-radius:26px;padding:26px 30px;max-width:480px;width:100%}
+#pin h2{font-family:Bricolage;margin:0 0 6px}#pin p{color:var(--nebbia)}
+.pin-in{display:block;width:100%;margin:10px 0;background:var(--notte);border:2px solid rgba(255,255,255,.18);color:var(--latte);border-radius:16px;padding:14px;font:900 30px Figtree;letter-spacing:10px;text-align:center;outline:none}
+.pin-in:focus{border-color:var(--cielo)}
+.pin-err{color:var(--corallo);font-weight:800;min-height:22px}
+#verifica{background:radial-gradient(circle at 50% 30%,#162A4D,#071226 70%);z-index:30}
+.v-box{text-align:center}
+.v-box h1{font-family:Bricolage;font-size:clamp(48px,7vw,110px);margin:10px 0}
+.v-box p{font-size:clamp(22px,2.6vw,36px);color:var(--nebbia);margin:0 0 18px}
+.v-ora{font:900 clamp(60px,10vw,160px) Figtree;color:var(--sole);letter-spacing:-2px}
+.v-fine{font:800 clamp(20px,2vw,28px) Figtree;margin-bottom:40px}
+#vSblocca{padding:12px 22px;opacity:.6}#vSblocca:hover{opacity:1}
+/* tema LIM: alto contrasto, si legge anche col sole e dall'ultimo banco */
+body.tema-lim{--notte:#000;--notte2:#111;--notte3:#1A1A1A;--nebbia:#E2E8F0;--latte:#fff;background:#000}
+body.tema-lim .msg.ai .bolla{background:#0B0B0B;border:3px solid #fff}
+body.tema-lim .msg.io .bolla{background:#0047FF}
+body.tema-lim .conto{color:#FFE600}
+body.tema-lim .passo .n{background:#00FFB0}
+body.tema-lim .pill,body.tema-lim .esempi button{border-width:2px;border-color:#fff}
+body.tema-lim #domanda{border-color:#fff;background:#000}
+.riga-btn label.file-btn{color:var(--latte);cursor:pointer}

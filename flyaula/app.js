@@ -1,11 +1,13 @@
 // ===================================================================
-//  FLY AULA v0.3 · il programma
+//  FLY AULA v0.4 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
 const OLLAMA = "http://localhost:11434";
 const MODELLI = ["qwen2.5:14b", "qwen2.5:7b", "gemma3:12b", "qwen3:8b", "llama3.1:8b"];
 let modello = null;
+window.modelliPresenti = [];
+const contesto = () => (Pagine.attive ? 16384 : 8192);
 const $ = id => document.getElementById(id);
 const chat = $("chat");
 function leggi(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -18,7 +20,7 @@ async function cervello(sistema, utente, { temperature = 0.2, format } = {}) {
   const r = await fetch(OLLAMA + "/api/chat", {
     method: "POST",
     body: JSON.stringify({ model: modello, stream: false, keep_alive: "2h", ...(format ? { format } : {}),
-      options: { temperature, num_ctx: 8192 }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] })
+      options: { temperature, num_ctx: contesto() }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] })
   });
   const j = await r.json();
   return (j.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
@@ -27,7 +29,7 @@ async function cervello(sistema, utente, { temperature = 0.2, format } = {}) {
 async function cervelloInDiretta(messaggi, ogniPezzo) {
   const r = await fetch(OLLAMA + "/api/chat", {
     method: "POST",
-    body: JSON.stringify({ model: modello, stream: true, keep_alive: "2h", options: { temperature: 0.2, num_ctx: 8192 }, messages: messaggi })
+    body: JSON.stringify({ model: modello, stream: true, keep_alive: "2h", options: { temperature: 0.2, num_ctx: contesto() }, messages: messaggi })
   });
   const lettore = r.body.getReader(), dec = new TextDecoder();
   let resto = "", testo = "";
@@ -58,13 +60,15 @@ function disegnaRegistro() {
   const affid = s.risposte ? Math.round(1000 * (1 - (s.segnalate || 0) / s.risposte)) / 10 : 100;
   $("stat").innerHTML = `
     <div><b>${s.risposte || 0}</b><span>risposte date</span></div>
-    <div><b>${s.ricontrollate || 0}</b><span>ricontrollate dal revisore</span></div>
+    <div><b>${s.doppi || 0}</b><span>controllate 2 volte ✓✓</span></div>
+    <div><b>${s.tripli || 0}</b><span>controllate 3 volte ✓✓✓</span></div>
+    <div><b style="color:var(--corallo)">${s.dubbi || 0}</b><span>dubbi segnalati al prof</span></div>
     <div><b style="color:var(--viola)">${s.correttiRevisore || 0}</b><span>corrette dal ricontrollo</span></div>
     <div><b>${controllati}</b><span>conti controllati</span></div>
     <div><b style="color:var(--sole)">${s.contiCorretti || 0}</b><span>conti corretti dalla calcolatrice</span></div>
     <div><b style="color:var(--corallo)">${s.segnalate || 0}</b><span>segnalate dal prof</span></div>
     <div><b>${affid}%</b><span>risposte senza segnalazioni</span></div>`;
-  const cls = t => t.startsWith("Conto") ? "calc" : t.startsWith("Corretta dal") ? "rev" : t.startsWith("Bloccata") ? "sic" : "prof";
+  const cls = t => t.startsWith("Conto") ? "calc" : t.startsWith("Corretta dal") || t.startsWith("Dubbio") ? "rev" : t.startsWith("Bloccata") ? "sic" : "prof";
   $("righe").innerHTML = r.length ? r.map(e => `<tr><td>${escape(e.quando)}</td><td>${escape(e.classe)}<br><small>${escape(e.materia || "")} · ${escape(e.livello || "")}</small></td><td class="tipo ${cls(e.tipo)}">${escape(e.tipo)}</td><td>${escape(e.domanda)}</td><td>${escape(e.dettaglio)}</td></tr>`).join("")
     : `<tr><td colspan="5" style="text-align:center;color:var(--nebbia);padding:24px">Nessun errore registrato 🎉</td></tr>`;
 }
@@ -115,6 +119,7 @@ async function riassumi() {
 async function nuovaLezione(salva = true) {
   if (salva && storia.length) { const s = await riassunto(); if (s) scrivi(chiaveRiassunto(), s); }
   storia = []; inizioLezione = Date.now();
+  Pagine.svuota();
   schermataIniziale();
 }
 
@@ -140,8 +145,13 @@ function correggiTesto(testo) {
 
 // ---------------- la domanda: risposta + CONTROLLO SEMPRE ----------------
 let occupato = false;
-async function chiedi(domanda) {
-  if (occupato) return;
+function inPausa() {
+  if (!Prof.verificaAttiva()) return false;
+  Prof.mostraVerifica(); return true;
+}
+// speciale = { esercizio: true } quando la domanda arriva dagli esercizi (controllo triplo)
+async function chiedi(domanda, speciale = {}) {
+  if (occupato || inPausa()) return;
   if (!modello) return mostraAiuto();
   if (lezioneOrario && !lezioneOrario.chiave) return;
   const sic = controllaDomanda(domanda);
@@ -151,41 +161,57 @@ async function chiedi(domanda) {
     annotaErrore("Bloccata dalla sicurezza", sic.motivo, sic.motivo === "aiuto" ? "(domanda personale: non salvata)" : domanda);
     return;
   }
+  const vietata = Prof.bloccata(domanda);
+  if (vietata) {
+    aggiungi("ai", "Oggi il prof ha chiesto di non parlare di questo 🙂 Torniamo alla lezione!");
+    annotaErrore("Bloccata dal prof", `parola vietata oggi: "${vietata}"`, domanda);
+    return;
+  }
   occupato = true; $("invia").disabled = true; Voce.zitto();
   domandaCorrente = domanda;
   storia.push({ role: "user", content: domanda });
   const bolla = aggiungi("ai", '<span class="cursore"></span>');
   const materia = $("materia").value, livello = $("livello").value;
-  const sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto()));
+  const sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni();
   try {
     // 1) prima stesura (si vede mentre la scrive)
     let testo = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; });
-    // 2) ricontrollo SEMPRE
+    // 2) CONTROLLO SEMPRE: 2 volte, 3 nei casi speciali
     bolla.classList.add("controllo");
-    bolla.insertAdjacentHTML("beforeend", `<div class="lavoro" id="lavoroRev">🔍 Ricontrollo tutto prima di confermare…</div>`);
+    bolla.insertAdjacentHTML("beforeend", `<div class="lavoro" id="lavoroRev">🧮 Controllo 1: la calcolatrice rifà i conti…</div>`);
+    const passi = { 1: "🧮 Controllo 1: la calcolatrice rifà i conti…", 2: "🔍 Controllo 2: rileggo tutto da revisore…", 3: "🔎 Controllo 3: lo rifaccio da capo per sicurezza…" };
     const timbri = [];
     const conto = MATERIE[materia].calcoli ? contoNellaDomanda(domanda) : null;
-    const contesto = `${MATERIE[materia].nome}, scuola ${livello}.` + (conto ? ` FATTO SICURO (calcolatrice): ${conto.testo} = ${formatta(conto.risultato)}.` : "");
-    const rev = await revisiona(cervello, domanda, testo, contesto);
-    conta("ricontrollate");
-    if (rev.ok === false) {
-      annotaErrore("Corretta dal ricontrollo", rev.problema + " · prima: " + testo.slice(0, 140));
-      conta("correttiRevisore");
-      testo = rev.correzione;
-      timbri.push(`<span class="timbro giallo">🔁 Ricontrollata e corretta: ${escape(rev.problema).slice(0, 90)}</span>`);
-    } else if (rev.ok === true) timbri.push(`<span class="timbro">✓ Ricontrollata</span>`);
-    else timbri.push(`<span class="timbro rosso">⚠️ Ricontrollo non riuscito: verificare con il prof</span>`);
-    // 3) se la domanda era un conto, il risultato giusto deve esserci
-    if (conto && !contieneRisultato(testo, conto.risultato)) {
-      testo += `\n✅ Risultato della calcolatrice: ${conto.testo} = ${formatta(conto.risultato)}`;
-      annotaErrore("Corretta dal ricontrollo", `mancava il risultato giusto: ${conto.testo} = ${formatta(conto.risultato)}`);
-    }
-    // 4) sicurezza anche sulla risposta
-    if (!controllaRisposta(testo)) { annotaErrore("Bloccata dalla sicurezza", "risposta non adatta"); testo = "Torniamo alla materia 😊 Prova a farmi un'altra domanda."; }
-    // 5) calcolatrice su ogni conto + disegni
-    let corretti = 0;
-    const html = impagina(testo, true, (tipo, det) => { if (tipo === "ok") conta("contiOk"); else { corretti++; conta("contiCorretti"); annotaErrore("Conto sbagliato (corretto dalla calcolatrice)", det); } });
-    if (corretti) timbri.push(`<span class="timbro giallo">🧮 ${corretti} ${corretti === 1 ? "conto corretto" : "conti corretti"} dalla calcolatrice</span>`);
+    const modoProf = Prof.modo;
+    let ctx = `${MATERIE[materia].nome}, scuola ${livello}.`;
+    if (modoProf === "spiega") ctx += " SCELTA DEL PROF: la risposta NON deve contenere il risultato finale, deve fermarsi prima dell'ultimo passaggio. Non è un errore.";
+    if (modoProf === "guida") ctx += " SCELTA DEL PROF: la risposta deve essere UNA domanda guida con un indizio, senza risultato. Non è un errore.";
+    if (Pagine.attive) ctx += "\n" + Pagine.fonte();
+    const es = await ricontrolloCompleto(cervello, {
+      domanda, testo, contesto: ctx, conto,
+      speciale: !!speciale.esercizio || !MATERIE[materia].calcoli,
+      risultatoObbligatorio: modoProf === "normale",
+      ogniPasso: n => { const l = $("lavoroRev"); if (l) l.textContent = passi[n]; }
+    });
+    testo = es.testo;
+    conta("ricontrollate"); conta(es.controlli >= 3 ? "tripli" : "doppi");
+    if (es.contiCorretti) { conta("contiCorretti", es.contiCorretti); annotaErrore("Conto sbagliato (corretto dalla calcolatrice)", `${es.contiCorretti} ${es.contiCorretti === 1 ? "conto corretto" : "conti corretti"}`); }
+    es.correzioni.forEach(c => { conta("correttiRevisore"); annotaErrore("Corretta dal ricontrollo", c); });
+    const quante = es.controlli >= 3 ? "3 volte ✓✓✓" : "2 volte ✓✓";
+    if (es.stato === "dubbio") {
+      conta("dubbi");
+      annotaErrore("Dubbio dopo 3 controlli", es.correzioni.join(" · "));
+      testo += "\n⚠️ Non sono sicura di questa risposta: controlliamola insieme con il prof.";
+      timbri.push(`<span class="timbro rosso">⚠️ Dubbio dopo 3 controlli: controllate con il prof</span>`);
+    } else if (es.stato === "corretta") {
+      timbri.push(`<span class="timbro giallo">🔁 Corretta e ricontrollata ${quante}${es.correzioni[0] ? ": " + escape(es.correzioni[0]).slice(0, 80) : ""}</span>`);
+    } else timbri.push(`<span class="timbro">Controllata ${quante}</span>`);
+    if (es.contiCorretti) timbri.push(`<span class="timbro giallo">🧮 ${es.contiCorretti} ${es.contiCorretti === 1 ? "conto corretto" : "conti corretti"} dalla calcolatrice</span>`);
+    if (Pagine.attive) timbri.push(`<span class="timbro blu">📷 Usate le pagine del libro</span>`);
+    // 3) sicurezza anche sulla risposta
+    if (!controllaRisposta(testo)) { annotaErrore("Bloccata dalla sicurezza", "risposta non adatta"); testo = "Torniamo alla materia 😊 Prova a farmi un'altra domanda."; timbri.length = 0; }
+    // 4) disegno finale: ogni conto rimasto viene segnato dalla calcolatrice
+    const html = impagina(testo, true, tipo => { if (tipo === "ok") conta("contiOk"); });
     bolla.classList.remove("controllo");
     bolla.innerHTML = html + `<div class="timbri">${timbri.join("")}</div>`;
     conta("risposte");
@@ -225,12 +251,12 @@ function aggiungiAzioni(bolla, domanda, testo) {
 let punti = { giuste: 0, totali: 0 };
 async function nuovoEsercizio(argomento = "") {
   if (!modello) return mostraAiuto();
-  if (occupato) return;
+  if (occupato || inPausa()) return;
   occupato = true;
-  const card = aggiungi("ai", `<div class="lavoro">✏️ Preparo un esercizio e controllo il risultato con la calcolatrice…</div>`);
+  const card = aggiungi("ai", `<div class="lavoro">✏️ Preparo un esercizio e lo controllo 3 volte…</div>`);
   try {
     const es = await creaEsercizio(cervello, MATERIE[$("materia").value].nome, $("livello").value, argomento);
-    card.innerHTML = `<div class="esercizio"><div class="tag">✏️ ESERCIZIO ${punti.totali + 1} · risultato già controllato dalla calcolatrice ✓</div>${escape(es.testo)}
+    card.innerHTML = `<div class="esercizio"><div class="tag">✏️ ESERCIZIO ${punti.totali + 1} · ${es.riserva ? "risultato calcolato da Fly Aula ✓" : "risultato controllato 3 volte ✓✓✓"}</div>${escape(es.testo)}
       <div class="risp"><input placeholder="La vostra risposta" inputmode="decimal"><button class="btn">Controlla</button><button class="btn sec b-aiuto">💡 Aiutino</button></div><div class="esito"></div></div>`;
     const inp = card.querySelector("input"), esito = card.querySelector(".esito");
     let tentativi = 0;
@@ -251,7 +277,7 @@ async function nuovoEsercizio(argomento = "") {
         esito.className = "esito no";
         esito.innerHTML = `<div class="lavoro">Vi spiego dove si sbaglia…</div>`;
         inp.disabled = true; occupato = false;
-        await chiedi(`Esercizio: "${es.testo}". La classe ha risposto ${inp.value}, ma il risultato giusto è ${formatta(es.risultato)} ${es.unita}. Spiega con gentilezza dove probabilmente si è sbagliato e come si arriva al risultato giusto.`);
+        await chiedi(`Esercizio: "${es.testo}". La classe ha risposto ${inp.value}, ma il risultato giusto è ${formatta(es.risultato)} ${es.unita}. Spiega con gentilezza dove probabilmente si è sbagliato e come si arriva al risultato giusto.`, { esercizio: true });
         esito.innerHTML = `Il risultato era <b>${escape(formatta(es.risultato))} ${escape(es.unita)}</b> · punteggio ${punti.giuste}/${punti.totali}<div class="azioni"><button class="b-altro">✏️ Un altro esercizio</button></div>`;
         esito.querySelector(".b-altro").onclick = () => nuovoEsercizio(argomento);
       }
@@ -283,15 +309,14 @@ async function esame() {
       r1 = await cervello(istruzioniMateria(mat, livello === "elementari" && mat === "economia" ? "superiori" : livello, "Esame", "") + "\nAlla fine scrivi su una riga da sola: RISULTATO: <solo il numero>", q.d, { temperature: 0.2 });
       x1 = leggiRisultato(r1);
       // con i controlli: calcolatrice sui conti + revisore severo (senza suggerirgli il risultato)
-      let r2 = correggiTesto(r1);
-      rev = await revisiona(cervello, q.d, r2, MATERIE[mat].nome + ". La risposta deve finire con 'RISULTATO: numero'.");
-      if (rev.ok === false) r2 = correggiTesto(rev.correzione);
-      x2 = leggiRisultato(r2);
+      const es = await ricontrolloCompleto(cervello, { domanda: q.d, testo: r1, contesto: MATERIE[mat].nome + ". La risposta deve finire con 'RISULTATO: numero'.", risultatoObbligatorio: false });
+      rev = { ok: es.stato === "ok", problema: es.correzioni.join(" · "), controlli: es.controlli, dubbio: es.stato === "dubbio" };
+      x2 = leggiRisultato(es.testo);
     } catch (e) {}
     const ok1 = giusto(x1, q.r), ok2 = giusto(x2, q.r);
     prima += ok1; dopo += ok2;
     (per[q.categoria] = per[q.categoria] || { n: 0, p: 0, d: 0 }); per[q.categoria].n++; per[q.categoria].p += ok1; per[q.categoria].d += ok2;
-    esameRighe.push([i + 1, q.categoria, q.d, formatta(q.r), isFinite(x1) ? formatta(x1) : "?", ok1 ? "giusta" : "SBAGLIATA", isFinite(x2) ? formatta(x2) : "?", ok2 ? "giusta" : "SBAGLIATA", rev.ok === false ? "corretta: " + rev.problema : rev.ok ? "ok" : "non riuscito"]);
+    esameRighe.push([i + 1, q.categoria, q.d, formatta(q.r), isFinite(x1) ? formatta(x1) : "?", ok1 ? "giusta" : "SBAGLIATA", isFinite(x2) ? formatta(x2) : "?", ok2 ? "giusta" : "SBAGLIATA", (rev.dubbio ? "DUBBIO: " : rev.problema ? "corretta: " : "ok") + (rev.problema || "") + (rev.controlli ? " (" + rev.controlli + " controlli)" : "")]);
     const fatte = i + 1, sec = (Date.now() - inizio) / 1000 / fatte;
     $("esBarra").style.width = (100 * fatte / domande.length) + "%";
     $("esRisultato").innerHTML = disegnaEsame(fatte, domande.length, prima, dopo, per, Math.round(sec * (domande.length - fatte) / 60));
@@ -358,7 +383,8 @@ async function controlla() {
     const r = await fetch(OLLAMA + "/api/tags");
     const j = await r.json();
     const presenti = (j.models || []).map(m => m.name);
-    modello = MODELLI.find(m => presenti.includes(m)) || presenti[0] || null;
+    window.modelliPresenti = presenti;
+    modello = MODELLI.find(m => presenti.includes(m)) || presenti.find(m => !/vl|vision|llava|embed/.test(m)) || null;
     if (modello) { $("stato").textContent = "🧠 " + modello + " · offline"; $("stato").className = "ok"; $("aiuto").style.display = "none"; }
     else { $("stato").textContent = "Manca il modello"; $("stato").className = "ko"; mostraAiuto(true); }
   } catch (e) { modello = null; $("stato").textContent = "Cervello spento"; $("stato").className = "ko"; mostraAiuto(false); }
@@ -377,6 +403,7 @@ aggiornaLeggi();
 $("leggiAuto").onclick = () => { leggiAuto = !leggiAuto; scrivi("flyaula_leggi", leggiAuto ? "1" : "0"); aggiornaLeggi(); if (!leggiAuto) Voce.zitto(); };
 $("voce").onclick = async () => {
   const b = $("voce");
+  if (inPausa()) return;
   if (Voce.attivo) {
     b.classList.remove("on"); b.textContent = "⏳"; b.disabled = true;
     try {
@@ -416,11 +443,17 @@ $("svuota").onclick = () => { scrivi("flyaula_errori", "[]"); scrivi("flyaula_st
 $("apriEsame").onclick = () => { $("esLivello").value = $("livello").value; apri("pEsame"); };
 $("esVia").onclick = esame;
 $("esStop").onclick = () => { esameAttivo = false; };
-$("esCsv").onclick = () => scaricaCsv("fly-aula-esame.csv", ["N", "Categoria", "Domanda", "Risultato giusto", "Fly Aula (senza controlli)", "Esito", "Fly Aula (con i controlli)", "Esito", "Revisore"], esameRighe);
+$("esCsv").onclick = () => scaricaCsv("fly-aula-esame.csv", ["N", "Categoria", "Domanda", "Risultato giusto", "Fly Aula (senza controlli)", "Esito", "Fly Aula (con i controlli)", "Esito", "Controlli"], esameRighe);
 $("apriOrario").onclick = () => { Orario.disegnaEditor($("editorOrario")); apri("pOrario"); };
 $("orFatto").onclick = () => { $("pOrario").style.display = "none"; aggiornaOrario(); };
 $("orCancella").onclick = () => { try { localStorage.removeItem("flyaula_orario"); } catch (e) {} Orario.disegnaEditor($("editorOrario")); aggiornaOrario(); };
 $("apriEsercizi").onclick = () => nuovoEsercizio();
+$("apriProf").onclick = () => { $("menu").classList.remove("aperto"); Prof.apri(); };
+$("apriPagine").onclick = () => Pagine.apri();
+$("apriInstallaPc").onclick = () => apri("pInstalla");
+$("vSblocca").onclick = () => Prof.sbloccaVerifica();
+Pagine.collega();
+Prof.applicaTema(); Prof.aggiornaPill(); Prof.mostraVerifica();
 $("modulo").onsubmit = e => { e.preventDefault(); const d = $("domanda").value.trim(); if (d) { $("domanda").value = ""; chiedi(d); } };
 $("nuova").onclick = () => nuovaLezione(true);
 $("classe").onchange = () => nuovaLezione(false);

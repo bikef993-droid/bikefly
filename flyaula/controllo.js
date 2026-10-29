@@ -57,12 +57,84 @@ Rispondi SOLO con un oggetto JSON, senza altro testo:
 {"ok": true}  se è tutto giusto
 {"ok": false, "problema": "frase breve che spiega l'errore", "correzione": "la risposta completa riscritta in modo giusto, con gli stessi passaggi numerati e lo stesso stile"}  se c'è anche un solo errore.`;
 
-async function revisiona(cervello, domanda, risposta, contesto) {
+// il terzo controllo: un revisore diverso, che prima risolve da solo e poi confronta
+const ISTRUZIONI_TERZO = `Sei il TERZO REVISORE, indipendente, di risposte scolastiche. Altri due controlli sono già stati fatti, ma tu non ti fidi.
+Metodo: 1) PRIMA risolvi tu la domanda da solo, in silenzio, passo per passo; 2) POI confronta il tuo risultato e i tuoi fatti con la risposta; 3) controlla ogni numero, ogni data, ogni definizione, ogni regola.
+Se nel CONTESTO ci sono PAGINE DEL LIBRO, quelle sono la fonte giusta: la risposta non deve contraddirle.
+Rispondi SOLO con un oggetto JSON, senza altro testo:
+{"ok": true}  se è tutto giusto
+{"ok": false, "problema": "frase breve che spiega l'errore", "correzione": "la risposta completa riscritta in modo giusto, con gli stessi passaggi numerati e lo stesso stile"}  se c'è anche un solo errore.`;
+
+async function revisiona(cervello, domanda, risposta, contesto, istruzioni = ISTRUZIONI_REVISORE) {
   const testo = `CONTESTO: ${contesto}\nDOMANDA: ${domanda}\nRISPOSTA DA CONTROLLARE:\n${risposta}`;
-  const out = await cervello(ISTRUZIONI_REVISORE, testo, { temperature: 0, format: "json" });
+  const out = await cervello(istruzioni, testo, { temperature: 0, format: "json" });
   try {
     const j = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
     if (j.ok === false && typeof j.correzione === "string" && j.correzione.trim().length > 20) return { ok: false, problema: String(j.problema || "errore"), correzione: j.correzione.trim() };
-    return { ok: true };
+    if (j.ok === true) return { ok: true };
+    return { ok: null };
   } catch (e) { return { ok: null }; }   // il revisore non ha risposto bene: lo diciamo
+}
+
+// 4) la calcolatrice sul testo: corregge i conti sbagliati e dice quanti erano
+function correggiConti(testo) {
+  let n = 0;
+  const out = testo.replace(RE_CONTO, (tutto, a, op, b, c) => {
+    const g = calcola(leggiNumero(a), op, leggiNumero(b));
+    if (!isFinite(g) || Math.abs(g - leggiNumero(c)) < 1e-6 * Math.max(1, Math.abs(g))) return tutto;
+    n++; return `${a} ${op} ${b} = ${formatta(g)}`;
+  });
+  return { testo: out, corretti: n, conti: (testo.match(RE_CONTO) || []).length };
+}
+
+// ===================================================================
+//  IL RICONTROLLO COMPLETO: SEMPRE 2 controlli, 3 nei casi speciali
+//  controllo 1 = calcolatrice (+ risultato giusto se la domanda è un conto)
+//  controllo 2 = revisore severo
+//  controllo 3 = revisore indipendente, quando:
+//    - un controllo ha trovato un errore (si ricontrolla anche la correzione)
+//    - calcolatrice e revisore non sono d'accordo
+//    - non ci sono conti da verificare con la calcolatrice (fatti, regole, teoria)
+//    - il caso è speciale (esercizi, lingue, materie senza calcolatrice…)
+//  Se dopo il terzo c'è ancora un dubbio: NON si inventa, si avvisa il prof.
+// ===================================================================
+async function ricontrolloCompleto(cervello, { domanda, testo, contesto, conto = null, speciale = false, risultatoObbligatorio = true, ogniPasso = () => {} }) {
+  const esito = { controlli: 0, contiCorretti: 0, correzioni: [], stato: "ok", testo };
+  // controllo 1: calcolatrice
+  ogniPasso(1);
+  let c = correggiConti(esito.testo);
+  esito.testo = c.testo; esito.contiCorretti += c.corretti; esito.controlli++;
+  const contiDaVerificare = c.conti;
+  const ctx = contesto + (conto ? ` FATTO SICURO (calcolatrice): ${conto.testo} = ${formatta(conto.risultato)}.` : "");
+  // controllo 2: revisore (se non risponde bene, riprova una volta)
+  ogniPasso(2);
+  let r1 = await revisiona(cervello, domanda, esito.testo, ctx);
+  if (r1.ok === null) r1 = await revisiona(cervello, domanda, esito.testo, ctx);
+  esito.controlli++;
+  if (r1.ok === false) {
+    esito.correzioni.push(r1.problema);
+    c = correggiConti(r1.correzione); esito.testo = c.testo; esito.contiCorretti += c.corretti;
+  }
+  // controllo 3: solo quando serve
+  const disaccordo = r1.ok === true && esito.contiCorretti > 0;
+  const terzo = r1.ok !== true || disaccordo || speciale || contiDaVerificare === 0;
+  if (terzo) {
+    ogniPasso(3);
+    const r2 = await revisiona(cervello, domanda, esito.testo, ctx, ISTRUZIONI_TERZO);
+    esito.controlli++;
+    if (r2.ok === false) {
+      esito.correzioni.push(r2.problema);
+      c = correggiConti(r2.correzione); esito.testo = c.testo; esito.contiCorretti += c.corretti;
+      // il terzo ha trovato un errore anche dopo una correzione: troppi dubbi
+      if (r1.ok === false) esito.stato = "dubbio";
+    } else if (r2.ok === null && r1.ok === null) esito.stato = "dubbio";
+  }
+  if (esito.stato !== "dubbio" && (esito.correzioni.length || esito.contiCorretti)) esito.stato = "corretta";
+  // se la domanda era un conto secco, il risultato giusto deve esserci (salvo scelta del prof)
+  if (conto && risultatoObbligatorio && !contieneRisultato(esito.testo, conto.risultato)) {
+    esito.testo += `\n✅ Risultato della calcolatrice: ${conto.testo} = ${formatta(conto.risultato)}`;
+    esito.correzioni.push(`mancava il risultato giusto: ${conto.testo} = ${formatta(conto.risultato)}`);
+    if (esito.stato === "ok") esito.stato = "corretta";
+  }
+  return esito;
 }

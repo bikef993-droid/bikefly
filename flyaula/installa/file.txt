@@ -1,0 +1,25 @@
+# file di Fly Aula da scaricare (percorsi dal sito)
+flyaula/index.html
+flyaula/stile.css
+flyaula/app.js
+flyaula/sicurezza.js
+flyaula/materie.js
+flyaula/controllo.js
+flyaula/disegni.js
+flyaula/esame.js
+flyaula/esercizi.js
+flyaula/orario.js
+flyaula/voce.js
+flyaula/qr.js
+flyaula/prof.js
+flyaula/pagine.js
+flyaula/telefono.html
+flyaula/sw.js
+flyaula/manifest.json
+flyaula/icona-192.png
+flyaula/icona-512.png
+flyaula/installa/server.ps1
+flyaula/installa/avvia.ps1
+flyaula/installa/icona.ico
+font/Bricolage.ttf
+font/Figtree.ttf

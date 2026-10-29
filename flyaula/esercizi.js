@@ -38,8 +38,18 @@ async function creaEsercizio(cervello, materia, livello, argomento) {
       const j = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
       const r = Number(String(j.risultato).replace(",", "."));
       const c = valuta(j.conto);
-      // controllo SEMPRE: il conto dell'esercizio deve dare proprio il risultato dichiarato
-      if (j.testo && isFinite(r) && isFinite(c) && Math.abs(c - r) < 1e-6 * Math.max(1, Math.abs(r))) return { testo: j.testo, risultato: r, unita: j.unita || "", spiegazione: j.spiegazione || "", conto: j.conto, controllato: true };
+      // controllo 1 (calcolatrice): il conto dell'esercizio deve dare proprio il risultato dichiarato
+      if (!(j.testo && isFinite(r) && isFinite(c) && Math.abs(c - r) < 1e-6 * Math.max(1, Math.abs(r)))) continue;
+      // controllo 2 (revisore): il testo è chiaro, ha un solo risultato, e il conto corrisponde davvero al testo?
+      const rev = await revisiona(cervello,
+        "Controlla questo ESERCIZIO (non è una risposta): il testo è chiaro e adatto alla scuola, ha UN solo risultato, e il conto corrisponde davvero a quello che chiede il testo?",
+        `TESTO DELL'ESERCIZIO: ${j.testo}\nCONTO: ${j.conto} = ${r} ${j.unita || ""}`, `${materia}, scuola ${livello}.`);
+      if (rev.ok !== true) continue;
+      // controllo 3 (risolto da capo): un altro passaggio risolve l'esercizio senza sapere il risultato
+      const sol = await cervello(`Risolvi questo esercizio di ${materia} passo passo. Alla fine scrivi su una riga da sola: RISULTATO: <solo il numero>`, j.testo, { temperature: 0 });
+      const x = leggiRisultato(sol);
+      if (!(isFinite(x) && Math.abs(x - r) <= Math.max(0.011, Math.abs(r) * 1e-6))) continue;
+      return { testo: j.testo, risultato: r, unita: j.unita || "", spiegazione: j.spiegazione || "", conto: j.conto, controllato: true, controlli: 3 };
     } catch (e) {}
   }
   // il cervello non ce l'ha fatta 3 volte: esercizio di riserva, calcolato da noi

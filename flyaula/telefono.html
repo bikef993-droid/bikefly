@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fly Aula · Foto delle pagine</title>
+<style>
+:root{--notte:#071226;--notte2:#0E1E3C;--latte:#F3F6FB;--nebbia:#93A6C3;--menta:#00D2A0;--cielo:#3B8BFF;--corallo:#FF5A5F}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--notte);color:var(--latte);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px 16px 40px}
+h1{font-size:28px;margin:8px 0 6px}
+h1 b{color:var(--cielo)}
+p{color:var(--nebbia);font-size:17px;line-height:1.45;margin:0 0 22px}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:0;border-radius:20px;padding:20px;font:800 21px system-ui,sans-serif;color:#fff;background:linear-gradient(90deg,var(--menta),var(--cielo));margin-bottom:12px;cursor:pointer}
+.btn.sec{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16)}
+input[type=file]{display:none}
+.riga{display:flex;align-items:center;gap:12px;background:var(--notte2);border-radius:16px;padding:10px;margin-top:10px;font-weight:700;animation:entra .3s both}
+.riga img{width:56px;height:56px;object-fit:cover;border-radius:10px}
+.riga .s{margin-left:auto;font-size:15px}
+.ok{color:var(--menta)}.ko{color:var(--corallo)}
+.err{background:rgba(255,90,95,.14);color:#FFB3B5;border-radius:16px;padding:14px;font-weight:700}
+.nota{font-size:14px;margin-top:22px}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<h1>📷 Fly<b>Aula</b> · Pagine di oggi</h1>
+<p>Fotografa le pagine del libro per la lezione. Vanno <b>solo al computer della classe</b>, sul Wi-Fi della scuola: niente internet, niente cloud.</p>
+<div id="corpo">
+  <label class="btn">📷 Fotografa una pagina<input type="file" accept="image/*" capture="environment" id="scatta"></label>
+  <label class="btn sec">🖼️ Scegli dalla galleria<input type="file" accept="image/*" multiple id="galleria"></label>
+  <div id="lista"></div>
+  <p class="nota">Consiglio: pagina dritta, tutta dentro la foto, con buona luce. A fine lezione Fly Aula cancella le foto.</p>
+</div>
+<script>
+const codice = new URLSearchParams(location.search).get("c");
+const lista = document.getElementById("lista");
+if (!codice) document.getElementById("corpo").innerHTML = '<div class="err">Questo collegamento non è completo. Inquadra di nuovo il QR sulla lavagna.</div>';
+let n = 0;
+function riduci(file) {
+  return new Promise((ok, no) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 2200, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      c.toBlob(b => b ? ok(b) : no(new Error("foto")), "image/jpeg", 0.88);
+    };
+    img.onerror = () => no(new Error("foto"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function manda(files) {
+  for (const f of files) {
+    n++;
+    const r = document.createElement("div"); r.className = "riga";
+    r.innerHTML = `<img alt=""><span>Pagina ${n}</span><span class="s">⏳ invio…</span>`;
+    lista.prepend(r);
+    const s = r.querySelector(".s");
+    try {
+      const b = await riduci(f);
+      r.querySelector("img").src = URL.createObjectURL(b);
+      const res = await fetch("/fa/carica?c=" + encodeURIComponent(codice), { method: "POST", body: b, headers: { "Content-Type": "image/jpeg" } });
+      if (res.ok) { s.className = "s ok"; s.textContent = "✓ arrivata alla lavagna"; }
+      else if (res.status === 403) { s.className = "s ko"; s.textContent = "✗ codice scaduto: rifai il QR"; }
+      else if (res.status === 413) { s.className = "s ko"; s.textContent = "✗ troppe pagine o foto troppo grande"; }
+      else { s.className = "s ko"; s.textContent = "✗ non inviata, riprova"; }
+    } catch (e) { s.className = "s ko"; s.textContent = "✗ non raggiungo il computer: stesso Wi-Fi?"; }
+  }
+}
+for (const id of ["scatta", "galleria"]) {
+  const i = document.getElementById(id);
+  if (i) i.onchange = () => { manda(Array.from(i.files)); i.value = ""; };
+}
+</script>
+</body>
+</html>
