@@ -14,6 +14,7 @@ DISEGNI SULLA LAVAGNA: quando un disegno aiuta, scrivi su una riga da sola uno d
 [DISEGNO: triangolo 6 4]              → triangolo base 6 e altezza 4
 [DISEGNO: cerchio 3]                  → cerchio di raggio 3
 [DISEGNO: percentuale 25]             → barra con il 25% colorato
+[DISEGNO: mappa Frazioni | Numeratore: le parti prese | Denominatore: le parti totali | Esempio: 3/4 della pizza]  → mappa concettuale (centro + rami)
 Usa al massimo 2 disegni per risposta, e solo se servono davvero.`;
 
 const MATERIE = {

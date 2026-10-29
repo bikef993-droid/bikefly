@@ -41,12 +41,17 @@
   <span id="stato">Mi collego…</span>
   <button class="pill" id="apriEsercizi">✏️ Esercizi</button>
   <button class="pill" id="apriPagine" title="Fotografa le pagine del libro di oggi">📷 Pagine</button>
+  <button class="pill" id="dsa" title="Modalità DSA">🧩 DSA</button>
+  <select class="pill" id="lingua" title="Spiega anche in un'altra lingua (alunni stranieri)"></select>
   <button class="pill" id="leggiAuto" title="Leggi le risposte ad alta voce">🔇</button>
   <button class="pill" id="nuova" title="Cancella la memoria e inizia una nuova lezione">🧹 Nuova lezione</button>
   <div class="menu" id="menu">
     <button class="pill" id="apriMenu">☰</button>
     <div class="tendina">
       <button id="apriProf">👩‍🏫 Pannello del prof</button>
+      <button id="apriGara">🏆 Gara a squadre</button>
+      <button id="apriRipasso">🔁 Ripasso veloce</button>
+      <button id="apriRiassunto">📒 Riassunto per gli assenti</button>
       <button id="apriEsame">📝 Esame delle domande</button>
       <button id="apriOrario">📅 Orario della classe</button>
       <button id="apriRegistro">📊 Tabella degli errori (<span id="nErrori">0</span>)</button>
@@ -64,7 +69,7 @@
     <button type="button" class="btn sec voce" id="voce" title="Parla (la voce resta su questo computer)">🎤</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.4 · ogni risposta controllata 2 volte (3 nei casi difficili) · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.5 · ogni risposta controllata 2 volte (3 nei casi difficili) · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -124,6 +129,23 @@
   <div class="riga-btn"><button class="btn sec chiudi">Chiudi</button></div>
 </div></div>
 
+<div class="pannello" id="pGara"><div class="box">
+  <h2>🏆 Gara a squadre</h2>
+  <div id="garaCorpo"></div>
+</div></div>
+
+<div class="pannello" id="pRipasso"><div class="box">
+  <h2>🔁 Ripasso</h2>
+  <div id="ripCorpo"></div>
+  <div class="riga-btn"><button class="btn sec" id="ripChiudiX">Chiudi</button></div>
+</div></div>
+
+<div class="pannello" id="pRiassunto"><div class="box">
+  <h2>📒 Riassunto per gli assenti</h2>
+  <div id="riaCorpo"></div>
+  <div class="riga-btn"><button class="btn" id="riaStampa">🖨️ Stampa o salva PDF</button><button class="btn sec" id="riaCopia">📋 Copia il testo</button><button class="btn sec" id="riaChiudi">Chiudi</button></div>
+</div></div>
+
 <div id="pin" class="sopra"></div>
 
 <div id="verifica" class="sopra">
@@ -140,6 +162,8 @@
 <script src="prof.js"></script>
 <script src="pagine.js"></script>
 <script src="sicurezza.js"></script>
+<script src="classe.js"></script>
+<script src="gara.js"></script>
 <script src="materie.js"></script>
 <script src="controllo.js"></script>
 <script src="disegni.js"></script>

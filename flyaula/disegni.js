@@ -134,8 +134,22 @@ function disPercentuale(p) {
   return box(`${fmt(p)}% = ${fmt(p)} su 100`, `<div class="cento">${q}</div><div class="cap-dis"><b>${fmt(p)}</b> quadretti colorati su <b>100</b></div>`);
 }
 
+// 🧠 mappa concettuale (per DSA e per il ripasso): centro + rami
+function disMappa(spec) {
+  const e = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])).replace(/\*\*/g, "");
+  const parti = spec.replace(/^\s*mappa\s*/i, "").split("|").map(x => x.trim()).filter(Boolean);
+  if (parti.length < 2) return null;
+  const tinte = ["#00D2A0", "#3B8BFF", "#FFD23F", "#FF5A5F", "#7C5CFF", "#F4A340"];
+  const rami = parti.slice(1, 7).map((p, i) => {
+    const k = p.indexOf(":"), t = k > 0 ? p.slice(0, k) : p, d = k > 0 ? p.slice(k + 1) : "";
+    return `<div class="m-ramo" style="--c:${tinte[i % tinte.length]};animation-delay:${0.25 + i * 0.15}s"><b>${e(t.trim())}</b>${d.trim() ? `<span>${e(d.trim())}</span>` : ""}</div>`;
+  }).join("");
+  return box("Mappa concettuale", `<div class="mappa"><div class="m-centro">${e(parti[0])}</div><div class="m-rami">${rami}</div></div>`);
+}
+
 // lettura del comando scritto dal cervello
 function disegna(spec) {
+  if (/^\s*mappa\b/i.test(spec)) { try { return disMappa(spec); } catch (e) { return null; } }
   const s = spec.toLowerCase().replace(/\s+/g, " ").trim();
   let m;
   try {

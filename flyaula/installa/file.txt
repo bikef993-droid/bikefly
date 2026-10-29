@@ -13,6 +13,8 @@ flyaula/voce.js
 flyaula/qr.js
 flyaula/prof.js
 flyaula/pagine.js
+flyaula/classe.js
+flyaula/gara.js
 flyaula/telefono.html
 flyaula/sw.js
 flyaula/manifest.json

@@ -177,3 +177,60 @@ body.tema-lim .passo .n{background:#00FFB0}
 body.tema-lim .pill,body.tema-lim .esempi button{border-width:2px;border-color:#fff}
 body.tema-lim #domanda{border-color:#fff;background:#000}
 .riga-btn label.file-btn{color:var(--latte);cursor:pointer}
+/* v0.5 · DSA, traduzioni, mappa, ripasso, gara, riassunto */
+#lingua{max-width:190px}
+body.dsa .msg.ai .bolla,body.dsa .esercizio,body.dsa .rip-d{font-family:Verdana,"Figtree",sans-serif;letter-spacing:.04em;word-spacing:.14em;line-height:1.85}
+body.dsa .msg.ai .bolla{background:rgba(255,248,225,.07)}
+body.dsa .passo{margin:14px 0}
+.leggendo{background:rgba(255,210,63,.18);border-radius:12px;box-shadow:0 0 0 6px rgba(255,210,63,.18);transition:background .2s}
+.mappa{display:flex;flex-direction:column;align-items:center;padding:6px 0 4px}
+.m-centro{background:linear-gradient(90deg,var(--menta),var(--cielo));color:#04241C;font:900 clamp(22px,2.4vw,32px) Figtree;border-radius:22px;padding:12px 26px;animation:salto .5s cubic-bezier(.3,1.8,.5,1) both;position:relative}
+.m-centro::after{content:"";position:absolute;left:50%;top:100%;width:4px;height:22px;background:rgba(255,255,255,.35)}
+.m-rami{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:22px;padding-top:22px;border-top:4px solid rgba(255,255,255,.25);border-radius:6px}
+.m-ramo{border:3px solid var(--c);border-radius:18px;padding:10px 16px;max-width:280px;font-size:.78em;line-height:1.35;animation:entra .4s both;position:relative;background:rgba(0,0,0,.18)}
+.m-ramo::before{content:"";position:absolute;left:50%;top:-25px;width:4px;height:22px;background:var(--c)}
+.m-ramo b{display:block;color:var(--c);font-size:1.05em}
+.traduzione{margin-top:18px;border-top:2px dashed rgba(255,255,255,.18);padding-top:14px;position:relative}
+.traduzione .tag{font:800 15px Figtree;color:var(--menta);margin-bottom:8px}.traduzione .tag.rosso{color:var(--corallo)}
+.traduzione .testo-trad{font-size:.92em}
+.traduzione .leggi-trad{position:absolute;top:10px;right:0;background:none;border:1px solid rgba(255,255,255,.2);color:var(--latte);border-radius:99px;padding:4px 12px;cursor:pointer}
+.traduzione[dir=rtl] .leggi-trad{right:auto;left:0}
+.rip-n{font:800 16px Figtree;color:var(--menta)}
+.rip-d{font:800 clamp(26px,3vw,42px) Figtree;margin:12px 0 22px;line-height:1.3}
+.rip-op{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rip-op button{text-align:left;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.16);color:var(--latte);border-radius:20px;padding:18px 22px;font:700 clamp(20px,2vw,28px) Figtree;cursor:pointer;transition:transform .15s}
+.rip-op button:hover:not(:disabled){transform:translateY(-2px);border-color:var(--cielo)}
+.rip-op button b{display:inline-flex;width:1.6em;height:1.6em;border-radius:50%;align-items:center;justify-content:center;background:rgba(255,255,255,.12);margin-right:10px}
+.rip-op button.si{border-color:var(--menta);background:rgba(0,210,160,.2);animation:salto .4s both}
+.rip-op button.no{border-color:var(--corallo);background:rgba(255,90,95,.18)}
+.rip-esito{margin-top:18px;font:800 22px Figtree;display:flex;gap:16px;align-items:center;flex-wrap:wrap}.rip-esito .si{color:var(--menta)}.rip-esito .no{color:var(--sole)}
+.rip-esito .btn,.rip-fine .btn{padding:14px 26px}
+.rip-fine,.gara-fine{text-align:center;padding:30px 0}
+.rip-trofeo{font-size:110px;animation:salto .7s cubic-bezier(.3,1.8,.5,1) both}
+.rip-fine h2{font:900 56px Figtree;margin:6px 0}.rip-fine p{color:var(--nebbia);font-size:22px}
+.coriandoli{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+.coriandoli i{position:absolute;top:-20px;width:12px;height:18px;border-radius:3px;animation-name:cade;animation-timing-function:cubic-bezier(.2,.6,.4,1);animation-fill-mode:forwards}
+@keyframes cade{to{transform:translateY(110vh) rotate(720deg);opacity:.9}}
+.gara-setup .squadre-in{display:flex;gap:16px;flex-wrap:wrap}
+.squadre-in label{display:flex;flex-direction:column;gap:6px;font-weight:800;color:var(--nebbia);flex:1;min-width:240px}
+.squadre-in input{background:var(--notte2);border:2px solid rgba(255,255,255,.18);color:var(--latte);border-radius:16px;padding:14px;font:800 26px Figtree}
+.tabellone{display:flex;align-items:center;gap:18px;margin:6px 0 20px}
+.tabellone .sq{flex:1;border-radius:24px;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;border:3px solid transparent;transition:transform .25s}
+.tabellone .sq0{background:rgba(255,90,95,.16)}.tabellone .sq1{background:rgba(59,139,255,.18)}
+.tabellone .sq.tocca{border-color:var(--sole);transform:scale(1.03);box-shadow:0 0 30px rgba(255,210,63,.25)}
+.tabellone .sq span{font:800 clamp(20px,2.2vw,30px) Figtree}.tabellone .sq b{font:900 clamp(44px,5vw,72px) Figtree;display:inline-block}
+.tabellone .vs{font:900 20px Figtree;color:var(--nebbia)}
+.gara-q{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:28px;padding:24px 28px}
+.gara-chi{font:700 22px Figtree;color:var(--nebbia)}.gara-chi b{color:var(--sole)}
+.gara-q h2{font:900 clamp(30px,3.6vw,54px) Figtree!important;margin:10px 0 18px!important;line-height:1.25}
+.gara-tempo{height:16px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-bottom:18px}
+.gara-tempo div{height:100%;width:100%;background:linear-gradient(90deg,var(--menta),var(--cielo));transition:width .1s linear}.gara-tempo div.poco{background:var(--corallo)}
+.gara-risp{display:flex;gap:12px;max-width:none}
+.gara-risp input{flex:1;background:var(--notte2);border:3px solid rgba(255,255,255,.2);color:var(--latte);border-radius:20px;padding:16px 20px;font:900 clamp(26px,3vw,40px) Figtree;min-width:0}
+#gEsito{margin-top:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font:900 clamp(22px,2.4vw,32px) Figtree}
+#gEsito .btn{padding:14px 26px}.g-si{color:var(--menta)}.g-no{color:var(--sole)}
+.gara-fine h1{font:900 clamp(44px,6vw,90px) Bricolage;margin:0 0 16px}
+.tabellone.fine{max-width:900px;margin:0 auto 24px}
+.ria-testa{font:800 18px Figtree;color:var(--menta);margin-bottom:10px}
+.ria-testo{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:8px 26px 18px;font-size:20px;line-height:1.55}
+.ria-testo h3{font:900 24px Figtree;color:var(--sole);margin:18px 0 6px}

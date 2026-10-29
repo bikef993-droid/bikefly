@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.4 · il programma
+//  FLY AULA v0.5 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -81,7 +81,7 @@ function scaricaCsv(nome, intestazione, righe) {
 }
 
 // ---------------- la lezione (memoria) ----------------
-let storia = [], inizioLezione = Date.now(), fineLezione = null, lezioneOrario = null;
+let storia = [], inizioLezione = Date.now(), fineLezione = null, lezioneOrario = null, avvisoRipasso = false;
 const chiaveRiassunto = () => "flyaula_riassunto_" + ($("classe").value || "classe").trim() + "_" + $("materia").value;
 function schermataIniziale() {
   const m = MATERIE[$("materia").value], esempi = m.esempi[$("livello").value] || m.esempi.medie;
@@ -118,7 +118,7 @@ async function riassumi() {
 }
 async function nuovaLezione(salva = true) {
   if (salva && storia.length) { const s = await riassunto(); if (s) scrivi(chiaveRiassunto(), s); }
-  storia = []; inizioLezione = Date.now();
+  storia = []; inizioLezione = Date.now(); avvisoRipasso = false;
   Pagine.svuota();
   schermataIniziale();
 }
@@ -172,7 +172,7 @@ async function chiedi(domanda, speciale = {}) {
   storia.push({ role: "user", content: domanda });
   const bolla = aggiungi("ai", '<span class="cursore"></span>');
   const materia = $("materia").value, livello = $("livello").value;
-  const sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni();
+  const sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni() + DSA.istruzioni();
   try {
     // 1) prima stesura (si vede mentre la scrive)
     let testo = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; });
@@ -217,7 +217,9 @@ async function chiedi(domanda, speciale = {}) {
     conta("risposte");
     aggiungiAzioni(bolla, domanda, testo);
     storia.push({ role: "assistant", content: testo });
-    if (leggiAuto) Voce.leggiAdAltaVoce(testo);
+    if (leggiAuto) leggiRisposta(bolla, testo);
+    const lingua = $("lingua").value;
+    if (lingua) { chat.scrollTop = chat.scrollHeight; await aggiungiTraduzione(bolla, testo, lingua); }
     if (storia.length > 14) riassumi();
   } catch (e) {
     bolla.classList.remove("controllo");
@@ -232,7 +234,7 @@ function aggiungiAzioni(bolla, domanda, testo) {
   const d = document.createElement("div"); d.className = "azioni";
   d.innerHTML = `<button class="b-leggi">🔊 Leggi</button><button class="b-segnala">👎 Segnala un errore</button>`;
   bolla.parentElement.appendChild(d);
-  d.querySelector(".b-leggi").onclick = () => Voce.leggiAdAltaVoce(testo);
+  d.querySelector(".b-leggi").onclick = () => leggiRisposta(bolla, testo);
   d.querySelector(".b-segnala").onclick = () => {
     d.innerHTML = `<input placeholder="Cosa era sbagliato? (es. il passaggio 3)" maxlength="300"><button>Invia</button><button>Annulla</button>`;
     const [inp, invia, annulla] = [d.querySelector("input"), ...d.querySelectorAll("button")];
@@ -245,6 +247,45 @@ function aggiungiAzioni(bolla, domanda, testo) {
     invia.onclick = manda; inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); manda(); } };
     annulla.onclick = () => { d.remove(); aggiungiAzioni(bolla, domanda, testo); };
   };
+}
+
+function leggiRisposta(bolla, testo) { if (DSA.attiva) leggiEvidenziando(bolla, testo); else Voce.leggiAdAltaVoce(testo); }
+
+// ---------------- 🔁 ripasso e 📒 riassunto ----------------
+async function ripasso() {
+  if (!modello) return mostraAiuto();
+  if (occupato || inPausa()) return;
+  occupato = true;
+  $("pRipasso").style.display = "block";
+  const c = $("ripCorpo");
+  c.innerHTML = `<div class="lavoro" style="font-size:22px">🔁 Preparo le domande di ripasso e controllo ognuna 3 volte…</div>`;
+  try {
+    const domande = await creaRipasso(cervello, storia, $("materia").value, $("livello").value, 4);
+    conta("ripassi");
+    mostraRipasso(c, domande, () => { $("pRipasso").style.display = "none"; });
+  } catch (e) { c.innerHTML = "⚠️ Non riesco a preparare il ripasso: controlla che Ollama sia acceso."; }
+  occupato = false;
+}
+let ultimoRiassunto = "";
+async function riassuntoAssenti() {
+  if (!modello) return mostraAiuto();
+  if (occupato || inPausa()) return;
+  $("pRiassunto").style.display = "block";
+  const c = $("riaCorpo");
+  if (storia.length < 2) { c.innerHTML = `<p class="sotto">La lezione è appena iniziata: fate qualche domanda a Fly Aula e poi il riassunto si prepara da solo.</p>`; return; }
+  occupato = true;
+  c.innerHTML = `<div class="lavoro" style="font-size:22px">📒 Scrivo il riassunto e lo controllo 3 volte con la lezione…</div>`;
+  try {
+    const es = await creaRiassunto(cervello, storia, $("materia").value, $("livello").value, $("classe").value);
+    ultimoRiassunto = es.testo;
+    const data = new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+    c.innerHTML = `<div class="ria-testa">📒 ${escape(MATERIE[$("materia").value].nome)} · ${escape($("classe").value)} · ${escape(data)}</div>
+      <div class="ria-testo">${riassuntoInHtml(es.testo)}</div>
+      <div class="timbri">${es.stato === "dubbio" ? `<span class="timbro rosso">⚠️ Dubbio dopo 3 controlli: il prof lo rilegga prima di darlo</span>` : `<span class="timbro${es.stato === "corretta" ? " giallo" : ""}">${es.stato === "corretta" ? "🔁 Corretto e ricontrollato" : "Controllato"} ${es.controlli} volte</span>`}</div>`;
+    es.correzioni.forEach(x => annotaErrore("Corretta dal ricontrollo", "riassunto: " + x, "Riassunto per gli assenti"));
+    conta("riassunti");
+  } catch (e) { c.innerHTML = "⚠️ Non riesco a scrivere il riassunto: controlla che Ollama sia acceso."; }
+  occupato = false;
 }
 
 // ---------------- modalità esercizi ----------------
@@ -373,6 +414,11 @@ setInterval(() => {
   const resta = fine - Date.now();
   if (resta <= 0 && !fineLezione) { nuovaLezione(true); return; }
   const m = Math.max(0, Math.ceil(resta / 60000));
+  if (resta > 0 && resta < 6 * 60000 && storia.length >= 4 && !avvisoRipasso && !occupato) {
+    avvisoRipasso = true;
+    const b = aggiungi("ai", `⏰ Mancano ${m} minuti alla fine: facciamo un ripasso veloce? <div class="azioni"><button class="b-rip">🔁 Sì, ripasso!</button></div>`);
+    b.querySelector(".b-rip").onclick = ripasso;
+  }
   $("timer").textContent = `⏱️ ${Math.floor(m / 60) ? Math.floor(m / 60) + " h " : ""}${m % 60} min`;
 }, 5000);
 setInterval(aggiornaOrario, 30000);
@@ -448,6 +494,16 @@ $("apriOrario").onclick = () => { Orario.disegnaEditor($("editorOrario")); apri(
 $("orFatto").onclick = () => { $("pOrario").style.display = "none"; aggiornaOrario(); };
 $("orCancella").onclick = () => { try { localStorage.removeItem("flyaula_orario"); } catch (e) {} Orario.disegnaEditor($("editorOrario")); aggiornaOrario(); };
 $("apriEsercizi").onclick = () => nuovoEsercizio();
+$("dsa").onclick = () => DSA.cambia();
+DSA.applica();
+$("lingua").innerHTML = `<option value="">🌍 Solo italiano</option>` + Object.entries(LINGUE).map(([k, l]) => `<option value="${k}">${l.bandiera} + ${l.nome}${l.prova ? " (in prova)" : ""}</option>`).join("");
+$("apriGara").onclick = () => { $("menu").classList.remove("aperto"); Gara.apri(); };
+$("apriRipasso").onclick = () => { $("menu").classList.remove("aperto"); ripasso(); };
+$("apriRiassunto").onclick = () => { $("menu").classList.remove("aperto"); riassuntoAssenti(); };
+$("ripChiudiX").onclick = () => { $("pRipasso").style.display = "none"; };
+$("riaChiudi").onclick = () => { $("pRiassunto").style.display = "none"; };
+$("riaStampa").onclick = () => { if (!ultimoRiassunto) return; stampa("Riassunto della lezione", `<h1>Riassunto della lezione</h1><div class="testa"><span>${escape(MATERIE[$("materia").value].nome)} · classe ${escape($("classe").value)}</span><span>${new Date().toLocaleDateString("it-IT")}</span></div>` + riassuntoInHtml(ultimoRiassunto).replace(/<span class="(verificato|corretto)">[^<]*<\/span>/g, "")); };
+$("riaCopia").onclick = async () => { try { await navigator.clipboard.writeText(ultimoRiassunto.replace(/\*\*/g, "")); $("riaCopia").textContent = "✓ Copiato"; } catch (e) {} };
 $("apriProf").onclick = () => { $("menu").classList.remove("aperto"); Prof.apri(); };
 $("apriPagine").onclick = () => Pagine.apri();
 $("apriInstallaPc").onclick = () => apri("pInstalla");
