@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.8 · il programma
+//  FLY AULA v0.9 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -17,7 +17,7 @@ function escape(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "
 // ---------------- il cervello ----------------
 // risposta intera (per revisore, esercizi, esame, riassunti)
 async function cervello(sistema, utente, { temperature = 0.2, format } = {}) {
-  const r = await fetch(OLLAMA + "/api/chat", {
+  const r = await Scuola.chiama("/api/chat", {
     method: "POST",
     body: JSON.stringify({ model: modello, stream: false, keep_alive: "2h", ...(format ? { format } : {}),
       options: { temperature, num_ctx: contesto() }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] })
@@ -27,7 +27,7 @@ async function cervello(sistema, utente, { temperature = 0.2, format } = {}) {
 }
 // risposta che si scrive mentre arriva (per la lavagna)
 async function cervelloInDiretta(messaggi, ogniPezzo) {
-  const r = await fetch(OLLAMA + "/api/chat", {
+  const r = await Scuola.chiama("/api/chat", {
     method: "POST",
     body: JSON.stringify({ model: modello, stream: true, keep_alive: "2h", options: { temperature: 0.2, num_ctx: contesto() }, messages: messaggi })
   });
@@ -173,11 +173,13 @@ async function chiedi(domanda, speciale = {}) {
   domandaCorrente = domanda;
   storia.push({ role: "user", content: domanda });
   const bolla = aggiungi("ai", '<span class="cursore"></span>');
+  const attesa = setTimeout(() => { if (bolla.querySelector(".cursore") && bolla.textContent.trim() === "") bolla.innerHTML = `<div class="lavoro">${Scuola.ruolo === "lim" ? "⏳ Fly Aula sta aiutando altre classi, arrivo…" : "☕ Ci penso un attimo…"}</div>`; }, 4000);
   const materia = $("materia").value, livello = $("livello").value;
   const sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + istruzioniProgramma(materia, livello, $("classe").value) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni() + DSA.istruzioni();
   try {
     // 1) prima stesura (si vede mentre la scrive)
-    let testo = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; });
+    let testo = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { clearTimeout(attesa); bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; });
+    clearTimeout(attesa);
     // 2) CONTROLLO SEMPRE: 2 volte, 3 nei casi speciali
     bolla.classList.add("controllo");
     bolla.insertAdjacentHTML("beforeend", `<div class="lavoro" id="lavoroRev">🧮 Controllo 1: la calcolatrice rifà i conti…</div>`);
@@ -225,7 +227,8 @@ async function chiedi(domanda, speciale = {}) {
     if (storia.length > 14) riassumi();
   } catch (e) {
     bolla.classList.remove("controllo");
-    bolla.innerHTML = "⚠️ Non riesco a parlare con il cervello di Fly Aula. Controlla che Ollama sia acceso.";
+    clearTimeout(attesa);
+    bolla.innerHTML = Scuola.ruolo === "lim" ? "☕ Fly Aula non riesce a raggiungere il cervello della scuola. Riprova tra un attimo: se continua, chiama il tecnico." : "☕ Fly Aula si sta svegliando: riprova tra qualche secondo.";
     storia.pop(); controlla();
   }
   occupato = false; $("invia").disabled = false;
@@ -388,7 +391,7 @@ function aggiornaOrario() {
   const prima = lezioneOrario;
   lezioneOrario = l;
   if (l) {
-    $("lezione").style.display = "";
+    $("lezione").style.display = "inline-block";
     $("lezione").textContent = `📅 ${l.classe} · ${l.materia} · fino alle ${l.fine.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}`;
     fineLezione = l.fine;
     $("durata").style.display = "none";
@@ -429,25 +432,40 @@ setInterval(aggiornaOrario, 30000);
 // ---------------- il cervello è acceso? ----------------
 async function controlla() {
   try {
-    const r = await fetch(OLLAMA + "/api/tags");
+    const r = await Scuola.chiama("/api/tags", { cache: "no-store" });
     const j = await r.json();
     const presenti = (j.models || []).map(m => m.name);
     window.modelliPresenti = presenti;
     modello = MODELLI.find(m => presenti.includes(m)) || presenti.find(m => !/vl|vision|llava|embed/.test(m)) || null;
-    if (modello) { $("stato").textContent = "🧠 " + modello + " · offline"; $("stato").className = "ok"; $("aiuto").style.display = "none"; }
-    else { $("stato").textContent = "Manca il modello"; $("stato").className = "ko"; mostraAiuto(true); }
-  } catch (e) { modello = null; $("stato").textContent = "Cervello spento"; $("stato").className = "ko"; mostraAiuto(false); }
+    if (modello) $("aiuto").style.display = "none"; else mostraAiuto(true);
+  } catch (e) { modello = null; mostraAiuto(false); }
+  aggiornaEtichettaStato();
 }
+// in alto: parole semplici per i prof (i dettagli tecnici sono nel "title", per il tecnico)
+window.aggiornaEtichettaStato = function () {
+  const s = $("stato");
+  if (!modello) { s.textContent = "☕ Si sta svegliando…"; s.className = "ko"; s.title = "Il cervello non risponde"; return; }
+  s.textContent = Scuola.suRiserva ? "🟡 Pronta · server di riserva" : Scuola.ruolo === "lim" ? "🟢 Pronta · server della scuola" : "🟢 Pronta";
+  s.className = Scuola.suRiserva ? "riserva" : "ok";
+  s.title = `Cervello: ${modello} · ${Scuola.base}${Scuola.aula ? " · aula " + Scuola.aula : ""}`;
+};
+setInterval(() => { if (!modello) controlla(); }, 15000);
 function mostraAiuto(acceso) {
-  $("aiutoBox").innerHTML = acceso
+  const tecnico = acceso
     ? `<h2>Manca il cervello di Fly Aula</h2><p>Ollama è acceso, ma non c'è ancora il modello. Apri <b>PowerShell</b> e scrivi:</p><p><code>ollama pull qwen2.5:7b</code></p><p>(circa 4,7 GB, si scarica una volta sola). Poi <b>ricarica questa pagina</b>.</p>`
     : `<h2>Fly Aula non trova il suo cervello</h2><p>1. Controlla che <b>Ollama</b> sia aperto (icona del lama vicino all'orologio).</p><p>2. Se è aperto ma non va, apri <b>PowerShell</b> e scrivi:<br><code>setx OLLAMA_ORIGINS "*"</code><br>poi chiudi Ollama (tasto destro sull'icona → Quit) e riaprilo.</p><p>3. Se Chrome chiede il permesso per la <b>rete locale</b>, tocca <b>Consenti</b>.</p><p>Poi ricarica la pagina.</p><button class="btn" style="padding:14px 24px" onclick="controlla()">Riprova</button>`;
+  // ai prof: due righe semplici. Le istruzioni tecniche restano chiuse in "Per il tecnico".
+  $("aiutoBox").innerHTML = `<div class="sveglia">☕</div><h2>Fly Aula si sta svegliando</h2>
+    <p>${Scuola.ruolo === "lim" ? "Non riesce ancora a raggiungere il cervello della scuola. Di solito basta aspettare un minuto." : "Il suo cervello non è ancora pronto. Di solito basta aspettare un minuto."} Riprova da sola ogni 15 secondi.</p>
+    <p>Se non parte, <b>chiama il tecnico della scuola</b>.</p>
+    <div class="riga-btn"><button class="btn" style="padding:14px 24px" onclick="controlla()">🔄 Riprova adesso</button><button class="btn sec" style="padding:14px 24px" onclick="document.getElementById('aiuto').style.display='none'">Chiudi</button></div>
+    <details class="per-tecnico"><summary>Per il tecnico</summary>${Scuola.ruolo === "lim" ? `<p>Questa LIM usa il server <code>${escape(Scuola.base)}</code>. Controlla che il server della scuola sia acceso e che Ollama sia aperto lì. Pannello del tecnico: sul server apri <code>http://localhost:8780/flyaula/tecnico.html</code>.</p>` : tecnico}</details>`;
   $("aiuto").style.display = "flex";
 }
 
 // ---------------- voce ----------------
 let leggiAuto = leggi("flyaula_leggi") === "1";
-const aggiornaLeggi = () => { $("leggiAuto").textContent = leggiAuto ? "🔊" : "🔇"; $("leggiAuto").classList.toggle("on", leggiAuto); };
+const aggiornaLeggi = () => { $("leggiAuto").classList.toggle("on", leggiAuto); };
 aggiornaLeggi();
 $("leggiAuto").onclick = () => { leggiAuto = !leggiAuto; scrivi("flyaula_leggi", leggiAuto ? "1" : "0"); aggiornaLeggi(); if (!leggiAuto) Voce.zitto(); };
 $("voce").onclick = async () => {
@@ -493,7 +511,15 @@ $("apriEsame").onclick = () => { $("esLivello").value = $("livello").value; apri
 $("esVia").onclick = esame;
 $("esStop").onclick = () => { esameAttivo = false; };
 $("esCsv").onclick = () => scaricaCsv("fly-aula-esame.csv", ["N", "Categoria", "Domanda", "Risultato giusto", "Fly Aula (senza controlli)", "Esito", "Fly Aula (con i controlli)", "Esito", "Controlli"], esameRighe);
-$("apriOrario").onclick = () => { Orario.disegnaEditor($("editorOrario")); apri("pOrario"); };
+$("apriOrario").onclick = () => {
+  Orario.disegnaEditor($("editorOrario"));
+  if (Scuola.ruolo === "lim") {
+    $("editorOrario").insertAdjacentHTML("afterbegin", `<div class="avviso-pg">🏫 L'orario di quest'aula (<b>${escape(Scuola.aula || "?")}</b>) lo carica la segreteria sul server della scuola: qui si può solo guardare.</div>`);
+    $("editorOrario").querySelectorAll("select,input").forEach(x => x.disabled = true);
+    $("orCancella").style.display = "none";
+  }
+  apri("pOrario");
+};
 $("orFatto").onclick = () => { $("pOrario").style.display = "none"; aggiornaOrario(); };
 $("orCancella").onclick = () => { try { localStorage.removeItem("flyaula_orario"); } catch (e) {} Orario.disegnaEditor($("editorOrario")); aggiornaOrario(); };
 $("apriEsercizi").onclick = () => nuovoEsercizio();
@@ -529,6 +555,33 @@ addEventListener("beforeinstallprompt", e => { e.preventDefault(); invitoInstall
 $("installa").onclick = async () => { if (!invitoInstalla) return; invitoInstalla.prompt(); await invitoInstalla.userChoice; invitoInstalla = null; $("installa").style.display = "none"; };
 addEventListener("appinstalled", () => { $("installa").style.display = "none"; });
 $("nErrori").textContent = registro().length;
+// pannello "Classe", tasti grandi e menu che si chiude da solo
+$("apriClasse").onclick = () => { $("pClasse").style.display = "flex"; };
+$("classeFatto").onclick = () => { $("pClasse").style.display = "none"; };
+$("pClasse").onclick = e => { if (e.target === $("pClasse")) $("pClasse").style.display = "none"; };
+$("apriGaraTop").onclick = () => Gara.apri();
+document.querySelectorAll(".tendina button").forEach(b => b.addEventListener("click", () => $("menu").classList.remove("aperto")));
+
+// benvenuto: 3 fumetti, solo la prima volta
+function benvenuto() {
+  if (leggi("flyaula_tour") === "1" || $("aiuto").style.display === "flex" || Prof.verificaAttiva()) return;
+  const passi = [["domanda", "✍️ Scrivi qui la domanda, oppure tocca 🎤 e parla. Fly Aula risponde e controlla tutto 2 volte."], ["apriEsercizi", "✏️ Qui un esercizio per la classe, già controllato. 📷 Pagine: le foto del libro. 🏆 Gara: Rossi contro Blu."], ["apriMenu", "☰ Qui c'è tutto il resto: ripasso, riassunto, pannello del prof con PIN, verifiche da stampare."]];
+  let k = 0;
+  const mostra = () => {
+    if (k >= passi.length) { $("tour").innerHTML = ""; $("tour").style.display = "none"; scrivi("flyaula_tour", "1"); return; }
+    const [id, testo] = passi[k], r = $(id).getBoundingClientRect(), sotto = r.top < innerHeight / 2;
+    $("tour").style.display = "block";
+    $("tour").innerHTML = `<div class="tour-buco" style="left:${r.left - 8}px;top:${r.top - 8}px;width:${r.width + 16}px;height:${r.height + 16}px"></div>
+      <div class="tour-fumetto ${sotto ? "t-giu" : "t-su"}" style="${sotto ? `top:${r.bottom + 18}px` : `bottom:${innerHeight - r.top + 18}px`};left:${Math.max(16, Math.min(innerWidth - 436, r.left + r.width / 2 - 210))}px">
+        <div class="tour-n">${k + 1} di ${passi.length}</div><p>${testo}</p><button class="btn" id="tourOk">${k + 1 < passi.length ? "Avanti ▶" : "Ho capito 👍"}</button></div>`;
+    $("tourOk").onclick = () => { k++; mostra(); };
+  };
+  mostra();
+}
+
 schermataIniziale();
-aggiornaOrario();
-controlla();
+Scuola.avvia().then(() => {
+  if (Scuola.aula && Scuola.ruolo !== "singolo") { $("classe").value = Scuola.aula.slice(0, 8); $("classeNota").textContent = `Aula ${Scuola.aula} · collegata al server della scuola. Classe e materia arrivano dall'orario.`; }
+  aggiornaOrario();
+  return controlla();
+}).then(() => setTimeout(benvenuto, 600));

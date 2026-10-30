@@ -19,45 +19,32 @@
     <circle class="neu" cx="100" cy="140" r="14" fill="#F3F6FB"/><circle class="neu" cx="150" cy="70" r="14" fill="#FFD23F"/><circle class="neu" cx="200" cy="140" r="14" fill="#F3F6FB"/>
   </svg>
   <div class="nome">Fly<b>Aula</b></div>
-  <select class="pill" id="materia" title="Materia">
-    <option value="matematica">🧮 Matematica</option>
-    <option value="economia">📊 Economia aziendale</option>
-    <option value="inglese">🇬🇧 Inglese</option>
-  </select>
-  <select class="pill" id="livello" title="Livello">
-    <option value="elementari">Elementari</option>
-    <option value="medie">Medie</option>
-    <option value="superiori" selected>Superiori</option>
-  </select>
-  <input class="pill" id="classe" value="1ªA" maxlength="8" style="width:86px" title="Classe">
-  <select class="pill" id="durata" title="Durata della lezione">
-    <option value="60">1 ora</option>
-    <option value="120">2 ore</option>
-  </select>
-  <span id="lezione"></span>
+  <span id="lezione" class="lezione-pill"></span>
   <span id="pillProf" class="info-pill" style="display:none"></span>
   <span id="pillPagine" class="info-pill pagine" style="display:none"></span>
   <div class="spazio"></div>
   <span id="timer"></span>
-  <span id="stato">Mi collego…</span>
-  <button class="pill" id="apriEsercizi">✏️ Esercizi</button>
-  <button class="pill" id="apriPagine" title="Fotografa le pagine del libro di oggi">📷 Pagine</button>
-  <button class="pill" id="dsa" title="Modalità DSA">🧩 DSA</button>
-  <select class="pill" id="lingua" title="Spiega anche in un'altra lingua (alunni stranieri)"></select>
-  <button class="pill" id="leggiAuto" title="Leggi le risposte ad alta voce">🔇</button>
-  <button class="pill" id="nuova" title="Cancella la memoria e inizia una nuova lezione">🧹 Nuova lezione</button>
+  <span id="stato" title="">Mi preparo…</span>
+  <button class="grande" id="apriEsercizi"><span>✏️</span>Esercizi</button>
+  <button class="grande" id="apriPagine" title="Fotografa le pagine del libro di oggi"><span>📷</span>Pagine</button>
+  <button class="grande" id="apriGaraTop"><span>🏆</span>Gara</button>
+  <button class="grande sec" id="apriClasse" title="Classe, materia, lingua, DSA…"><span>⚙️</span>Classe</button>
   <div class="menu" id="menu">
-    <button class="pill" id="apriMenu">☰</button>
+    <button class="grande sec" id="apriMenu" title="Tutte le funzioni"><span>☰</span>Menu</button>
     <div class="tendina">
-      <button id="apriProf">👩‍🏫 Pannello del prof</button>
-      <button id="apriGara">🏆 Gara a squadre</button>
+      <div class="sez">Per la lezione</div>
+      <button id="nuova">🧹 Nuova lezione</button>
       <button id="apriRipasso">🔁 Ripasso veloce</button>
       <button id="apriRiassunto">📒 Riassunto per gli assenti</button>
-      <button id="apriEsame">📝 Esame delle domande</button>
-      <button id="apriReport">📈 Report per la scuola</button>
-      <button id="apriDemo">🎬 Presentazione per la preside</button>
+      <button id="apriGara">🏆 Gara a squadre</button>
+      <div class="sez">Per il prof</div>
+      <button id="apriProf">👩‍🏫 Pannello del prof</button>
       <button id="apriOrario">📅 Orario della classe</button>
       <button id="apriRegistro">📊 Tabella degli errori (<span id="nErrori">0</span>)</button>
+      <div class="sez">Altro</div>
+      <button id="apriReport">📈 Report per la scuola</button>
+      <button id="apriDemo">🎬 Presentazione per la preside</button>
+      <button id="apriEsame">📝 Esame delle domande (tecnico)</button>
       <button id="apriInstallaPc">💻 Installa sul PC della classe</button>
       <button id="installa" style="display:none">⬇️ Installa Fly Aula</button>
     </div>
@@ -72,7 +59,7 @@
     <button type="button" class="btn sec voce" id="voce" title="Parla (la voce resta su questo computer)">🎤</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.8 · ogni risposta controllata 2 volte (3 nei casi difficili) · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.9 · ogni risposta controllata 2 volte (3 nei casi difficili) · i conti li verifica una calcolatrice · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -165,6 +152,33 @@
   <div class="demo-barra"><button class="btn sec" id="demoEsci">✕ Esci</button><div id="demoPunti"></div><button class="btn sec" id="demoIndietro">◀</button><button class="btn" id="demoAvanti">Avanti ▶</button></div>
 </div>
 
+<div id="pClasse" class="foglio"><div class="foglio-box">
+  <h2>⚙️ Classe</h2>
+  <p class="nota-s" id="classeNota">Di solito si sistema da sola con l'orario. Cambia qui solo se serve.</p>
+  <div class="campi">
+    <label>Materia<select id="materia">
+      <option value="matematica">🧮 Matematica</option>
+      <option value="economia">📊 Economia aziendale</option>
+      <option value="inglese">🇬🇧 Inglese</option>
+    </select></label>
+    <label>Scuola<select id="livello">
+      <option value="elementari">Elementari</option>
+      <option value="medie">Medie</option>
+      <option value="superiori" selected>Superiori</option>
+    </select></label>
+    <label>Classe<input id="classe" value="1ªA" maxlength="8"></label>
+    <label>Durata<select id="durata"><option value="60">1 ora</option><option value="120">2 ore</option></select></label>
+    <label class="largo">Alunni stranieri: spiega anche in<select id="lingua"></select></label>
+  </div>
+  <div class="interruttori">
+    <button id="dsa" class="interr"><span>🧩</span><b>Modalità DSA</b><small>frasi brevi, mappe, lettura riga per riga</small></button>
+    <button id="leggiAuto" class="interr"><span>🔊</span><b>Leggi ad alta voce</b><small>ogni risposta, da sola</small></button>
+  </div>
+  <div class="riga-btn"><button class="btn" id="classeFatto">✓ Fatto</button></div>
+</div></div>
+
+<div id="tour"></div>
+
 <div id="pin" class="sopra"></div>
 
 <div id="verifica" class="sopra">
@@ -177,6 +191,7 @@
   </div>
 </div>
 
+<script src="scuola.js"></script>
 <script src="qr.js"></script>
 <script src="prof.js"></script>
 <script src="pagine.js"></script>

@@ -10,6 +10,8 @@ flyaula/esame.js
 flyaula/esercizi.js
 flyaula/orario.js
 flyaula/voce.js
+flyaula/scuola.js
+flyaula/tecnico.html
 flyaula/qr.js
 flyaula/prof.js
 flyaula/pagine.js

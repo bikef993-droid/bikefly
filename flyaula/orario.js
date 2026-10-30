@@ -32,8 +32,10 @@ const Orario = {
   },
 
   // pannello per scrivere l'orario (una tabella con i menu a tendina)
-  disegnaEditor(el) {
-    const d = this.dati() || this.vuoto(document.getElementById("classe").value || "3ªB");
+  // scelte (per il pannello del tecnico): { dati, salva, classe }
+  disegnaEditor(el, scelte = {}) {
+    const d = (scelte.dati !== undefined ? scelte.dati : this.dati()) || this.vuoto(scelte.classe || document.getElementById("classe")?.value || "1ªA");
+    const salva = scelte.salva || (n => this.salva(n));
     const opz = v => MATERIE_ORARIO.map(m => `<option ${m === v ? "selected" : ""}>${m}</option>`).join("");
     el.innerHTML = `
       <div class="riga-btn"><label>Classe <input class="pill" id="orClasse" value="${d.classe}" style="width:90px"></label>
@@ -48,7 +50,7 @@ const Orario = {
       const n = { classe: el.querySelector("#orClasse").value.trim() || "Classe", durataMin: +el.querySelector("#orDurata").value,
         ore: [...el.querySelectorAll(".ora")].map(x => /^\d{1,2}:\d{2}$/.test(x.value) ? x.value.padStart(5, "0") : "08:00"),
         griglia: GIORNI.map((_, g) => [...el.querySelectorAll(`.cellao[data-g="${g}"]`)].map(s => s.value)) };
-      this.salva(n); colora();
+      salva(n); colora();
     };
   }
 };

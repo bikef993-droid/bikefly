@@ -34,7 +34,7 @@ input[type=file]{display:none}
   <p class="nota">Consiglio: pagina dritta, tutta dentro la foto, con buona luce. A fine lezione Fly Aula cancella le foto.</p>
 </div>
 <script>
-const codice = new URLSearchParams(location.search).get("c");
+const codice = new URLSearchParams(location.search).get("c"), aula = new URLSearchParams(location.search).get("a") || "";
 const lista = document.getElementById("lista");
 if (!codice) document.getElementById("corpo").innerHTML = '<div class="err">Questo collegamento non è completo. Inquadra di nuovo il QR sulla lavagna.</div>';
 let n = 0;
@@ -63,7 +63,7 @@ async function manda(files) {
     try {
       const b = await riduci(f);
       r.querySelector("img").src = URL.createObjectURL(b);
-      const res = await fetch("/fa/carica?c=" + encodeURIComponent(codice), { method: "POST", body: b, headers: { "Content-Type": "image/jpeg" } });
+      const res = await fetch("/fa/carica?c=" + encodeURIComponent(codice) + (aula ? "&aula=" + encodeURIComponent(aula) : ""), { method: "POST", body: b, headers: { "Content-Type": "image/jpeg" } });
       if (res.ok) { s.className = "s ok"; s.textContent = "✓ arrivata alla lavagna"; }
       else if (res.status === 403) { s.className = "s ko"; s.textContent = "✗ codice scaduto: rifai il QR"; }
       else if (res.status === 413) { s.className = "s ko"; s.textContent = "✗ troppe pagine o foto troppo grande"; }

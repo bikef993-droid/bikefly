@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fly Aula · Tecnico</title>
+<link rel="icon" href="icona-192.png">
+<link rel="stylesheet" href="stile.css">
+<style>
+body{display:block;overflow:auto}
+.t-box{max-width:1200px;margin:0 auto;padding:28px 4vw 60px}
+.t-box h1{font-family:Bricolage;font-size:42px;margin:0 0 4px}.t-box h1 b{color:var(--cielo)}
+.t-box h2{font:900 24px Figtree;margin:30px 0 12px}
+.t-griglia{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.t-carta{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:16px 18px}
+.t-carta b{display:block;font:900 22px Figtree;margin-top:4px;word-break:break-all}.t-carta span{color:var(--nebbia);font:700 14px Figtree}
+.t-carta.ok b{color:var(--menta)}.t-carta.ko b{color:var(--corallo)}
+.t-riga{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.t-riga input,.t-riga select{background:var(--notte2);border:2px solid rgba(255,255,255,.16);color:var(--latte);border-radius:14px;padding:11px 14px;font:700 17px Figtree;min-width:220px}
+.t-riga .btn{padding:12px 20px}
+.aule{display:flex;gap:8px;flex-wrap:wrap}.aule button{background:rgba(124,92,255,.18);border:1px solid rgba(124,92,255,.45);color:var(--latte);border-radius:99px;padding:8px 14px;font:800 15px Figtree;cursor:pointer}
+.aule button.on{background:var(--viola)}
+#tCarico td,#tCarico th{font-size:16px}
+.stima{font:900 30px Figtree;color:var(--menta);margin:14px 0 4px}
+.qr-lim{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="t-box">
+  <h1>🛠️ Fly<b>Aula</b> · pannello del tecnico</h1>
+  <p class="sotto" id="tSotto">Questa pagina si apre solo sul computer che fa da server: le LIM non possono vederla.</p>
+
+  <h2>📡 Stato</h2>
+  <div class="t-griglia" id="tStato"></div>
+
+  <h2>🏫 Scuola e server di riserva</h2>
+  <div class="t-riga"><input id="tNome" placeholder="Nome della scuola" maxlength="60"><input id="tRiserva" placeholder="Indirizzo del server di riserva (es. 192.168.1.21)"><button class="btn" id="tSalva">💾 Salva</button><span id="tSalvato" class="nota-s"></span></div>
+  <p class="nota-s">Se il server principale non risponde, le LIM passano da sole a quello di riserva (anche lui installato come "server", con la scelta 2).</p>
+
+  <h2>🖥️ Collegare una LIM</h2>
+  <div class="qr-lim" id="tLim"></div>
+
+  <h2>📅 Orari delle aule</h2>
+  <p class="nota-s">Si scrive una volta per ogni aula: ogni LIM sa da sola che classe c'è, che materia e quando finisce l'ora.</p>
+  <div class="aule" id="tAule"></div>
+  <div class="t-riga"><input id="tAula" placeholder="Nome aula (uguale a quello scritto sulla LIM, es. 1A)" maxlength="20"><button class="btn" id="tApri">📅 Apri l'orario</button><button class="btn sec" id="tElimina" style="display:none">🗑️ Elimina quest'aula</button></div>
+  <div id="tEditor"></div>
+  <div id="tEsitoOrario" class="nota-s"></div>
+
+  <h2>🏋️ Prova di carico</h2>
+  <p class="nota-s">Manda al cervello 1, 2, 4, 8, 12, 16 domande nello stesso momento e misura i tempi. Serve a sapere quante classi insieme regge questo computer. Dura qualche minuto: meglio farla fuori dall'orario delle lezioni.</p>
+  <div class="t-riga"><button class="btn" id="tProva">▶️ Avvia la prova</button><button class="btn sec" id="tStop" style="display:none">⏹️ Ferma</button></div>
+  <div id="tCaricoBox"></div>
+</div>
+<script src="qr.js"></script>
+<script src="orario.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const OLL = "http://localhost:11434";
+let info = {}, cfg = {}, modello = null, fermo = false;
+async function json(u, o) { const r = await fetch(u, { cache: "no-store", ...o }); if (!r.ok) throw new Error(r.status); return r.json(); }
+
+async function stato() {
+  try { info = await json("/fa/scuola"); } catch (e) { info = {}; }
+  try { cfg = await json("/fa/config"); } catch (e) { cfg = {}; }
+  let modelli = [], caricati = [];
+  try { modelli = (await json(OLL + "/api/tags")).models.map(m => m.name); } catch (e) {}
+  try { caricati = (await json(OLL + "/api/ps")).models.map(m => m.name); } catch (e) {}
+  modello = ["qwen2.5:14b", "qwen2.5:7b"].find(m => modelli.includes(m)) || modelli.find(m => !/vl|vision|embed/.test(m)) || null;
+  const carta = (t, v, cl = "") => `<div class="t-carta ${cl}"><span>${t}</span><b>${v}</b></div>`;
+  $("tStato").innerHTML = carta("Ruolo di questo computer", info.ruolo === "server" ? "🏫 Server della scuola" : "💻 PC singolo", info.ruolo === "server" ? "ok" : "")
+    + carta("Indirizzo per le LIM", esc(info.ip || "?"))
+    + carta("Cervello", modelli.length ? "🟢 acceso" : "🔴 spento", modelli.length ? "ok" : "ko")
+    + carta("Modello", esc(modello || "nessuno"))
+    + carta("In memoria adesso", esc(caricati.join(", ") || "—"))
+    + carta("Domande insieme (parallelo)", esc(info.parallelo || "predefinito"));
+  $("tNome").value = cfg.nome || ""; $("tRiserva").value = cfg.riserva || "";
+  if (info.ip) {
+    const prova = `http://${info.ip}:8780/flyaula/?aula=prova`;
+    $("tLim").innerHTML = `${QR.svg(prova, 170)}<div>
+      <p style="font-size:18px;margin:0 0 8px"><b>Su ogni LIM:</b> scarica <code>Installa-FlyAula.bat</code>, scegli <b>3</b> e scrivi l'indirizzo <code>${esc(info.ip)}</code> e il nome dell'aula.</p>
+      <p class="nota-s">Per una prova veloce da un telefono o un PC sul Wi-Fi della scuola: inquadra il QR o apri <code>${esc(prova)}</code></p></div>`;
+  }
+  if (info.ruolo !== "server") $("tSotto").innerHTML = "⚠️ Questo computer è installato come <b>PC singolo</b>: per fare da server della scuola rilancia l'installazione e scegli <b>2</b>.";
+  aule();
+}
+$("tSalva").onclick = async () => {
+  await fetch("/fa/config", { method: "POST", body: JSON.stringify({ nome: $("tNome").value.trim(), riserva: $("tRiserva").value.trim() }) });
+  $("tSalvato").textContent = "✓ Salvato";
+  setTimeout(() => $("tSalvato").textContent = "", 2500);
+};
+
+// ---------- orari delle aule (salvati sul server) ----------
+let aulaAperta = null;
+async function aule() {
+  let nomi = []; try { nomi = await json("/fa/orari"); } catch (e) {}
+  $("tAule").innerHTML = nomi.length ? nomi.map(n => `<button data-a="${esc(n)}" class="${n === aulaAperta ? "on" : ""}">${esc(n)}</button>`).join("") : `<span class="nota-s">Ancora nessuna aula.</span>`;
+  $("tAule").querySelectorAll("button").forEach(b => b.onclick = () => { $("tAula").value = b.dataset.a; apriAula(); });
+}
+async function apriAula() {
+  const a = $("tAula").value.trim(); if (!a) return;
+  aulaAperta = a.replace(/[^\p{L}\p{N}]/gu, "_").slice(0, 20);
+  let dati = null; try { dati = await json("/fa/orario?aula=" + encodeURIComponent(a)); } catch (e) {}
+  Orario.disegnaEditor($("tEditor"), { dati, classe: a, salva: async n => {
+    const r = await fetch("/fa/orario?aula=" + encodeURIComponent(a), { method: "POST", body: JSON.stringify(n) });
+    $("tEsitoOrario").textContent = r.ok ? `✓ Orario dell'aula ${a} salvato sul server` : "⚠️ Non salvato";
+    aule();
+  } });
+  // salva subito anche l'orario vuoto, così l'aula compare nell'elenco
+  if (!dati) $("tEditor").dispatchEvent(new Event("change"));
+  $("tElimina").style.display = "";
+  aule();
+}
+$("tApri").onclick = apriAula;
+$("tAula").onkeydown = e => { if (e.key === "Enter") apriAula(); };
+$("tElimina").onclick = async () => {
+  const a = $("tAula").value.trim(); if (!a) return;
+  await fetch("/fa/orario?aula=" + encodeURIComponent(a), { method: "DELETE" });
+  $("tEditor").innerHTML = ""; $("tElimina").style.display = "none"; aulaAperta = null; $("tEsitoOrario").textContent = `Aula ${a} eliminata`;
+  aule();
+};
+
+// ---------- prova di carico ----------
+async function unaDomanda() {
+  const t0 = performance.now();
+  const r = await fetch(OLL + "/api/chat", { method: "POST", body: JSON.stringify({ model: modello, stream: false, keep_alive: "24h",
+    options: { temperature: 0.2, num_predict: 160, num_ctx: 4096 },
+    messages: [{ role: "system", content: "Sei l'assistente di matematica di una classe. Spiega passo passo, in 4 righe numerate." }, { role: "user", content: "Spiegami come si fa " + (100 + Math.floor(Math.random() * 900)) + " : 4" }] }) });
+  await r.json();
+  return (performance.now() - t0) / 1000;
+}
+$("tStop").onclick = () => { fermo = true; };
+$("tProva").onclick = async () => {
+  if (!modello) { $("tCaricoBox").innerHTML = `<p class="nota-s">⚠️ Il cervello è spento o manca il modello.</p>`; return; }
+  fermo = false; $("tProva").style.display = "none"; $("tStop").style.display = "";
+  const righe = [];
+  const disegna = (stima) => {
+    $("tCaricoBox").innerHTML = `<table id="tCarico"><thead><tr><th>Domande insieme</th><th>Tempo medio</th><th>Tempo massimo</th><th></th></tr></thead><tbody>
+      ${righe.map(r => `<tr><td><b>${r.k}</b></td><td>${r.media.toFixed(1)} s</td><td>${r.max.toFixed(1)} s</td><td>${r.max <= 20 ? "🟢 bene" : r.max <= 35 ? "🟡 lento" : "🔴 troppo lento"}</td></tr>`).join("")}</tbody></table>${stima || ""}`;
+  };
+  await unaDomanda().catch(() => {});      // la prima carica il modello in memoria: non conta
+  for (const k of [1, 2, 4, 8, 12, 16]) {
+    if (fermo) break;
+    disegna(`<div class="lavoro">${k} domande insieme…</div>`);
+    const tempi = await Promise.all(Array.from({ length: k }, () => unaDomanda().catch(() => 999)));
+    righe.push({ k, media: tempi.reduce((a, b) => a + b, 0) / k, max: Math.max(...tempi) });
+    if (Math.max(...tempi) > 35) break;
+  }
+  // stima: ogni classe attiva fa ~1 domanda ogni 2 minuti, e ogni domanda costa ~3 passaggi (risposta + 2 controlli)
+  const buone = righe.filter(r => r.max <= 20), migliore = buone[buone.length - 1];
+  let stima = "";
+  if (migliore) {
+    const passaggiAlMinuto = migliore.k / migliore.media * 60, classi = Math.max(1, Math.floor(passaggiAlMinuto / 3 * 2));
+    stima = `<div class="stima">≈ ${classi} ${classi === 1 ? "classe" : "classi"} insieme</div><p class="nota-s">Stima: classi che usano Fly Aula nello stesso momento, ognuna con circa una domanda ogni 2 minuti e i controlli completi. Con ${migliore.k} domande insieme il tempo massimo resta sotto i 20 secondi.</p>`;
+  } else stima = `<p class="nota-s">⚠️ Anche una domanda alla volta supera i 20 secondi: questo computer è troppo lento per fare da server.</p>`;
+  disegna(stima);
+  $("tProva").style.display = ""; $("tStop").style.display = "none";
+};
+stato();
+setInterval(stato, 30000);
+</script>
+</body>
+</html>

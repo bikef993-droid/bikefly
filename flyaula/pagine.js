@@ -15,7 +15,7 @@ const Pagine = (() => {
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   async function statoServer() {
-    try { const r = await fetch("/fa/stato", { cache: "no-store" }); server = r.ok ? await r.json() : null; } catch (e) { server = null; }
+    try { const r = await fetch("/fa/stato?" + Scuola.parAula(), { cache: "no-store" }); server = r.ok ? await r.json() : null; } catch (e) { server = null; }
     return server;
   }
 
@@ -27,7 +27,7 @@ const Pagine = (() => {
   async function leggiFoto(src) {
     const visione = (window.modelliPresenti || []).find(m => VISIONE.test(m));
     if (visione) {
-      const r = await fetch(OLLAMA + "/api/chat", { method: "POST", body: JSON.stringify({ model: visione, stream: false, keep_alive: "30m", options: { temperature: 0, num_ctx: 8192 },
+      const r = await Scuola.chiama("/api/chat", { method: "POST", body: JSON.stringify({ model: visione, stream: false, keep_alive: "30m", options: { temperature: 0, num_ctx: 8192 },
         messages: [{ role: "user", content: "Trascrivi ESATTAMENTE tutto il testo stampato in questa pagina di un libro scolastico, nell'ordine in cui si legge. Mantieni i titoli, i numeri e le formule. Non aggiungere niente, non riassumere, non commentare.", images: [await inBase64(src)] }] }) });
       const j = await r.json();
       const t = (j.message?.content || "").trim();
@@ -56,8 +56,8 @@ const Pagine = (() => {
   async function controllaArrivi() {
     if (!server) return;
     try {
-      const ids = await (await fetch("/fa/pagine", { cache: "no-store" })).json();
-      for (const id of ids) if (!pagine.find(p => p.id === id)) { const p = { id, src: "/fa/pagina/" + id, testo: "", stato: "leggo" }; pagine.push(p); leggi(p); }
+      const ids = await (await fetch("/fa/pagine?" + Scuola.parAula(), { cache: "no-store" })).json();
+      for (const id of ids) if (!pagine.find(p => p.id === id)) { const p = { id, src: "/fa/pagina/" + id + "?" + Scuola.parAula(), testo: "", stato: "leggo" }; pagine.push(p); leggi(p); }
     } catch (e) {}
   }
   function aggiungiFile(files) {
@@ -95,7 +95,7 @@ const Pagine = (() => {
     qr.innerHTML = `<div class="lavoro">Preparo il collegamento col telefono…</div>`;
     await statoServer();
     if (server && server.rete && server.ip) {
-      const url = `http://${server.ip}:${server.porta}/flyaula/telefono.html?c=${server.codice}`;
+      const url = `http://${server.ip}:${server.porta}/flyaula/telefono.html?c=${server.codice}${Scuola.aula ? "&a=" + encodeURIComponent(Scuola.aula) : ""}`;
       qr.innerHTML = `<div class="qr-box">${QR.svg(url, 250)}<div>
         <h3>1. Inquadra il QR con la fotocamera del telefono</h3>
         <h3>2. Fotografa le pagine della lezione</h3>
@@ -117,7 +117,7 @@ const Pagine = (() => {
   async function svuota() {
     pagine.forEach(p => { if (p.src && p.src.startsWith("blob:")) URL.revokeObjectURL(p.src); });
     pagine = []; testoUsato = "";
-    try { if (server || await statoServer()) await fetch("/fa/pagine", { method: "DELETE" }); } catch (e) {}
+    try { if (server || await statoServer()) await fetch("/fa/pagine?" + Scuola.parAula(), { method: "DELETE" }); } catch (e) {}
     aggiornaPill(); disegnaLista();
   }
   function aggiornaPill() {

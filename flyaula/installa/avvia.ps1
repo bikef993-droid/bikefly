@@ -1,15 +1,34 @@
 # ==================================================================
 #  FLY AULA - avvio
-#  1 si aggiorna da sola (se c e internet)   2 accende il cervello
-#  3 accende la lavagna   4 apre Fly Aula a tutto schermo
+#  LIM: apre Fly Aula dal server della scuola (gli aggiornamenti li ha il server)
+#  PC singolo o server: 1 si aggiorna (se c e internet)  2 accende il cervello
+#                       3 accende la lavagna  4 apre Fly Aula a tutto schermo
 # ==================================================================
 $DIR  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SITO = 'https://bikef993-droid.github.io/bikefly'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$aggiornata = $false
+$cfg = $null
+try { $cfg = [IO.File]::ReadAllText((Join-Path $DIR 'config.json')) | ConvertFrom-Json } catch {}
+$ruolo = if ($cfg -and $cfg.ruolo) { [string]$cfg.ruolo } else { 'singolo' }
 
-# 1) aggiornamenti automatici: si scarica tutto in una cartella a parte,
-#    e solo se e tutto a posto si sostituisce la versione vecchia
+function ApriFlyAula($url, $origine) {
+  $edge = @("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe", "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $chrome = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe", "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  $browser = if ($edge) { $edge } else { $chrome }
+  # sulle LIM l indirizzo del server e "http": questa opzione permette lo stesso il microfono
+  $sicuro = if ($origine) { " --unsafely-treat-insecure-origin-as-secure=$origine" } else { '' }
+  $opzioni = "--app=$url --start-fullscreen --user-data-dir=`"$DIR\profilo`" --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required$sicuro"
+  if ($browser) { Start-Process $browser $opzioni } else { Start-Process $url }
+}
+
+if ($ruolo -eq 'lim') {
+  $srv = [string]$cfg.server
+  ApriFlyAula "http://$($srv):8780/flyaula/?aula=$([Uri]::EscapeDataString([string]$cfg.aula))" "http://$($srv):8780"
+  exit 0
+}
+
+$aggiornata = $false
+# 1) aggiornamenti automatici: si scarica tutto a parte, e si sostituisce solo se e tutto a posto
 try {
   $wc = New-Object Net.WebClient
   $wc.Encoding = [Text.Encoding]::UTF8
@@ -40,8 +59,8 @@ if (-not (Get-Process ollama -ErrorAction SilentlyContinue)) {
   elseif (Test-Path (Join-Path $OLL 'ollama.exe')) { Start-Process (Join-Path $OLL 'ollama.exe') -ArgumentList 'serve' -WindowStyle Hidden }
 }
 
-# 3) la lavagna (piccolo server solo su questo computer e sul Wi-Fi della scuola)
-function Accesa { try { Invoke-WebRequest 'http://localhost:8780/fa/stato' -UseBasicParsing -TimeoutSec 2 | Out-Null; $true } catch { $false } }
+# 3) la lavagna (piccolo server: questo computer + Wi-Fi della scuola)
+function Accesa { try { Invoke-WebRequest 'http://localhost:8780/fa/scuola' -UseBasicParsing -TimeoutSec 2 | Out-Null; $true } catch { $false } }
 if ($aggiornata -and (Accesa)) {
   try { Invoke-WebRequest 'http://localhost:8780/fa/ferma' -UseBasicParsing -TimeoutSec 2 | Out-Null } catch {}
   Start-Sleep 1
@@ -51,10 +70,6 @@ if (-not (Accesa)) {
   for ($i = 0; $i -lt 30 -and -not (Accesa); $i++) { Start-Sleep -Milliseconds 500 }
 }
 
-# 4) Fly Aula a tutto schermo, senza barre del browser
-$url = 'http://localhost:8780/flyaula/'
-$edge = @("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe", "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
-$chrome = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe", "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
-$browser = if ($edge) { $edge } else { $chrome }
-$opzioni = "--app=$url --start-fullscreen --user-data-dir=`"$DIR\profilo`" --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required"
-if ($browser) { Start-Process $browser $opzioni } else { Start-Process $url }
+# 4) Fly Aula a tutto schermo (sul server: anche il pannello del tecnico)
+ApriFlyAula 'http://localhost:8780/flyaula/' ''
+if ($ruolo -eq 'server') { Start-Process 'http://localhost:8780/flyaula/tecnico.html' }
