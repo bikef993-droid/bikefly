@@ -540,6 +540,12 @@ $("riaCopia").onclick = async () => { try { await navigator.clipboard.writeText(
 $("apriProf").onclick = () => { $("menu").classList.remove("aperto"); Prof.apri(); };
 $("apriPagine").onclick = () => Pagine.apri();
 $("apriInstallaPc").onclick = () => apri("pInstalla");
+$("copiaCmd").onclick = async () => {
+  const t = $("cmdInstalla").textContent;
+  try { await navigator.clipboard.writeText(t); } catch (e) { const r = document.createRange(); r.selectNodeContents($("cmdInstalla")); getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand("copy"); }
+  $("copiaCmd").textContent = "✓ Copiato!";
+  setTimeout(() => $("copiaCmd").textContent = "📋 Copia il comando", 3000);
+};
 $("vSblocca").onclick = () => Prof.sbloccaVerifica();
 Pagine.collega();
 Prof.applicaTema(); Prof.aggiornaPill(); Prof.mostraVerifica();

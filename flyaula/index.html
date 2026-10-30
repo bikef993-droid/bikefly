@@ -46,7 +46,7 @@
       <button id="apriDemo">🎬 Presentazione per la preside</button>
       <button id="apriEsame">📝 Esame delle domande (tecnico)</button>
       <button id="apriInstallaPc">💻 Installa sul PC della classe</button>
-      <button id="installa" style="display:none">⬇️ Installa Fly Aula</button>
+      <button id="installa" style="display:none">🌐 Aggiungi come app del browser</button>
     </div>
   </div>
 </header>
@@ -115,6 +115,14 @@
     <li>Aspetta 10-30 minuti: scarica circa 5 GB (una volta sola). Quando Windows chiede un permesso, tocca <b>Sì</b>: serve per le foto dal telefono.</li>
     <li>Fatto! Da ora basta l'icona <b>Fly Aula</b> sul desktop. Si aggiorna da sola quando c'è internet.</li>
   </ol>
+  <div class="avviso-pg" style="margin:6px 0 14px">🛡️ <b>Se Windows blocca il file</b> ("Smart App Control" o "PC protetto"): non disattivare niente. Fai così:
+    <ol style="margin:8px 0 6px 20px;padding:0">
+      <li>Tocca <b>Copia il comando</b> qui sotto.</li>
+      <li>Apri il menu <b>Start</b>, scrivi <b>PowerShell</b> e apri <b>Windows PowerShell</b>.</li>
+      <li>Nella finestra blu fai <b>clic con il tasto destro</b> (incolla) e premi <b>Invio</b>.</li>
+    </ol>
+    <div class="riga-btn" style="margin:8px 0 0"><code id="cmdInstalla" style="font-size:13px;word-break:break-all;flex:1;padding:8px 10px;background:rgba(0,0,0,.3);border-radius:10px">$w=New-Object Net.WebClient;$w.Encoding=[Text.Encoding]::UTF8;iex $w.DownloadString('https://bikef993-droid.github.io/bikefly/flyaula/installa/installa.ps1')</code><button class="btn" id="copiaCmd" style="padding:10px 18px">📋 Copia il comando</button></div>
+  </div>
   <p class="nota-s">Serve Windows 10 o 11. Per rispondere veloce il computer deve essere abbastanza potente (meglio con una scheda video NVIDIA). Nelle scuole con computer bloccati dal tecnico, l'installazione va fatta da lui.</p>
   <div class="riga-btn"><button class="btn sec chiudi">Chiudi</button></div>
 </div></div>
