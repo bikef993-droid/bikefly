@@ -130,13 +130,16 @@ Start-Sleep 2
 $app = Join-Path $OLL 'ollama app.exe'
 if (Test-Path $app) { Start-Process $app } else { Start-Process $exe -ArgumentList 'serve' -WindowStyle Hidden }
 $acceso = $false
-for ($i = 0; $i -lt 40 -and -not $acceso; $i++) {
+for ($i = 0; $i -lt 120 -and -not $acceso; $i++) {
   try { Invoke-WebRequest 'http://localhost:11434/api/tags' -UseBasicParsing -TimeoutSec 2 | Out-Null; $acceso = $true } catch { Start-Sleep 1 }
 }
 if ($acceso) { Ok 'Cervello acceso' } else { Ko 'Il cervello non risponde ancora: riavvia il computer e apri Fly Aula dall icona.' }
 
 Passo 4 $TOT 'Scarico il modello qwen2.5:7b (circa 4,7 GB, una volta sola)'
+# il comando parla col cervello su questo PC (anche se il server ascolta tutta la rete)
+$env:OLLAMA_HOST = '127.0.0.1:11434'
 & $exe pull qwen2.5:7b
+if ($LASTEXITCODE -ne 0) { Start-Sleep 10; & $exe pull qwen2.5:7b }
 if ($LASTEXITCODE -eq 0) { Ok 'Modello pronto' } else { Ko 'Download non riuscito: rilancia l installazione con internet stabile.' }
 Write-Host ''
 $vis = Read-Host '   Vuoi che Fly Aula legga anche le FOTO delle pagine del libro? Scarica altri 6 GB. (S/N)'
