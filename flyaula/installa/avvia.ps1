@@ -51,12 +51,20 @@ try {
   }
 } catch {}
 
-# 2) il cervello
-if (-not (Get-Process ollama -ErrorAction SilentlyContinue)) {
-  $OLL = Join-Path $env:LOCALAPPDATA 'Programs\Ollama'
+# 2) il cervello: se il motore non risponde, lo accendiamo noi
+function Motore { try { Invoke-WebRequest 'http://127.0.0.1:11434/api/version' -UseBasicParsing -TimeoutSec 2 | Out-Null; $true } catch { $false } }
+$OLL = Join-Path $env:LOCALAPPDATA 'Programs\Ollama'
+$exe = Join-Path $OLL 'ollama.exe'
+if (-not (Test-Path $exe)) { $c = Get-Command ollama -ErrorAction SilentlyContinue; if ($c) { $exe = $c.Source } }
+if (-not (Motore)) {
   $app = Join-Path $OLL 'ollama app.exe'
-  if (Test-Path $app) { Start-Process $app }
-  elseif (Test-Path (Join-Path $OLL 'ollama.exe')) { Start-Process (Join-Path $OLL 'ollama.exe') -ArgumentList 'serve' -WindowStyle Hidden }
+  if ((Test-Path $app) -and -not (Get-Process 'ollama app' -ErrorAction SilentlyContinue)) { Start-Process $app }
+  for ($i = 0; $i -lt 15 -and -not (Motore); $i++) { Start-Sleep 1 }
+  # l app di Ollama a volte si apre ma il motore non parte: lo facciamo partire noi, nascosto
+  if (-not (Motore) -and (Test-Path $exe)) {
+    Start-Process $exe -ArgumentList 'serve' -WindowStyle Hidden
+    for ($i = 0; $i -lt 30 -and -not (Motore); $i++) { Start-Sleep 1 }
+  }
 }
 
 # 3) la lavagna (piccolo server: questo computer + Wi-Fi della scuola)

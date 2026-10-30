@@ -130,8 +130,15 @@ Start-Sleep 2
 $app = Join-Path $OLL 'ollama app.exe'
 if (Test-Path $app) { Start-Process $app } else { Start-Process $exe -ArgumentList 'serve' -WindowStyle Hidden }
 $acceso = $false
-for ($i = 0; $i -lt 120 -and -not $acceso; $i++) {
+for ($i = 0; $i -lt 30 -and -not $acceso; $i++) {
   try { Invoke-WebRequest 'http://localhost:11434/api/tags' -UseBasicParsing -TimeoutSec 2 | Out-Null; $acceso = $true } catch { Start-Sleep 1 }
+}
+if (-not $acceso) {
+  # l app di Ollama a volte si apre ma il motore non parte: lo facciamo partire noi, nascosto
+  Start-Process $exe -ArgumentList 'serve' -WindowStyle Hidden
+  for ($i = 0; $i -lt 60 -and -not $acceso; $i++) {
+    try { Invoke-WebRequest 'http://localhost:11434/api/tags' -UseBasicParsing -TimeoutSec 2 | Out-Null; $acceso = $true } catch { Start-Sleep 1 }
+  }
 }
 if ($acceso) { Ok 'Cervello acceso' } else { Ko 'Il cervello non risponde ancora: riavvia il computer e apri Fly Aula dall icona.' }
 
