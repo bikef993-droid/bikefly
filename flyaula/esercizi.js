@@ -86,7 +86,8 @@ function esercizioDiRiserva(materiaChiave, livello, argomento = "") {
     const acc = en.split("|");
     return { tipo: "parola", testo: `Traduci in inglese: "${it}"`, risposta: acc[0], accettate: acc.map(normalizza), unita: "", spiegazione: "", controllato: true, riserva: true };
   }
-  const e = CATEGORIE[scegli(categorieDi(materiaChiave, livello, argomento))]();
+  const classe = (typeof document !== "undefined" && document.getElementById("classe")?.value) || "";
+  const e = CATEGORIE[scegli(categoriePer(materiaChiave, livello, classe, argomento))]();
   return { tipo: "numero", testo: e.d, risultato: e.r, unita: "", spiegazione: "", conto: "", controllato: true, riserva: true };
 }
 

@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.7 · il programma
+//  FLY AULA v0.8 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -84,7 +84,8 @@ function scaricaCsv(nome, intestazione, righe) {
 let storia = [], inizioLezione = Date.now(), fineLezione = null, lezioneOrario = null, avvisoRipasso = false;
 const chiaveRiassunto = () => "flyaula_riassunto_" + ($("classe").value || "classe").trim() + "_" + $("materia").value;
 function schermataIniziale() {
-  const m = MATERIE[$("materia").value], esempi = m.esempi[$("livello").value] || m.esempi.medie;
+  const m = MATERIE[$("materia").value], anno = annoDellaClasse($("classe").value);
+  const esempi = ($("livello").value === "superiori" && (anno === 1 || anno === 2) && m.esempi.biennio) || m.esempi[$("livello").value] || m.esempi.medie;
   const r = leggi(chiaveRiassunto());
   chat.innerHTML = `
     <div id="avvisoMateria"></div>
@@ -342,7 +343,7 @@ async function esame() {
   if (!modello) return mostraAiuto();
   esameAttivo = true; esameRighe = [];
   $("esVia").style.display = "none"; $("esStop").style.display = ""; $("esCsv").style.display = "none";
-  const n = +$("esN").value, livello = $("esLivello").value, domande = creaEsame(n);
+  const n = +$("esN").value, livello = $("esLivello").value, domande = creaEsame(n, livello);
   const per = {}, inizio = Date.now();
   let prima = 0, dopo = 0;
   for (let i = 0; i < domande.length && esameAttivo; i++) {
@@ -521,6 +522,7 @@ $("nuova").onclick = () => nuovaLezione(true);
 $("classe").onchange = () => nuovaLezione(false);
 $("materia").onchange = () => nuovaLezione(true);
 $("livello").onchange = () => schermataIniziale();
+$("classe").oninput = () => { if ($("vuoto")) schermataIniziale(); };
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 let invitoInstalla = null;
 addEventListener("beforeinstallprompt", e => { e.preventDefault(); invitoInstalla = e; $("installa").style.display = ""; });

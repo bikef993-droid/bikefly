@@ -155,7 +155,7 @@ function domandeDiRiserva(n, materia, livello) {
     const giro = PAROLE_INGLESE.slice().sort(() => Math.random() - .5).slice(0, 4), giusta = Math.floor(Math.random() * 4);
     return { domanda: `Come si dice "${giro[giusta][0]}" in inglese?`, opzioni: giro.map(p => p[1].split("|")[0]), giusta, spiegazione: `"${giro[giusta][0]}" = ${giro[giusta][1].split("|")[0]}`, controllata: true };
   });
-  const nomi = materia === "economia" ? ["Economia aziendale"] : livello === "elementari" ? ["Addizioni e sottrazioni", "Moltiplicazioni", "Divisioni", "Problemi"] : livello === "medie" ? ["Frazioni", "Percentuali", "Aree", "Problemi", "Divisioni"] : ["Equazioni", "Percentuali", "Problemi", "Aree", "Frazioni"];
+  const nomi = categoriePer(materia, livello, document.getElementById("classe")?.value || "", "");
   return Array.from({ length: n }, () => { const e = CATEGORIE[scegli(nomi)](); const o = opzioniNumeriche(e.r); return { domanda: e.d, opzioni: o.opzioni, giusta: o.giusta, spiegazione: `Il risultato giusto è ${formatta(e.r)} (calcolato dalla calcolatrice).`, controllata: true }; });
 }
 async function creaRipasso(cervello, storiaLezione, materia, livello, quante = 4) {

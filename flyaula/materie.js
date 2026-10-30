@@ -34,6 +34,7 @@ ${DISEGNI_ISTRUZIONI}`,
     esempi: {
       elementari: ["Spiegami le divisioni con le caramelle 🍬", "Fammi 84 : 4 in colonna", "Cos'è una frazione? Usa la pizza 🍕", "Le tabelline del 7 con un gioco", "Quanto fa 345 + 278?"],
       medie: ["Spiegami come si fanno le divisioni", "Fammi 320 : 8 passo passo", "Cos'è una frazione? Usa la pizza 🍕", "Dammi 3 esercizi sulle percentuali", "Come si calcola l'area di un triangolo?"],
+      biennio: ["Spiegami i prodotti notevoli", "Come si risolve 3x + 5 = 20?", "Scomponi x² − 9", "Risolvi un sistema con il metodo di sostituzione", "Disegna la retta y = 2x + 1", "Cos'è una disequazione?"],
       superiori: ["Come si risolve 3x + 5 = 20?", "Spiegami le equazioni di secondo grado", "Cos'è una percentuale composta?", "Come si calcola la media ponderata?", "Spiegami il teorema di Pitagora con un esempio"]
     }
   },
@@ -50,6 +51,7 @@ ${DISEGNI_ISTRUZIONI}`,
     esempi: {
       elementari: ["Cos'è un guadagno?", "Se compro a 5 € e vendo a 8 €, quanto guadagno?"],
       medie: ["Cos'è l'IVA?", "Uno sconto del 20% su 50 €", "Cos'è un interesse?"],
+      biennio: ["Calcola l'IVA al 22% su 1.250 €", "Ripartisci 900 € in proporzione a 2 e 3", "Interesse e montante su 2.000 € al 3% per 2 anni", "Com'è fatta una fattura?", "Cos'è lo sconto commerciale?"],
       superiori: ["Calcola l'IVA al 22% su 1.250 €", "Spiegami la partita doppia con un esempio", "Interesse semplice su 5.000 € al 3% per 2 anni", "Cos'è il break-even point?", "Sconto del 15% e poi IVA al 22% su 800 €"]
     }
   },
@@ -65,6 +67,7 @@ ${DISEGNI_ISTRUZIONI}`,
     esempi: {
       elementari: ["Come si dicono i colori in inglese? 🎨", "Insegnami i numeri fino a 10", "Come si dice \"ciao, come stai?\""],
       medie: ["Quando si usa il present continuous?", "Spiegami il past simple dei verbi irregolari", "Differenza tra much e many"],
+      biennio: ["Spiegami il present perfect con esempi", "Past simple: i verbi irregolari", "Come si scrive una email semplice in inglese?", "Differenza tra present simple e continuous"],
       superiori: ["Spiegami il present perfect con esempi", "Come si scrive una email formale in inglese?", "I conditionals: zero, first, second", "Come si traduce \"fattura\" e \"preventivo\"?"]
     }
   }

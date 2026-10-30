@@ -11,8 +11,12 @@ const PAROLE_INGLESE = [
   ["sempre", "always"], ["mai", "never"], ["comprare", "buy|to buy"], ["vendere", "sell|to sell"], ["prezzo", "price"], ["negozio", "shop|store"], ["fattura", "invoice"],
   ["azienda", "company|firm|business"], ["guadagno", "profit|gain|earnings"], ["viaggio", "trip|journey|travel"], ["biglietto", "ticket"], ["albergo", "hotel"],
   ["stazione", "station"], ["aeroporto", "airport"], ["spiaggia", "beach"], ["montagna", "mountain"], ["città", "city|town"], ["lunedì", "monday"], ["venerdì", "friday"],
+  ["preventivo", "estimate|quote|quotation"], ["consegna", "delivery"], ["magazzino", "warehouse"], ["cliente", "customer|client"], ["fornitore", "supplier"],
+  ["sconto", "discount"], ["spedizione", "shipment|shipping"], ["riunione", "meeting"], ["colloquio di lavoro", "job interview|interview"], ["stipendio", "salary|wage"],
   ["inverno", "winter"], ["estate", "summer"], ["felice", "happy"], ["stanco", "tired"], ["veloce", "fast|quick"], ["lento", "slow"], ["grande", "big|large"], ["piccolo", "small|little"]
 ];
+const VERBI_IRREGOLARI = [["go", "went"], ["eat", "ate"], ["see", "saw"], ["buy", "bought"], ["take", "took"], ["make", "made"], ["write", "wrote"], ["speak", "spoke"],
+  ["think", "thought"], ["bring", "brought"], ["choose", "chose"], ["pay", "paid"], ["sell", "sold"], ["send", "sent"], ["begin", "began"], ["drink", "drank"], ["come", "came"], ["know", "knew"]];
 const Gara = (() => {
   const el = id => document.getElementById(id);
   let st = null, timer = null;
@@ -21,10 +25,14 @@ const Gara = (() => {
 
   function domanda(materia, livello) {
     if (materia === "inglese") {
+      if (livello !== "elementari" && Math.random() < .4) {
+        const [inf, past] = scegli(VERBI_IRREGOLARI);
+        return { d: `Qual è il <b>past simple</b> di "to ${escC(inf)}"?`, testo: true, accettate: past.split("|"), mostra: past.split("|")[0] };
+      }
       const [it, en] = scegli(PAROLE_INGLESE);
       return { d: `Come si dice <b>"${escC(it)}"</b> in inglese?`, testo: true, accettate: en.split("|"), mostra: en.split("|")[0] };
     }
-    const nomi = materia === "economia" ? ["Economia aziendale"] : livello === "elementari" ? ["Addizioni e sottrazioni", "Moltiplicazioni", "Divisioni", "Problemi"] : livello === "medie" ? ["Frazioni", "Percentuali", "Aree", "Problemi", "Divisioni", "Moltiplicazioni"] : ["Equazioni", "Percentuali", "Problemi", "Frazioni", "Aree"];
+    const nomi = categoriePer(materia, livello, el("classe").value, "");
     const e = CATEGORIE[scegli(nomi)]();
     return { d: escC(e.d), r: e.r, mostra: formatta(e.r) };
   }
