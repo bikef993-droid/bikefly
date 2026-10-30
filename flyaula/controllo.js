@@ -18,20 +18,71 @@ function calcola(A, op, B) {
   return B === 0 ? NaN : A / B;
 }
 
-// 1) calcolatrice: "320 : 8 = 40", "3,5 × 2 = 7"… → ricalcola e, se serve, corregge
-const RE_CONTO = /(\d+(?:[.,]\d+)*)\s*([+\-−×x*·÷:\/])\s*(\d+(?:[.,]\d+)*)\s*=\s*(-?\d+(?:[.,]\d+)*)/g;
+// 0) il cervello a volte scrive in LaTeX (\( \), \times, \frac…): lo traduciamo in simboli normali
+const SIMBOLI_LATEX = { times: "×", cdot: "×", div: ":", pm: "±", mp: "∓", leq: "≤", le: "≤", geq: "≥", ge: "≥", neq: "≠", ne: "≠", approx: "≈",
+  infty: "∞", pi: "π", alpha: "α", beta: "β", gamma: "γ", delta: "δ", Delta: "Δ", theta: "θ", lambda: "λ", mu: "μ", sigma: "σ", Sigma: "Σ",
+  Rightarrow: "⇒", implies: "⇒", rightarrow: "→", to: "→", Leftrightarrow: "⇔", iff: "⇔", circ: "°", degree: "°", cdots: "…", ldots: "…", dots: "…",
+  in: "∈", cup: "∪", cap: "∩", forall: "∀", exists: "∃", perp: "⊥", parallel: "∥", angle: "∠", triangle: "△" };
+function pulisciLatex(t) {
+  let s = String(t);
+  // potenze e pedici scritti "alla tastiera": x^2 → x², x_1 → x₁
+  s = s.replace(/\^\{?2\}?(?!\d)/g, "²").replace(/\^\{?3\}?(?!\d)/g, "³").replace(/([a-zA-Z])_\{?(\d)\}?/g, (m, l, d) => l + "₀₁₂₃₄₅₆₇₈₉"[+d]);
+  if (!/\\[a-zA-Z()[\]{}%]|\$/.test(s)) return s;
+  const semplice = x => /^\s*-?[\w.,²³]+\s*$/.test(x);
+  s = s.replace(/\$\$([\s\S]+?)\$\$/g, "$1").replace(/\$([^$\n]+?)\$/g, "$1");
+  s = s.replace(/\\begin\{(?:cases|array|aligned|align\*?|system)\}(?:\{[^}]*\})?([\s\S]*?)\\end\{(?:cases|array|aligned|align\*?|system)\}/g,
+    (m, c) => "{ " + c.split(/\\\\/).map(x => x.replace(/&/g, "").trim()).filter(Boolean).join(" ; ") + " }");
+  for (let k = 0; k < 3; k++) {   // anche frazioni dentro le frazioni
+    s = s.replace(/\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, (m, a, b) => (semplice(a) ? a.trim() : "(" + a.trim() + ")") + "/" + (semplice(b) ? b.trim() : "(" + b.trim() + ")"));
+    s = s.replace(/\\sqrt\s*\{([^{}]*)\}/g, (m, a) => "√" + (semplice(a) ? a.trim() : "(" + a.trim() + ")"));
+    s = s.replace(/\\(?:text|mathrm|mathbf|textbf|textit|operatorname|boxed|mathit)\s*\{([^{}]*)\}/g, "$1");
+  }
+  s = s.replace(/\\left|\\right|\\displaystyle|\\,|\\;|\\!|\\:|\\quad|\\qquad/g, " ");
+  s = s.replace(/\\\(|\\\)|\\\[|\\\]/g, "");
+  s = s.replace(/\\%/g, "%").replace(/\\\{/g, "{").replace(/\\\}/g, "}").replace(/\\\\/g, " ");
+  s = s.replace(/\\([a-zA-Z]+)/g, (m, w) => SIMBOLI_LATEX[w] !== undefined ? SIMBOLI_LATEX[w] : w);
+  s = s.replace(/\^\{?2\}?(?!\d)/g, "²").replace(/\^\{?3\}?(?!\d)/g, "³").replace(/\^\{([^{}]*)\}/g, "^$1");
+  s = s.replace(/([a-zA-Z])_\{?(\d)\}?/g, (m, l, d) => l + "₀₁₂₃₄₅₆₇₈₉"[+d]);
+  return s.replace(/[ \t]{2,}/g, " ").replace(/ +([,.;:)])(?=\s|$)/g, "$1").replace(/\( +/g, "(");
+}
+
+// 1) calcolatrice: "320 : 8 = 40", "3 × 3 − 4 = 5", "(3 + 2) × 4 = 20"… → ricalcola il conto INTERO e, se serve, corregge.
+//    Si controlla solo un conto completo: mai un pezzo di un conto più lungo, mai dentro una proporzione,
+//    mai una divisione "con il resto", mai dopo un esponente o una radice.
+const OPC = "+\\-−×x*·÷:\\/";
+const RE_CONTO = new RegExp(
+  `(?<![\\w.,()^²³√%${OPC}])` +
+  `([-−]?\\(?\\d+(?:[.,]\\d+)*\\)?(?:\\s*[${OPC}]\\s*\\(?[-−]?\\d+(?:[.,]\\d+)*\\)?)+)` +
+  `\\s*=\\s*([-−]?\\d+(?:[.,]\\d+)*)` +
+  `(?!\\s*[${OPC}^²³%]\\s*\\(?\\d)(?!\\s*,?\\s*(?:con\\s+)?(?:il\\s+)?(?:resto|r\\.?\\s*\\d))(?![.,]?\\d)`, "gi");
+function decimaliDi(c) { const m = /,(\d+)$/.exec(c) || /\.(\d{1,2})$/.exec(c); return m ? m[1].length : 0; }
+// valuta il conto intero: tutti i conti delle risposte passano da qui
+function rifaiConto(espr, risultato) {
+  // una parentesi del testo attaccata al conto, es. "(8 × 4 = 32)": si toglie
+  let e = espr.trim();
+  const conta = (x, c) => (x.match(c === "(" ? /\(/g : /\)/g) || []).length;
+  while (conta(e, "(") > conta(e, ")") && e.startsWith("(")) e = e.slice(1).trim();
+  while (conta(e, ")") > conta(e, "(") && e.endsWith(")")) e = e.slice(0, -1).trim();
+  if (conta(e, "(") !== conta(e, ")")) return null;
+  espr = e;
+  const g = valuta(espr), C = leggiNumero(String(risultato).replace("−", "-"));
+  if (!isFinite(g) || !isFinite(C)) return null;
+  const d = decimaliDi(risultato), tol = Math.max(1e-6 * Math.max(1, Math.abs(g)), d ? 0.5 * Math.pow(10, -d) + 1e-9 : 0);
+  const giusto = Math.abs(g - C) <= tol;
+  const bello = Number.isInteger(Math.round(g * 1e6) / 1e6) ? formatta(g) : formatta(Math.round(g * 100) / 100);
+  return { giusto, valore: g, scritto: bello };
+}
+const bellaEspr = e => e.replace(/\s*\*\s*/g, " × ").replace(/(\d)\s*-\s*(\d)/g, "$1 − $2").replace(/\s{2,}/g, " ").trim();
 function controllaConti(testo, segna) {
-  return testo.replace(RE_CONTO, (tutto, a, op, b, c) => {
-    const A = leggiNumero(a), B = leggiNumero(b), C = leggiNumero(c);
-    const giusto = calcola(A, op, B);
-    if (!isFinite(giusto) || !isFinite(A) || !isFinite(B)) return tutto;
-    const opBella = { "x": "×", "*": "×", "·": "×", "/": ":", "÷": ":", "-": "−" }[op] || op;
-    if (Math.abs(giusto - C) < 1e-6 * Math.max(1, Math.abs(giusto))) {
+  return testo.replace(RE_CONTO, (tutto, espr, c) => {
+    const r = rifaiConto(espr, c);
+    if (!r) return tutto;
+    if (r.giusto) {
       segna && segna("ok");
-      return `<span class="conto">${a} ${opBella} ${b} = ${c}</span><span class="verificato">✓ calcolatrice</span>`;
+      return `<span class="conto">${bellaEspr(espr)} = ${c}</span><span class="verificato">✓ calcolatrice</span>`;
     }
-    segna && segna("corretto", `${a} ${opBella} ${b} = ${c} → giusto: ${formatta(giusto)}`);
-    return `<span class="conto">${a} ${opBella} ${b} = ${formatta(giusto)}</span><span class="corretto">✎ corretto dalla calcolatrice</span>`;
+    segna && segna("corretto", `${espr} = ${c} → giusto: ${r.scritto}`);
+    return `<span class="conto">${bellaEspr(espr)} = ${r.scritto}</span><span class="corretto">✎ corretto dalla calcolatrice</span>`;
   });
 }
 
@@ -70,7 +121,7 @@ async function revisiona(cervello, domanda, risposta, contesto, istruzioni = IST
   const out = await cervello(istruzioni, testo, { temperature: 0, format: "json" });
   try {
     const j = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
-    if (j.ok === false && typeof j.correzione === "string" && j.correzione.trim().length > 20) return { ok: false, problema: String(j.problema || "errore"), correzione: j.correzione.trim() };
+    if (j.ok === false && typeof j.correzione === "string" && j.correzione.trim().length > 20) return { ok: false, problema: pulisciLatex(String(j.problema || "errore")), correzione: pulisciLatex(j.correzione.trim()) };
     if (j.ok === true) return { ok: true };
     return { ok: null };
   } catch (e) { return { ok: null }; }   // il revisore non ha risposto bene: lo diciamo
@@ -79,10 +130,10 @@ async function revisiona(cervello, domanda, risposta, contesto, istruzioni = IST
 // 4) la calcolatrice sul testo: corregge i conti sbagliati e dice quanti erano
 function correggiConti(testo) {
   let n = 0;
-  const out = testo.replace(RE_CONTO, (tutto, a, op, b, c) => {
-    const g = calcola(leggiNumero(a), op, leggiNumero(b));
-    if (!isFinite(g) || Math.abs(g - leggiNumero(c)) < 1e-6 * Math.max(1, Math.abs(g))) return tutto;
-    n++; return `${a} ${op} ${b} = ${formatta(g)}`;
+  const out = testo.replace(RE_CONTO, (tutto, espr, c) => {
+    const r = rifaiConto(espr, c);
+    if (!r || r.giusto) return tutto;
+    n++; return `${espr} = ${r.scritto}`;
   });
   return { testo: out, corretti: n, conti: (testo.match(RE_CONTO) || []).length };
 }

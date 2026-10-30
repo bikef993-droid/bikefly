@@ -100,6 +100,7 @@ async function creaEsercizio(cervello, materia, livello, argomento, { evita = []
       const out = await cervello(parola ? ISTRUZIONI_PAROLA(livello, argomento, evita) : ISTRUZIONI_ESERCIZIO(materia, livello, argomento, evita),
         "Nuovo esercizio, diverso dai precedenti. Numero casuale: " + Math.random().toString(36).slice(2, 7), { temperature: 0.8, format: "json" });
       const j = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
+      ["testo", "spiegazione"].forEach(k => { if (typeof j[k] === "string") j[k] = pulisciLatex(j[k]); });
       const es = parola ? await controllaEsercizioParola(cervello, j, livello) : await controllaEsercizioNumerico(cervello, j, materia, livello);
       if (es && !evita.includes(es.testo)) return es;
     } catch (e) {}

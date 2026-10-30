@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9 · il programma
+//  FLY AULA v0.9.2 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -23,7 +23,8 @@ async function cervello(sistema, utente, { temperature = 0.2, format } = {}) {
       options: { temperature, num_ctx: contesto() }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] })
   });
   const j = await r.json();
-  return (j.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  const t = (j.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  return format ? t : pulisciLatex(t);      // il LaTeX diventa simboli normali (nel JSON lo pulisce chi lo legge)
 }
 // risposta che si scrive mentre arriva (per la lavagna)
 async function cervelloInDiretta(messaggi, ogniPezzo) {
@@ -38,9 +39,9 @@ async function cervelloInDiretta(messaggi, ogniPezzo) {
     if (done) break;
     resto += dec.decode(value, { stream: true });
     const righe = resto.split("\n"); resto = righe.pop();
-    for (const l of righe) if (l.trim()) { testo += JSON.parse(l).message?.content || ""; ogniPezzo(testo.replace(/<think>[\s\S]*?(<\/think>|$)/g, "")); }
+    for (const l of righe) if (l.trim()) { testo += JSON.parse(l).message?.content || ""; ogniPezzo(pulisciLatex(testo.replace(/<think>[\s\S]*?(<\/think>|$)/g, ""))); }
   }
-  return testo.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  return pulisciLatex(testo.replace(/<think>[\s\S]*?<\/think>/g, "").trim());
 }
 
 // ---------------- tabella degli errori ----------------
@@ -138,11 +139,18 @@ function impagina(testo, finito, segna) {
   }).join("") + (finito ? "" : '<span class="cursore"></span>');
 }
 // versione testo (per l'esame): i conti sbagliati vengono corretti dalla calcolatrice
-function correggiTesto(testo) {
-  return testo.replace(RE_CONTO, (tutto, a, op, b, c) => {
-    const g = calcola(leggiNumero(a), op, leggiNumero(b));
-    return isFinite(g) ? `${a} ${op} ${b} = ${formatta(g)}` : tutto;
-  });
+function correggiTesto(testo) { return correggiConti(testo).testo; }
+
+// quando la domanda è un conto, il disegno lo aggiunge Fly Aula (sempre giusto: lo calcola il programma)
+function disegnoPerConto(conto) {
+  const m = String(conto.testo).match(/^([\d.,]+)\s*([+\-−×x*·÷:\/])\s*([\d.,]+)$/);
+  if (!m) return null;
+  const a = leggiNumero(m[1]), b = leggiNumero(m[3]), op = m[2];
+  if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b <= 0) return null;
+  if (":÷/".includes(op)) return a < 1e7 && b < 1000 ? `[DISEGNO: divisione ${a} ${b}]` : null;
+  if ("+".includes(op)) return a < 1e9 && b < 1e9 ? `[DISEGNO: colonna ${a} + ${b}]` : null;
+  if ("-−".includes(op)) return a >= b && a < 1e9 ? `[DISEGNO: colonna ${a} − ${b}]` : null;
+  return a < 1e7 && b < 1000 ? `[DISEGNO: colonna ${a} × ${b}]` : null;
 }
 
 // ---------------- la domanda: risposta + CONTROLLO SEMPRE ----------------
@@ -212,6 +220,11 @@ async function chiedi(domanda, speciale = {}) {
     } else timbri.push(`<span class="timbro">Controllata ${quante}</span>`);
     if (es.contiCorretti) timbri.push(`<span class="timbro giallo">🧮 ${es.contiCorretti} ${es.contiCorretti === 1 ? "conto corretto" : "conti corretti"} dalla calcolatrice</span>`);
     if (Pagine.attive) timbri.push(`<span class="timbro blu">📷 Usate le pagine del libro</span>`);
+    // disegno automatico del conto, se il cervello non l'ha messo
+    if (conto && MATERIE[materia].calcoli && !/\[DISEGNO:/i.test(testo)) {
+      const dis = disegnoPerConto(conto);
+      if (dis) { const r = testo.split("\n"); r.splice(Math.min(1, r.length), 0, dis); testo = r.join("\n"); }
+    }
     // 3) sicurezza anche sulla risposta
     if (!controllaRisposta(testo)) { annotaErrore("Bloccata dalla sicurezza", "risposta non adatta"); testo = "Torniamo alla materia 😊 Prova a farmi un'altra domanda."; timbri.length = 0; }
     // 4) disegno finale: ogni conto rimasto viene segnato dalla calcolatrice

@@ -28,7 +28,7 @@ const MATERIE = {
     nome: "Matematica", emoji: "🧮", calcoli: true,
     regole: livello => `Sei Fly Aula, l'assistente di MATEMATICA.
 - Parli SOLO di matematica (aritmetica, frazioni, percentuali, geometria, algebra, statistica, problemi). Se ti chiedono altro, rispondi gentilmente che sei l'assistente di matematica e riporta alla lezione.
-- Ogni calcolo scrivilo nella forma "a × b = c" (usa ×, :, +, −). Niente LaTeX, niente simboli strani, niente tabelle.
+- Ogni calcolo scrivilo nella forma "a × b = c" (usa ×, :, +, −). NON usare MAI LaTeX: niente \\( \\), niente \\times, niente \\frac. Scrivi come su un quaderno: 3/4, x², √16, sistemi così: { x + y = 7 ; 3x − y = 5 }. Niente tabelle.
 - Usa esempi della vita vera adatti a ${livello === "elementari" ? "bambini (frutta, caramelle, giochi, animali)" : "ragazzi (pizza, soldi, bici, sport)"}.
 ${DISEGNI_ISTRUZIONI}`,
     esempi: {

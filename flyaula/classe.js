@@ -166,7 +166,8 @@ async function creaRipasso(cervello, storiaLezione, materia, livello, quante = 4
     const out = await cervello(`Crea ${quante + 2} domande di RIPASSO a scelta multipla SOLO su quello che è stato spiegato in questa lezione (${MATERIE[materia].nome}, scuola ${livello}).
 Ogni domanda ha 4 opzioni e UNA sola giusta. Se la risposta è un numero, in "conto" scrivi l'espressione che la calcola (solo numeri e + − × : parentesi), altrimenti "".
 Rispondi SOLO con JSON: {"domande":[{"domanda":"…","opzioni":["…","…","…","…"],"giusta":0,"spiegazione":"una frase","conto":""}]}`, "LEZIONE:\n" + lezione, { temperature: 0.4, format: "json" });
-    proposte = (JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1)).domande || []);
+    proposte = (JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1)).domande || [])
+      .map(q => ({ ...q, domanda: pulisciLatex(String(q.domanda || "")), opzioni: Array.isArray(q.opzioni) ? q.opzioni.map(o => pulisciLatex(String(o))) : q.opzioni, spiegazione: pulisciLatex(String(q.spiegazione || "")) }));
   } catch (e) {}
   const buone = [];
   for (const q of proposte) {
