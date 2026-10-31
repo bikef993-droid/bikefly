@@ -18,6 +18,12 @@ const Scuola = (() => {
   const param = new URLSearchParams(location.search).get("aula");
   if (param) ricorda("flyaula_aula", param.slice(0, 20));
   st.aula = ricorda("flyaula_aula") || "";
+  // il codice delle LIM (dal collegamento della LIM: ?c=123456): serve per scrivere nella memoria delle risposte
+  const codice = new URLSearchParams(location.search).get("c");
+  if (codice && /^\d{6}$/.test(codice)) {
+    ricorda("flyaula_codice_lim", codice);
+    try { const u = new URL(location.href); u.searchParams.delete("c"); history.replaceState(null, "", u); } catch (e) {}
+  }
 
   async function avvia() {
     try {
@@ -82,7 +88,7 @@ const Scuola = (() => {
     avvia, chiama, caricaOrario,
     get ruolo() { return st.ruolo; }, get aula() { return st.aula; }, get nome() { return st.nome; },
     get suRiserva() { return st.riserva; }, get cervelloScelto() { return (st.info && st.info.cervello) || ""; },
-    get secondoScelto() { return (st.info && st.info.cervello2) || ""; }, get vram() { return Number(st.info && st.info.vram) || 0; }, get parallelo() { return Number(st.info && st.info.parallelo) || 0; }, get base() { return st.cervelli[st.attivo]; },
+    get secondoScelto() { return (st.info && st.info.cervello2) || ""; }, get vram() { return Number(st.info && st.info.vram) || 0; }, get codiceLim() { return ricorda("flyaula_codice_lim") || ""; }, get parallelo() { return Number(st.info && st.info.parallelo) || 0; }, get base() { return st.cervelli[st.attivo]; },
     parAula: () => st.aula ? "aula=" + encodeURIComponent(st.aula) : ""
   };
 })();

@@ -42,6 +42,10 @@ code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
   <h2>🖥️ Collegare una LIM</h2>
   <div class="qr-lim" id="tLim"></div>
 
+  <h2>⚡ Memoria delle risposte</h2>
+  <p class="nota-s">Le risposte già controllate restano qui 30 giorni: se un'altra classe fa la stessa domanda, arriva subito. Se un prof segnala un errore, quella risposta si cancella da sola.</p>
+  <div class="t-riga"><span id="tMemo" class="nota-s"></span><button class="btn sec" id="tMemoVia">🧹 Svuota la memoria</button></div>
+
   <h2>📅 Orari delle aule</h2>
   <p class="nota-s">Si scrive una volta per ogni aula: ogni LIM sa da sola che classe c'è, che materia e quando finisce l'ora.</p>
   <div class="aule" id="tAule"></div>
@@ -69,24 +73,28 @@ async function stato() {
   let modelli = [], caricati = [];
   try { modelli = (await json(OLL + "/api/tags")).models.map(m => m.name); } catch (e) {}
   try { caricati = (await json(OLL + "/api/ps")).models.map(m => m.name); } catch (e) {}
-  modello = ["qwen2.5:14b", "qwen2.5:7b"].find(m => modelli.includes(m)) || modelli.find(m => !/vl|vision|embed/.test(m)) || null;
+  // lo stesso ordine di Fly Aula: prima quello scelto con la gara, poi il più forte scaricato
+  const ordine = [cfg.cervello, "gemma4:26b-a4b", "gemma4:12b", "qwen3.5:9b", "qwen3:14b", "gpt-oss:20b", "qwen2.5:14b", "gemma3:12b", "qwen3:8b", "qwen2.5:7b", "llama3.1:8b"];
+  modello = ordine.find(m => m && modelli.includes(m)) || modelli.find(m => !/vl[:\-]|vision|embed|ocr/.test(m)) || null;
   const carta = (t, v, cl = "") => `<div class="t-carta ${cl}"><span>${t}</span><b>${v}</b></div>`;
   $("tStato").innerHTML = carta("Ruolo di questo computer", info.ruolo === "server" ? "🏫 Server della scuola" : "💻 PC singolo", info.ruolo === "server" ? "ok" : "")
     + carta("Indirizzo per le LIM", esc(info.ip || "?"))
     + carta("Cervello", modelli.length ? "🟢 acceso" : "🔴 spento", modelli.length ? "ok" : "ko")
-    + carta("Modello", esc(modello || "nessuno"))
+    + carta("Cervello", esc(modello || "nessuno") + (cfg.cervello2 && cfg.cervello2 !== "nessuno" && modelli.includes(cfg.cervello2) ? " + " + esc(cfg.cervello2) + " 🤝" : ""))
     + carta("In memoria adesso", esc(caricati.join(", ") || "—"))
     + carta("Domande insieme (parallelo)", esc(info.parallelo || "predefinito"));
   $("tNome").value = cfg.nome || ""; $("tRiserva").value = cfg.riserva || "";
   if (info.ip) {
     const prova = `http://${info.ip}:8780/flyaula/?aula=prova`;
     $("tLim").innerHTML = `${QR.svg(prova, 170)}<div>
-      <p style="font-size:18px;margin:0 0 8px"><b>Su ogni LIM:</b> scarica <code>Installa-FlyAula.bat</code>, scegli <b>3</b> e scrivi l'indirizzo <code>${esc(info.ip)}</code> e il nome dell'aula.</p>
+      <p style="font-size:18px;margin:0 0 8px"><b>Su ogni LIM:</b> lancia l'installazione, scegli <b>3</b> e scrivi l'indirizzo <code>${esc(info.ip)}</code>, il nome dell'aula e il <b>codice delle LIM: <code style="font-size:22px">${esc(cfg.codicelim || "?")}</code></b></p>
       <p class="nota-s">Per una prova veloce da un telefono o un PC sul Wi-Fi della scuola: inquadra il QR o apri <code>${esc(prova)}</code></p></div>`;
   }
   if (info.ruolo !== "server") $("tSotto").innerHTML = "⚠️ Questo computer è installato come <b>PC singolo</b>: per fare da server della scuola rilancia l'installazione e scegli <b>2</b>.";
   aule();
+  try { $("tMemo").textContent = `${(await json("/fa/memo-quante")).quante} risposte in memoria`; } catch (e) { $("tMemo").textContent = ""; }
 }
+$("tMemoVia").onclick = async () => { await fetch("/fa/memo", { method: "DELETE" }); stato(); };
 $("tSalva").onclick = async () => {
   await fetch("/fa/config", { method: "POST", body: JSON.stringify({ nome: $("tNome").value.trim(), riserva: $("tRiserva").value.trim() }) });
   $("tSalvato").textContent = "✓ Salvato";
@@ -127,7 +135,7 @@ $("tElimina").onclick = async () => {
 async function unaDomanda() {
   const t0 = performance.now();
   const r = await fetch(OLL + "/api/chat", { method: "POST", body: JSON.stringify({ model: modello, stream: false, keep_alive: "24h",
-    options: { temperature: 0.2, num_predict: 160, num_ctx: 4096 },
+    options: { temperature: 0.2, num_predict: 160, num_ctx: 8192 },   // la stessa misura di Fly Aula: così non ricarica il cervello
     messages: [{ role: "system", content: "Sei l'assistente di matematica di una classe. Spiega passo passo, in 4 righe numerate." }, { role: "user", content: "Spiegami come si fa " + (100 + Math.floor(Math.random() * 900)) + " : 4" }] }) });
   await r.json();
   return (performance.now() - t0) / 1000;

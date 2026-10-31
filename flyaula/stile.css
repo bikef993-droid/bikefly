@@ -331,3 +331,32 @@ header{gap:10px;padding:10px 20px;flex-wrap:nowrap}
 .ok-gara{color:var(--menta);font-weight:800}
 .tag-coppia{color:var(--sole);font-weight:800;margin-left:6px}
 .tag-ritirato{color:var(--corallo);font-weight:800;margin-left:6px}
+
+/* ✨ intro di apertura: anelli che si disegnano, i tre "neuroni" che si accendono, il nome, una scia di luce */
+#intro{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;
+  background:radial-gradient(circle at 30% 40%,rgba(0,210,160,.22),transparent 45%),radial-gradient(circle at 70% 60%,rgba(59,139,255,.25),transparent 50%),var(--notte);
+  animation:inSfondo 2.9s ease-out both;transition:opacity .45s ease,transform .45s ease}
+#intro.via{opacity:0;transform:scale(1.04)}
+.in-scena{display:flex;flex-direction:column;align-items:center;gap:18px;animation:inSale 2.9s cubic-bezier(.2,.8,.2,1) both}
+.in-logo{width:min(46vw,360px);height:auto;overflow:visible}
+.in-anello{stroke-dasharray:440;stroke-dashoffset:440;animation:inDisegna .9s cubic-bezier(.6,0,.2,1) forwards}
+.in-anello.a2{animation-delay:.25s}
+.in-tri{stroke-dasharray:330;stroke-dashoffset:330;animation:inDisegna .6s ease-out .75s forwards}
+.in-neu{transform-box:fill-box;transform-origin:center;transform:scale(0);animation:inAccendi .45s cubic-bezier(.3,1.6,.5,1) forwards}
+.in-neu.n1{animation-delay:1.1s}.in-neu.n2{animation-delay:1.25s}.in-neu.n3{animation-delay:1.4s}
+.in-nome{font-family:Bricolage,system-ui;font-size:min(11vw,92px);letter-spacing:-2px;line-height:1;color:var(--latte);display:flex}
+.in-nome b{color:var(--cielo);display:flex}
+.in-nome span{display:inline-block;opacity:0;transform:translateY(40%);filter:blur(8px);animation:inLettera .5s cubic-bezier(.2,.9,.3,1) forwards}
+.in-nome span:nth-child(1){animation-delay:1.35s}.in-nome span:nth-child(2){animation-delay:1.41s}.in-nome span:nth-child(3){animation-delay:1.47s}
+.in-nome b span:nth-child(1){animation-delay:1.56s}.in-nome b span:nth-child(2){animation-delay:1.62s}.in-nome b span:nth-child(3){animation-delay:1.68s}.in-nome b span:nth-child(4){animation-delay:1.74s}
+.in-motto{font:700 min(3.4vw,22px) Figtree,system-ui;letter-spacing:.5px;color:var(--nebbia);opacity:0;animation:inAppare .6s ease-out 1.95s forwards}
+.in-scia{position:absolute;top:-20%;bottom:-20%;width:22%;left:-30%;transform:skewX(-18deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),rgba(0,210,160,.10),transparent);animation:inScia 1.1s ease-in-out 1.55s forwards}
+@keyframes inDisegna{to{stroke-dashoffset:0}}
+@keyframes inAccendi{60%{transform:scale(1.5)}to{transform:scale(1)}}
+@keyframes inLettera{to{opacity:1;transform:none;filter:none}}
+@keyframes inAppare{to{opacity:1}}
+@keyframes inScia{to{left:120%}}
+@keyframes inSale{from{transform:scale(.92)}to{transform:scale(1)}}
+@keyframes inSfondo{from{background-color:#000}}
+@media (prefers-reduced-motion:reduce){#intro{display:none}}

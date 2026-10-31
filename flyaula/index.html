@@ -11,6 +11,33 @@
 <link rel="stylesheet" href="stile.css">
 </head>
 <body>
+<!-- ✨ intro: solo all'apertura dell'app (una volta per avvio), si salta toccando lo schermo -->
+<div id="intro" aria-hidden="true">
+  <div class="in-scena">
+    <svg class="in-logo" viewBox="25 60 250 160">
+      <defs><filter id="inLuce" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+      <circle class="in-anello a1" cx="100" cy="140" r="70" fill="none" stroke="#00D2A0" stroke-width="16" filter="url(#inLuce)"/>
+      <circle class="in-anello a2" cx="200" cy="140" r="70" fill="none" stroke="#3B8BFF" stroke-width="16" filter="url(#inLuce)"/>
+      <path class="in-tri" d="M100 140 L150 70 L200 140 Z" fill="none" stroke="#F3F6FB" stroke-width="8" stroke-linejoin="round"/>
+      <circle class="in-neu n1" cx="100" cy="140" r="14" fill="#F3F6FB"/><circle class="in-neu n2" cx="150" cy="70" r="14" fill="#FFD23F" filter="url(#inLuce)"/><circle class="in-neu n3" cx="200" cy="140" r="14" fill="#F3F6FB"/>
+    </svg>
+    <div class="in-nome"><span>F</span><span>l</span><span>y</span><b><span>A</span><span>u</span><span>l</span><span>a</span></b></div>
+    <div class="in-motto">Local AI · Your data never leaves the room.</div>
+  </div>
+  <div class="in-scia"></div>
+</div>
+<script>
+// l'intro si vede una volta per avvio, e mai a chi preferisce meno animazioni
+(function () {
+  var el = document.getElementById("intro"), vista = false;
+  try { vista = sessionStorage.getItem("flyaula_intro") === "1"; sessionStorage.setItem("flyaula_intro", "1"); } catch (e) {}
+  if (vista || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) { el.remove(); return; }
+  var via = function () { if (!el.isConnected) return; el.classList.add("via"); setTimeout(function () { el.remove(); }, 450); };
+  setTimeout(via, 2900);
+  el.addEventListener("pointerdown", via);
+  addEventListener("keydown", via, { once: true });
+})();
+</script>
 <header>
   <svg class="logo" width="58" height="42" viewBox="25 60 250 160" aria-hidden="true">
     <circle cx="100" cy="140" r="70" fill="none" stroke="#00D2A0" stroke-width="16"/>
@@ -60,7 +87,7 @@
     <button type="button" class="btn ferma" id="ferma" hidden title="Ferma la risposta (anche con il tasto Esc)">⏹ Ferma</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.9.5 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.9.6 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -107,7 +134,7 @@
 
 <div class="pannello" id="pPagine"><div class="box">
   <h2>📷 Pagine di oggi</h2>
-  <p class="sotto">Fotografa 2-5 pagine del libro della lezione: per quest'ora Fly Aula risponde usando quelle, e sbaglia molto meno. A fine lezione si cancellano da sole.</p>
+  <p class="sotto">Fotografa 2-4 pagine del libro della lezione: per quest'ora Fly Aula risponde usando quelle, e sbaglia molto meno. A fine lezione si cancellano da sole.</p>
   <div id="pgQr"></div>
   <div class="riga-btn"><label class="btn sec file-btn">🖼️ Carica foto dal computer<input type="file" accept="image/*" multiple id="pgFile" hidden></label><button class="btn sec" id="pgScrivi">✍️ Scrivi o incolla il testo</button></div>
   <div id="pgLista"></div>

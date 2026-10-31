@@ -23,7 +23,8 @@ function ApriFlyAula($url, $origine) {
 
 if ($ruolo -eq 'lim') {
   $srv = [string]$cfg.server
-  ApriFlyAula "http://$($srv):8780/flyaula/?aula=$([Uri]::EscapeDataString([string]$cfg.aula))" "http://$($srv):8780"
+  $cod = if ([string]$cfg.codice -match '^\d{6}$') { "&c=$($cfg.codice)" } else { '' }
+  ApriFlyAula "http://$($srv):8780/flyaula/?aula=$([Uri]::EscapeDataString([string]$cfg.aula))$cod" "http://$($srv):8780"
   exit 0
 }
 

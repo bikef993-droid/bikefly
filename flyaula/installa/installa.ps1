@@ -84,7 +84,9 @@ if ($ruolo -eq 'lim') {
   Ok "Server trovato$(if ($info.nome) { ': ' + $info.nome })"
   $aula = ''
   while (-not $aula) { $aula = (Read-Host '   Nome di quest aula o classe (es. 1A, 2B, Lab Informatica)').Trim() }
-  [IO.File]::WriteAllText((Join-Path $DIR 'config.json'), (@{ ruolo = 'lim'; server = $srv; aula = $aula } | ConvertTo-Json), $UTF8)
+  $codice = ''
+  while ($codice -notmatch '^\d{6}$') { $codice = (Read-Host '   Codice delle LIM (6 cifre: lo trovi nel pannello del tecnico)').Trim() }
+  [IO.File]::WriteAllText((Join-Path $DIR 'config.json'), (@{ ruolo = 'lim'; server = $srv; aula = $aula; codice = $codice } | ConvertTo-Json), $UTF8)
   Ok "Questa LIM e l aula $aula"
   Passo 3 $TOT 'Icona sul desktop e avvio'
   Collegamento

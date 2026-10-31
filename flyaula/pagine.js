@@ -1,13 +1,13 @@
 // ===================================================================
 //  FLY AULA · 📷 Pagine di oggi
-//  Il prof fotografa 2-5 pagine del libro con il SUO telefono (QR sulla LIM):
+//  Il prof fotografa 2-4 pagine del libro con il SUO telefono (QR sulla LIM):
 //  le foto vanno al PC della classe sul Wi-Fi della scuola, senza internet.
 //  Fly Aula legge il testo, il prof lo controlla, e per questa lezione
 //  risponde usando quelle pagine. A fine lezione si cancella tutto.
 // ===================================================================
 const Pagine = (() => {
   const el = id => document.getElementById(id);
-  const MAX_CARATTERI = 14000;
+  const MAX_CARATTERI = 10000;   // circa 3-4 pagine: così tutto sta nella memoria di lavoro del cervello (8192)
   let pagine = [];          // { id, src, testo, stato: "leggo" | "ok" | "errore" }
   let testoUsato = "";      // quello che Fly Aula usa davvero
   let server = null, giro = null, ocrPronto = null;

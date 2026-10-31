@@ -11,28 +11,33 @@ $ROOT = [IO.Path]::GetFullPath((Join-Path $DIR 'app'))
 $PAG  = Join-Path $DIR 'pagine'
 $ORARI = Join-Path $DIR 'orari'
 $CFGF = Join-Path $DIR 'config.json'
+$MEMO = Join-Path $DIR 'memo'
 $PORTA = 8780
 $UTF8 = New-Object Text.UTF8Encoding $false
 Remove-Item $PAG -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $PAG, $ORARI | Out-Null
+New-Item -ItemType Directory -Force -Path $PAG, $ORARI, $MEMO | Out-Null
 
 function LeggiConfig {
-  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = '' }
+  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = '' }
   try {
     $j = [IO.File]::ReadAllText($CFGF, $UTF8) | ConvertFrom-Json
-    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2') { if ($j.$k) { $c[$k] = [string]$j.$k } }
+    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2', 'codicelim') { if ($j.$k) { $c[$k] = [string]$j.$k } }
   } catch {}
   return $c
 }
 function SalvaConfig($c) { [IO.File]::WriteAllText($CFGF, ($c | ConvertTo-Json), $UTF8) }
 $CFG = LeggiConfig
 $SERVER = ($CFG.ruolo -eq 'server')
+# il codice delle LIM: solo chi lo conosce (le LIM della scuola) puo scrivere nella memoria delle risposte
+if (-not $CFG.codicelim) { $CFG.codicelim = -join (1..6 | ForEach-Object { Get-Random -Minimum 0 -Maximum 10 }); SalvaConfig $CFG }
 # memoria della scheda video (MB): serve a Fly Aula per sapere se ci stanno DUE cervelli insieme
 $VRAM = 0
 try { $VRAM = [int]((& nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>$null | Select-Object -First 1).Trim()) } catch {}
 
 # un codice segreto per ogni aula (serve al telefono per mandare le foto)
 $CODICI = @{}
+# la fila delle domande: chi sta aspettando il cervello, e da quando (cosi la LIM puo dire "sei il 3o in fila")
+$FILA = @{}
 function NomeAula([string]$a) {
   if (-not $a) { return '_' }
   $s = $a -replace '[^\p{L}\p{N}]', '_'
@@ -124,6 +129,46 @@ while ($ascolta.IsListening) {
       elseif (Test-Path $f) { Manda $ctx 200 'application/json; charset=utf-8' ([IO.File]::ReadAllBytes($f)) }
       else { Testo $ctx 404 '{}' }
     }
+    elseif ($p -eq '/fa/memo' -and $daRete) {
+      # la memoria delle risposte gia controllate: la stessa domanda in un altra aula arriva subito
+      $k = [string]$q.QueryString['k']
+      $codiceOk = $locale -or ([string]$q.Headers['X-FlyAula-Codice'] -eq $CFG.codicelim)
+      if ($q.HttpMethod -eq 'DELETE' -and $locale -and -not $k) { Get-ChildItem $MEMO -File | Remove-Item -Force; Testo $ctx 200 '{"ok":true}' }
+      elseif ($k -notmatch '^[0-9a-f]{16,64}$') { Testo $ctx 400 '{"errore":"chiave"}' }
+      else {
+        $f = Join-Path $MEMO "$k.json"
+        if ($q.HttpMethod -eq 'DELETE') {
+          # un prof ha segnalato un errore: quella risposta non si ripropone piu
+          if ($codiceOk) { Remove-Item $f -Force -ErrorAction SilentlyContinue; Testo $ctx 200 '{"ok":true}' } else { Testo $ctx 403 '{"errore":"codice"}' }
+        }
+        elseif ($q.HttpMethod -eq 'POST') {
+          if (-not $codiceOk) { Testo $ctx 403 '{"errore":"codice"}' }
+          elseif ((Test-Path $f) -or @(Get-ChildItem $MEMO -File).Count -ge 5000) { Testo $ctx 200 '{"ok":false}' }
+          else {
+            $b = Corpo $q 30000
+            if ($null -eq $b) { Testo $ctx 413 '{"errore":"troppo"}' }
+            else { try { $null = $b | ConvertFrom-Json; [IO.File]::WriteAllText($f, $b, $UTF8); Testo $ctx 200 '{"ok":true}' } catch { Testo $ctx 400 '{"errore":"json"}' } }
+          }
+        }
+        elseif ((Test-Path $f) -and ((Get-Date) - (Get-Item $f).LastWriteTime).TotalDays -lt 30) { Manda $ctx 200 'application/json; charset=utf-8' ([IO.File]::ReadAllBytes($f)) }
+        else { Testo $ctx 404 '{}' }
+      }
+    }
+    elseif ($p -eq '/fa/fila' -and $daRete) {
+      $id = [string]$q.QueryString['id']
+      $adesso = [DateTime]::UtcNow
+      foreach ($x in @($FILA.Keys)) { if (($adesso - $FILA[$x].visto).TotalSeconds -gt 30 -or ($adesso - $FILA[$x].arrivo).TotalMinutes -gt 5) { $FILA.Remove($x) } }
+      if ($id -notmatch '^[a-z0-9]{6,20}$') { Testo $ctx 400 '{"errore":"id"}' }
+      elseif ($q.QueryString['azione'] -eq 'esci') { $FILA.Remove($id); Testo $ctx 200 '{"ok":true}' }
+      else {
+        if ($FILA.ContainsKey($id)) { $FILA[$id].visto = $adesso } elseif ($FILA.Count -lt 500) { $FILA[$id] = @{ arrivo = $adesso; visto = $adesso } }
+        $mio = if ($FILA.ContainsKey($id)) { $FILA[$id].arrivo } else { $adesso }
+        $davanti = @($FILA.Values | Where-Object { $_.arrivo -lt $mio }).Count
+        $posti = [Environment]::GetEnvironmentVariable('OLLAMA_NUM_PARALLEL', 'User'); if (-not $posti) { $posti = 1 }
+        Testo $ctx 200 ('{"davanti":' + $davanti + ',"posti":' + [int]$posti + '}')
+      }
+    }
+    elseif ($p -eq '/fa/memo-quante' -and $locale) { Testo $ctx 200 ('{"quante":' + @(Get-ChildItem $MEMO -File).Count + '}') }
     elseif ($p -eq '/fa/stato' -and $daRete) {
       Testo $ctx 200 (@{ codice = (CodiceDi $aula); ip = (IpLocale); rete = $rete; porta = $PORTA } | ConvertTo-Json -Compress)
     }

@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.5 · il programma
+//  FLY AULA v0.9.6 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -10,7 +10,9 @@ const MODELLI = ["gemma4:26b-a4b", "gemma4:12b", "qwen3.5:9b", "qwen3:14b", "gpt
 let modello = null;      // il cervello principale (il più forte)
 let secondo = null;      // il secondo cervello della COPPIA (di un'altra famiglia), oppure null
 window.modelliPresenti = [];
-const contesto = () => (Pagine.attive ? 16384 : 8192);
+// SEMPRE la stessa misura: se una richiesta chiede una misura diversa, Ollama deve ricaricare tutto il cervello
+// (con tante classi sarebbe un disastro). Con le pagine del libro si accorcia la storia della lezione.
+const contesto = () => 8192;
 const $ = id => document.getElementById(id);
 const chat = $("chat");
 function leggi(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -297,6 +299,72 @@ function disegnoPerConto(conto) {
   return a < 1e7 && b < 1000 ? `[DISEGNO: colonna ${a} × ${b}]` : null;
 }
 
+// ---------------- ⚡ MEMORIA DELLE RISPOSTE GIÀ CONTROLLATE ----------------
+// Con tante classi molte domande si ripetono ("320 : 8", "cos'è una frazione"…). La prima volta Fly Aula
+// risponde e controlla; poi la risposta controllata resta sul server della scuola per 30 giorni e,
+// in qualsiasi aula, la stessa domanda (stessa materia, livello, anno e argomento) arriva SUBITO.
+// Non si salvano: risposte con un dubbio, domande che continuano la conversazione, pagine del libro,
+// modalità del prof diverse da "normale", DSA. Se un prof segnala un errore, la risposta si cancella.
+const VERSIONE_MEMORIA = 1;
+function impronta(t) {                       // un'impronta del testo (32 cifre esadecimali): niente testo in chiaro nel nome
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57, h3 = 0x9e3779b9, h4 = 0x7f4a7c15;
+  for (let i = 0; i < t.length; i++) {
+    const c = t.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677);
+    h3 = Math.imul(h3 ^ c, 2246822507); h4 = Math.imul(h4 ^ c, 3266489909);
+  }
+  return [h1, h2, h3, h4].map(h => (h >>> 0).toString(16).padStart(8, "0")).join("");
+}
+const CONTINUA = /^(e|ma|allora|quindi|poi|invece|ok|sì|si|no|perché no)\b|\b(quest[oaie]|quell[oaie]|sopra|ancora|rifai|ripeti|di nuovo|lo stesso|la stessa|l'esercizio|il tuo|la tua)\b/i;
+function chiaveMemoria(domanda, materia, livello, classe, giaParlato, speciale = {}) {
+  if (Pagine.attive || Prof.modo !== "normale" || DSA.attiva || speciale.esercizio) return null;
+  const d = domanda.toLowerCase().replace(/[“”"'’`]/g, "").replace(/[?!;]+/g, " ").replace(/\s+/g, " ").trim().replace(/[.,]$/, "");
+  if (d.length < 6) return null;
+  if (giaParlato && CONTINUA.test(d)) return null;          // continua la conversazione: dipende da cosa è stato detto prima
+  return impronta(JSON.stringify([VERSIONE_MEMORIA, materia, livello, annoDellaClasse(classe) || 0, (Prof.argomento || "").toLowerCase(), d]));
+}
+function intestazioniMemoria() { return Scuola.codiceLim ? { "X-FlyAula-Codice": Scuola.codiceLim } : {}; }
+async function leggiMemoria(k) {
+  const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 2500);
+  try {
+    const r = await fetch("/fa/memo?k=" + k, { cache: "no-store", signal: ctrl.signal });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const testo = String(j.testo || "");
+    // anche dalla memoria: niente di strano, conti giusti, niente ripetizioni (altrimenti si risponde da capo)
+    if (!testo || testo.length > 8000 || !controllaRisposta(testo) || correggiConti(testo).corretti || trovaGiro(testo)) return null;
+    return { testo, controlli: Number(j.controlli) || 2, coppia: !!j.coppia };
+  } catch (e) { return null; } finally { clearTimeout(t); }
+}
+function salvaInMemoria(k, dati) {
+  fetch("/fa/memo?k=" + k, { method: "POST", headers: intestazioniMemoria(), body: JSON.stringify({ ...dati, quando: new Date().toISOString() }) }).catch(() => {});
+}
+function cancellaDaMemoria(k) { if (k) fetch("/fa/memo?k=" + k, { method: "DELETE", headers: intestazioniMemoria() }).catch(() => {}); }
+
+// ---------------- ⏳ LA FILA ----------------
+// Quando tante classi chiedono insieme, il server della scuola sa chi aspetta da quando:
+// la LIM, invece di un'attesa muta, dice "sei il 3° in fila". (Senza server: non fa niente.)
+function entraInFila(bolla) {
+  const id = (Math.random().toString(36).slice(2) + Date.now().toString(36)).replace(/[^a-z0-9]/g, "").slice(0, 16);
+  let attivo = true;
+  const giro = async () => {
+    if (!attivo) return;
+    try {
+      const r = await fetch(`/fa/fila?id=${id}`, { cache: "no-store" });   // GET: il server di Windows rifiuta i POST vuoti
+      if (r.ok) {
+        const j = await r.json(), pos = j.davanti - Math.max(1, j.posti) + 1;
+        if (attivo && bolla.dataset.scrive !== "1") {
+          if (pos >= 1) bolla.innerHTML = `<div class="lavoro fila">⏳ Tante classi stanno chiedendo insieme: sei ${pos === 1 ? "il prossimo" : "il " + pos + "° in fila"}. Arrivo!</div>`;
+          else if (bolla.querySelector(".fila")) bolla.innerHTML = '<span class="cursore"></span>';
+        }
+      }
+    } catch (e) {}
+    if (attivo) setTimeout(giro, 2000);
+  };
+  giro();
+  return () => { attivo = false; fetch(`/fa/fila?id=${id}&azione=esci`, { cache: "no-store" }).catch(() => {}); };
+}
+
 // ---------------- 🤝 la COPPIA di cervelli ----------------
 // Due cervelli di famiglie diverse (es. Google + Alibaba) non fanno gli stessi errori:
 // uno scrive, l'altro controlla. Chi scrive dipende dalla domanda:
@@ -354,12 +422,32 @@ async function chiedi(domanda, speciale = {}) {
   }
   occupato = true; $("invia").disabled = true; Voce.zitto();
   domandaCorrente = domanda;
+  const giaParlato = storia.length > 0;
   storia.push({ role: "user", content: domanda });
   const bolla = aggiungi("ai", '<span class="cursore"></span>');
   const attesa = setTimeout(() => { if (bolla.querySelector(".cursore") && bolla.textContent.trim() === "") bolla.innerHTML = `<div class="lavoro">${Scuola.ruolo === "lim" ? "⏳ Fly Aula sta aiutando altre classi, arrivo…" : "☕ Ci penso un attimo…"}</div>`; }, 4000);
   const materia = $("materia").value, livello = $("livello").value;
   let sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + istruzioniProgramma(materia, livello, $("classe").value) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni() + DSA.istruzioni();
+  const chiave = chiaveMemoria(domanda, materia, livello, $("classe").value, giaParlato, speciale);
+  let esciDallaFila = null;
   try { fatto: {
+    // ⚡ questa domanda ha già una risposta controllata (da un'altra lezione o un'altra aula)? arriva subito
+    const ricordo = chiave ? await leggiMemoria(chiave) : null;
+    if (ricordo) {
+      clearTimeout(attesa);
+      const timbri = [`<span class="timbro">Controllata ${ricordo.controlli >= 3 ? "3 volte ✓✓✓" : "2 volte ✓✓"}</span>`];
+      if (ricordo.coppia) timbri.push(`<span class="timbro blu">🤝 Controllata da un secondo cervello</span>`);
+      timbri.push(`<span class="timbro blu">⚡ Già controllata in un'altra lezione: risposta immediata</span>`);
+      bolla.innerHTML = impagina(ricordo.testo, true, tipo => { if (tipo === "ok") conta("contiOk"); }) + `<div class="timbri">${timbri.join("")}</div>`;
+      conta("risposte"); conta("dallaMemoria"); contaGiorno(materia);
+      aggiungiAzioni(bolla, domanda, ricordo.testo, chiave);
+      storia.push({ role: "assistant", content: ricordo.testo });
+      if (leggiAuto) leggiRisposta(bolla, ricordo.testo);
+      const lingua = $("lingua").value;
+      if (lingua) { chat.scrollTop = chat.scrollHeight; await aggiungiTraduzione(bolla, ricordo.testo, lingua); }
+      break fatto;
+    }
+    esciDallaFila = entraInFila(bolla);
     // 0) 🧮 i conti li fa la calcolatrice PRIMA che il cervello scriva
     const fatti = await contiPrima(domanda, materia, bolla);
     sistema += istruzioniFatti(fatti);
@@ -371,7 +459,7 @@ async function chiedi(domanda, speciale = {}) {
     for (let tentativo = 0; tentativo < 2; tentativo++) {
       sq = squadra(difficile);
       let errore = null;
-      try { prima = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { clearTimeout(attesa); bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; }, sq.autore); }
+      try { prima = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(Pagine.attive ? -6 : -16)], t => { clearTimeout(attesa); bolla.dataset.scrive = "1"; bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; }, sq.autore); }
       catch (e) { errore = e; prima = { testo: "", fine: "lento" }; }
       const vuota = prima.testo.replace(/\[DISEGNO:[^\]]*\]/gi, "").trim().length < 40;
       if (prima.fine !== "lento" || !vuota) break;
@@ -449,7 +537,10 @@ async function chiedi(domanda, speciale = {}) {
     bolla.innerHTML = html + `<div class="timbri">${timbri.join("")}</div>`;
     conta("risposte");
     if (sq.autore !== sq.controllore) controllaMemoria();
-    aggiungiAzioni(bolla, domanda, testo);
+    // ⚡ si ricorda solo una risposta pulita: niente dubbi, niente tagli, niente blocchi della sicurezza
+    const daRicordare = chiave && (es.stato === "ok" || es.stato === "corretta") && !prima.fine && timbri.length;
+    if (daRicordare) salvaInMemoria(chiave, { testo, controlli: es.controlli, coppia: sq.autore !== sq.controllore, modello: sq.autore });
+    aggiungiAzioni(bolla, domanda, testo, daRicordare ? chiave : null);
     storia.push({ role: "assistant", content: testo });
     if (leggiAuto) leggiRisposta(bolla, testo);
     const lingua = $("lingua").value;
@@ -462,11 +553,12 @@ async function chiedi(domanda, speciale = {}) {
     bolla.innerHTML = Scuola.ruolo === "lim" ? "☕ Fly Aula non riesce a raggiungere il cervello della scuola. Riprova tra un attimo: se continua, chiama il tecnico." : "☕ Fly Aula si sta svegliando: riprova tra qualche secondo.";
     storia.pop(); controlla();
   }
+  if (esciDallaFila) esciDallaFila();
   occupato = false; $("invia").disabled = false;
   chat.scrollTop = chat.scrollHeight;
 }
 
-function aggiungiAzioni(bolla, domanda, testo) {
+function aggiungiAzioni(bolla, domanda, testo, chiave = null) {
   const d = document.createElement("div"); d.className = "azioni";
   d.innerHTML = `<button class="b-leggi">🔊 Leggi</button><button class="b-segnala">👎 Segnala un errore</button>`;
   bolla.parentElement.appendChild(d);
@@ -478,10 +570,11 @@ function aggiungiAzioni(bolla, domanda, testo) {
     const manda = () => {
       annotaErrore("Segnalato dal prof", (inp.value.trim() || "(nessuna nota)") + " · risposta: " + testo.slice(0, 160), domanda);
       conta("segnalate");
+      cancellaDaMemoria(chiave);          // una risposta segnalata non si ripropone più a nessuna classe
       d.innerHTML = `<span class="grazie">✓ Segnalato: grazie, servirà a migliorare Fly Aula</span>`;
     };
     invia.onclick = manda; inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); manda(); } };
-    annulla.onclick = () => { d.remove(); aggiungiAzioni(bolla, domanda, testo); };
+    annulla.onclick = () => { d.remove(); aggiungiAzioni(bolla, domanda, testo, chiave); };
   };
 }
 
