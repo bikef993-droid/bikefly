@@ -359,4 +359,11 @@ header{gap:10px;padding:10px 20px;flex-wrap:nowrap}
 @keyframes inScia{to{left:120%}}
 @keyframes inSale{from{transform:scale(.92)}to{transform:scale(1)}}
 @keyframes inSfondo{from{background-color:#000}}
-@media (prefers-reduced-motion:reduce){#intro{display:none}}
+/* versione "lieve": niente movimento, solo il logo che appare e sparisce */
+#intro.lieve,#intro.lieve *{animation:none!important}
+#intro.lieve .in-anello,#intro.lieve .in-tri{stroke-dashoffset:0}
+#intro.lieve .in-neu{transform:none}
+#intro.lieve .in-nome span{opacity:1;transform:none;filter:none}
+#intro.lieve .in-motto{opacity:1}
+#intro.lieve .in-scia{display:none}
+#intro.lieve.via{transform:none}

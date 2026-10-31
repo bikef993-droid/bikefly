@@ -126,35 +126,46 @@ Passo 3 $TOT 'Collego il cervello'
 # quanta memoria ha la scheda video (MB)
 $mb = 0
 try { $mb = [int]((& nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>$null | Select-Object -First 1).Trim()) } catch {}
-# scheda grande (12 GB o piu): ci stanno DUE cervelli insieme, uno scrive e l altro controlla
-$coppia = ($mb -ge 12000)
-if ($coppia) {
-  # memoria usata in modo piu furbo: cosi i due cervelli stanno insieme nella scheda
+# che cervelli mettere, a seconda della memoria della scheda video (ogni classe che chiede insieme occupa altro posto):
+#  22 GB o piu : coppia forte  gemma4:12b + qwen3.5:9b
+#  15-22 GB    : coppia        gemma4:12b + qwen2.5:7b (sul server: 2 classi insieme, cosi la coppia ci sta)
+#  11-15 GB    : un cervello   gemma4:12b
+#  meno        : un cervello   qwen2.5:7b
+$piano = if ($mb -ge 22000) { 'forte' } elseif ($mb -ge 15000) { 'coppia' } elseif ($mb -ge 11000) { 'uno' } else { 'leggero' }
+$cervelli = @{ forte = @('gemma4:12b', 'qwen3.5:9b'); coppia = @('gemma4:12b', 'qwen2.5:7b'); uno = @('gemma4:12b'); leggero = @('qwen2.5:7b') }[$piano]
+if ($mb -gt 0) {
+  # memoria usata in modo piu furbo: piu posto per le classi (e per la coppia)
   foreach ($v in @(@('OLLAMA_FLASH_ATTENTION', '1'), @('OLLAMA_KV_CACHE_TYPE', 'q8_0'), @('OLLAMA_MAX_LOADED_MODELS', '3'))) {
     [Environment]::SetEnvironmentVariable($v[0], $v[1], 'User'); Set-Item -Path "env:$($v[0])" -Value $v[1]
   }
 }
 if ($ruolo -eq 'server') {
   # il cervello ascolta tutta la rete della scuola e risponde a piu classi insieme
-  $par = if ($mb -ge 30000) { 8 } elseif ($mb -ge 20000) { 6 } elseif ($mb -ge 15000) { 4 } elseif ($mb -ge 11000) { 3 } else { 2 }
+  $par = switch ($piano) { 'forte' { if ($mb -ge 30000) { 8 } else { 6 } } 'coppia' { 2 } 'uno' { 3 } default { 2 } }
   foreach ($v in @(@('OLLAMA_HOST', '0.0.0.0:11434'), @('OLLAMA_NUM_PARALLEL', "$par"), @('OLLAMA_KEEP_ALIVE', '24h'))) {
     [Environment]::SetEnvironmentVariable($v[0], $v[1], 'User'); Set-Item -Path "env:$($v[0])" -Value $v[1]
   }
-  if ($mb) { Ok "Scheda video con $([Math]::Round($mb / 1024)) GB: $par domande insieme" } else { Ko "Scheda video NVIDIA non trovata: $par domande insieme (sara lento)" }
+  if ($mb) { Ok "Scheda video con $([Math]::Round($mb / 1024)) GB: $par classi insieme, cervelli: $($cervelli -join ' + ')" } else { Ko "Scheda video NVIDIA non trovata: $par domande insieme (sara lento)" }
+} else {
+  # PC singolo: una domanda alla volta (cosi c e piu posto per la coppia)
+  [Environment]::SetEnvironmentVariable('OLLAMA_NUM_PARALLEL', '1', 'User'); $env:OLLAMA_NUM_PARALLEL = '1'
+  if ($mb) { Ok "Scheda video con $([Math]::Round($mb / 1024)) GB: cervelli $($cervelli -join ' + ')" }
 }
 Get-Process 'ollama app', 'ollama' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep 2
-$app = Join-Path $OLL 'ollama app.exe'
-if (Test-Path $app) { Start-Process $app } else { Start-Process $exe -ArgumentList 'serve' -WindowStyle Hidden }
+# il motore parte NASCOSTO (niente finestra di Ollama con le sue "app"); se non va, si prova con l app di Ollama
 $acceso = $false
-for ($i = 0; $i -lt 30 -and -not $acceso; $i++) {
-  try { Invoke-WebRequest 'http://localhost:11434/api/tags' -UseBasicParsing -TimeoutSec 2 | Out-Null; $acceso = $true } catch { Start-Sleep 1 }
-}
-if (-not $acceso) {
-  # l app di Ollama a volte si apre ma il motore non parte: lo facciamo partire noi, nascosto
+if (Test-Path $exe) {
   Start-Process $exe -ArgumentList 'serve' -WindowStyle Hidden
+  for ($i = 0; $i -lt 40 -and -not $acceso; $i++) {
+    try { Invoke-WebRequest 'http://127.0.0.1:11434/api/tags' -UseBasicParsing -TimeoutSec 2 | Out-Null; $acceso = $true } catch { Start-Sleep 1 }
+  }
+}
+$app = Join-Path $OLL 'ollama app.exe'
+if (-not $acceso -and (Test-Path $app)) {
+  Start-Process $app
   for ($i = 0; $i -lt 60 -and -not $acceso; $i++) {
-    try { Invoke-WebRequest 'http://localhost:11434/api/tags' -UseBasicParsing -TimeoutSec 2 | Out-Null; $acceso = $true } catch { Start-Sleep 1 }
+    try { Invoke-WebRequest 'http://127.0.0.1:11434/api/tags' -UseBasicParsing -TimeoutSec 2 | Out-Null; $acceso = $true } catch { Start-Sleep 1 }
   }
 }
 if ($acceso) { Ok 'Cervello acceso' } else { Ko 'Il cervello non risponde ancora: riavvia il computer e apri Fly Aula dall icona.' }
@@ -162,16 +173,16 @@ if ($acceso) { Ok 'Cervello acceso' } else { Ko 'Il cervello non risponde ancora
 # il comando parla col cervello su questo PC (anche se il server ascolta tutta la rete)
 $env:OLLAMA_HOST = '127.0.0.1:11434'
 $pronti = 0
-if ($coppia) {
-  Passo 4 $TOT 'Scarico la COPPIA di cervelli: gemma4:12b + qwen3.5:9b (circa 14 GB, una volta sola)'
-  if (Scarica 'gemma4:12b') { $pronti++; Ok 'Primo cervello pronto (gemma4:12b, di Google)' } else { Ko 'gemma4:12b non scaricato' }
-  if (Scarica 'qwen3.5:9b') { $pronti++; Ok 'Secondo cervello pronto (qwen3.5:9b, di Alibaba)' } else { Ko 'qwen3.5:9b non scaricato' }
-  if ($pronti -eq 2) { Ok 'Coppia pronta: uno scrive, l altro controlla' }
+Passo 4 $TOT "Scarico i cervelli: $($cervelli -join ' + ') (una volta sola)"
+foreach ($m in $cervelli) {
+  if (Scarica $m) { $pronti++; Ok "Cervello pronto: $m" } else { Ko "$m non scaricato" }
 }
-if ($pronti -eq 0) {
-  if (-not $coppia) { Passo 4 $TOT 'Scarico il cervello qwen2.5:7b (circa 4,7 GB, una volta sola)' } else { Ko 'Scarico il cervello di riserva qwen2.5:7b (4,7 GB)' }
-  if (Scarica 'qwen2.5:7b') { Ok 'Modello pronto' } else { Ko 'Download non riuscito: rilancia l installazione con internet stabile.' }
+if ($cervelli.Count -eq 2 -and $pronti -eq 2) { Ok 'Coppia pronta: uno scrive, l altro controlla' }
+if ($pronti -eq 0 -and $cervelli -notcontains 'qwen2.5:7b') {
+  Ko 'Provo con il cervello di riserva qwen2.5:7b (4,7 GB)'
+  if (Scarica 'qwen2.5:7b') { $pronti++; Ok 'Cervello di riserva pronto' }
 }
+if ($pronti -eq 0) { Ko 'Download non riuscito: rilancia l installazione con internet stabile.' }
 Write-Host ''
 $vis = Read-Host '   Vuoi che Fly Aula legga anche le FOTO delle pagine del libro? Scarica altri 6 GB. (S/N)'
 if ($vis -match '^[sSyY]') {

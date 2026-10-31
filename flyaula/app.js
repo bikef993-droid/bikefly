@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.6 · il programma
+//  FLY AULA v0.9.7 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -250,8 +250,11 @@ function aggiungi(chi, html) {
 async function riassunto() {
   if (!modello || storia.length < 2) return null;
   try {
-    return await cervello("Riassumi in massimo 2 frasi cosa ha fatto la classe in questa lezione e dove si è bloccata. Niente nomi di persone.",
+    const t = await cervello("Scrivi in massimo 2 frasi SOLO FATTI di questa lezione: quali argomenti ed esercizi sono stati fatti (con i numeri) e, se è successo davvero, su cosa la classe ha avuto dubbi. Niente supposizioni: non scrivere mai 'probabilmente', 'forse', 'sembra'. Niente nomi di persone, niente consigli.",
       storia.map(m => (m.role === "user" ? "Classe: " : "Fly Aula: ") + m.content).join("\n").slice(-6000), { temperature: 0.1 });
+    // se il cervello tira a indovinare lo stesso, quelle frasi si tolgono
+    const fatti = (t.match(/[^.!?]+[.!?]*/g) || []).filter(f => !/\b(probabilment|forse|sembr|presumibil|potrebbe|ipotizz)/i.test(f)).join(" ").replace(/\s+/g, " ").trim();
+    return fatti.length >= 15 ? fatti : null;
   } catch (e) { return null; }
 }
 async function riassumi() {
@@ -305,7 +308,7 @@ function disegnoPerConto(conto) {
 // in qualsiasi aula, la stessa domanda (stessa materia, livello, anno e argomento) arriva SUBITO.
 // Non si salvano: risposte con un dubbio, domande che continuano la conversazione, pagine del libro,
 // modalità del prof diverse da "normale", DSA. Se un prof segnala un errore, la risposta si cancella.
-const VERSIONE_MEMORIA = 1;
+const VERSIONE_MEMORIA = 2;   // si cambia quando le risposte migliorano: le vecchie non si usano più
 function impronta(t) {                       // un'impronta del testo (32 cifre esadecimali): niente testo in chiaro nel nome
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57, h3 = 0x9e3779b9, h4 = 0x7f4a7c15;
   for (let i = 0; i < t.length; i++) {
@@ -330,7 +333,7 @@ async function leggiMemoria(k) {
     const r = await fetch("/fa/memo?k=" + k, { cache: "no-store", signal: ctrl.signal });
     if (!r.ok) return null;
     const j = await r.json();
-    const testo = String(j.testo || "");
+    const testo = ripulisciRobot(String(j.testo || "")).testo;
     // anche dalla memoria: niente di strano, conti giusti, niente ripetizioni (altrimenti si risponde da capo)
     if (!testo || testo.length > 8000 || !controllaRisposta(testo) || correggiConti(testo).corretti || trovaGiro(testo)) return null;
     return { testo, controlli: Number(j.controlli) || 2, coppia: !!j.coppia };
@@ -396,6 +399,23 @@ async function contiPrima(domanda, materia, bolla) {
   return fatti;
 }
 
+// ✏️ conto secco: il cervello sa che il disegno c'è già e riceve i passaggi giusti cifra per cifra
+function passiPerConto(conto) {
+  const m = conto && String(conto.testo).match(/^([\d.,]+)\s*([+\-−×x*·÷:\/])\s*([\d.,]+)$/);
+  return m ? passiInColonna(leggiNumero(m[1]), m[2], leggiNumero(m[3])) : null;
+}
+function aiutoColonna(conto) {
+  if (!conto) return "";
+  const dis = disegnoPerConto(conto);
+  if (!dis) return "";
+  let t = `\nIL DISEGNO C'È GIÀ: sopra la tua spiegazione Fly Aula mostra da sola ${conto.testo} in colonna. NON scrivere tu il comando del disegno e NON dire mai che non puoi disegnare o creare immagini.`;
+  if (Prof.modo === "guida") return t;
+  let passi = passiPerConto(conto);
+  if (!passi) return t;
+  if (Prof.modo === "spiega") passi = passi.slice(0, -1);         // il prof non vuole il risultato finale
+  return t + `\nPASSAGGI GIUSTI DEL CALCOLO IN COLONNA (calcolati da Fly Aula: usali così come sono, uno per riga numerata, spiegandoli con parole semplici):\n` + passi.map((p, i) => `${i + 1}. ${p}`).join("\n");
+}
+
 // ---------------- la domanda: risposta + CONTROLLO SEMPRE ----------------
 let occupato = false;
 function inPausa() {
@@ -451,6 +471,8 @@ async function chiedi(domanda, speciale = {}) {
     // 0) 🧮 i conti li fa la calcolatrice PRIMA che il cervello scriva
     const fatti = await contiPrima(domanda, materia, bolla);
     sistema += istruzioniFatti(fatti);
+    const contoSecco = MATERIE[materia].calcoli ? contoNellaDomanda(domanda) : null;
+    sistema += aiutoColonna(contoSecco);
     // 1) prima stesura (si vede mentre la scrive; il prof la può fermare con ⏹)
     mostraFerma(true);
     const difficile = domandaDifficile(domanda, materia, speciale);
@@ -528,6 +550,14 @@ async function chiedi(domanda, speciale = {}) {
     if (conto && MATERIE[materia].calcoli && !/\[DISEGNO:/i.test(testo)) {
       const dis = disegnoPerConto(conto);
       if (dis) { const r = testo.split("\n"); r.splice(Math.min(1, r.length), 0, dis); testo = r.join("\n"); }
+    }
+    // 🤖 niente frasi da robot ("le istruzioni date", "non posso creare immagini" con il disegno sotto…)
+    const robot = ripulisciRobot(testo);
+    if (robot.tolte) { testo = robot.testo; annotaErrore("Frasi da robot tolte", `${robot.tolte} ${robot.tolte === 1 ? "frase tolta" : "frasi tolte"}`); }
+    // ✏️ conto secco spiegato in troppo pochi passaggi: Fly Aula aggiunge lei i passaggi giusti in colonna
+    if (contoSecco && Prof.modo === "normale" && MATERIE[materia].calcoli) {
+      const pas = passiPerConto(contoSecco), numerate = (testo.match(/^\s*\d+[.)]\s/gm) || []).length;
+      if (pas && numerate < 3) testo += "\n✏️ In colonna, passo passo:\n" + pas.map(x => "• " + x.replace(/\s*✓$/, "")).join("\n");   // il ✓ lo mette la calcolatrice
     }
     // 3) sicurezza anche sulla risposta
     if (!controllaRisposta(testo)) { annotaErrore("Bloccata dalla sicurezza", "risposta non adatta"); testo = "Torniamo alla materia 😊 Prova a farmi un'altra domanda."; timbri.length = 0; }

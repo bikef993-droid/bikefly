@@ -269,3 +269,120 @@ function istruzioniFatti(fatti) {
   return `\nCONTI GIÀ FATTI DALLA CALCOLATRICE (i numeri sono sicuri: usali così come sono, NON rifare i conti a mente; controlla solo che siano i conti giusti per la domanda):\n`
     + fatti.map((f, i) => `${i + 1}. ${f.cosa ? f.cosa + ": " : ""}${f.testo} = ${formatta(f.risultato)}`).join("\n");
 }
+
+// ===================================================================
+//  ✏️ I PASSAGGI IN COLONNA, CALCOLATI DA FLY AULA
+//  Per un conto secco (320 : 8, 345 + 278…) Fly Aula prepara lei i passaggi
+//  cifra per cifra, come sul quaderno: il cervello li deve solo raccontare.
+// ===================================================================
+const POSTI = ["unità", "decine", "centinaia", "migliaia", "decine di migliaia", "centinaia di migliaia", "milioni", "decine di milioni", "centinaia di milioni"];
+const cifre = n => String(n).split("").map(Number);
+function passiInColonna(a, op, b) {
+  if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a > 999999999 || b > 999999999) return null;
+  const f = formatta, passi = [];
+  if (":÷/".includes(op)) {
+    if (b === 0 || b > 999 || a > 9999999) return null;
+    const d = cifre(a); let i = 0, parz = 0;
+    // la prima "presa": tante cifre quante servono per arrivare almeno al divisore
+    while (i < d.length && parz * 10 + d[i] < b && i < d.length - 1) { parz = parz * 10 + d[i]; i++; }
+    parz = parz * 10 + d[i];
+    if (i > 0) passi.push(`${d.slice(0, i).join("")} : ${b} non si può (${d.slice(0, i).join("")} è più piccolo di ${b}): prendo ${i + 1} cifre, cioè ${parz}.`);
+    let q = Math.floor(parz / b), r = parz - q * b, quoz = String(q);
+    passi.push(`${parz} : ${b} = ${q}, perché ${q} × ${b} = ${q * b}; resto ${r}.`);
+    for (i = i + 1; i < d.length; i++) {
+      parz = r * 10 + d[i]; q = Math.floor(parz / b); r = parz - q * b; quoz += q;
+      passi.push(`Abbasso la cifra ${d[i]}: ${parz} : ${b} = ${q}${q ? `, perché ${q} × ${b} = ${q * b}` : ` (${parz} è più piccolo di ${b})`}; resto ${r}.`);
+    }
+    const Q = Number(quoz);
+    passi.push(`Risultato: ${a} : ${b} = ${f(Q)}${r ? ` con il resto di ${r}` : ""}. Prova: ${f(Q)} × ${b}${r ? ` + ${r}` : ""} = ${f(a)} ✓`);
+    return passi;
+  }
+  if (op === "+") {
+    const A = cifre(a).reverse(), B = cifre(b).reverse(); let rip = 0;
+    for (let k = 0; k < Math.max(A.length, B.length); k++) {
+      const x = A[k] || 0, y = B[k] || 0, s = x + y + rip;
+      passi.push(`${POSTI[k][0].toUpperCase() + POSTI[k].slice(1)}: ${x} + ${y}${rip ? ` + ${rip} (riporto)` : ""} = ${s}: ${s >= 10 ? `scrivo ${s % 10} e riporto 1` : `scrivo ${s}`}.`);
+      rip = s >= 10 ? 1 : 0;
+    }
+    if (rip) passi.push(`Il riporto 1 va scritto davanti: è il nuovo primo numero.`);
+    passi.push(`Risultato: ${f(a)} + ${f(b)} = ${f(a + b)}.`);
+    return passi.length <= 11 ? passi : null;
+  }
+  if ("-−".includes(op)) {
+    if (a < b) return null;
+    const A = cifre(a).reverse(), B = cifre(b).reverse(); let prestito = 0;
+    const Pos = k => POSTI[k][0].toUpperCase() + POSTI[k].slice(1);
+    for (let k = 0; k < A.length; k++) {
+      const orig = A[k], y = B[k] || 0, x = orig - prestito;
+      if (k >= B.length && k === A.length - 1 && x === 0) break;            // lo zero davanti non si scrive
+      if (prestito && orig === 0) {                                           // lo 0 non ha niente da prestare: diventa 9
+        passi.push(`${Pos(k)}: lo 0 ha dovuto prestare 1, ma non ha niente: prende 1 dalla cifra a sinistra e diventa 9. 9 − ${y} = ${9 - y}.`);
+        prestito = 1;
+      } else if (x < y) {
+        passi.push(`${Pos(k)}: ${x} − ${y} non si può${prestito ? ` (il ${orig} ha prestato 1 ed è diventato ${x})` : ""}: prendo 1 in prestito dalla cifra a sinistra, ${x + 10} − ${y} = ${x + 10 - y}.`);
+        prestito = 1;
+      } else {
+        passi.push(`${Pos(k)}: ${x} − ${y} = ${x - y}${prestito ? ` (il ${orig} ha prestato 1 ed è diventato ${x})` : ""}.`);
+        prestito = 0;
+      }
+    }
+    passi.push(`Risultato: ${f(a)} − ${f(b)} = ${f(a - b)}. Prova: ${f(a - b)} + ${f(b)} = ${f(a)} ✓`);
+    return passi.length <= 11 ? passi : null;
+  }
+  if ("×x*·".includes(op)) {
+    if (b > 999 || a > 9999999) return null;
+    const B = cifre(b).reverse();
+    if (B.length === 1) {
+      const A = cifre(a).reverse(); let rip = 0;
+      for (let k = 0; k < A.length; k++) {
+        const p = A[k] * b + rip;
+        passi.push(`${b} × ${A[k]}${rip ? ` + ${rip} (riporto)` : ""} = ${p}: ${k === A.length - 1 ? `scrivo ${p}` : p >= 10 ? `scrivo ${p % 10} e riporto ${Math.floor(p / 10)}` : `scrivo ${p}`}.`);
+        rip = Math.floor(p / 10);
+      }
+      passi.push(`Risultato: ${f(a)} × ${b} = ${f(a * b)}.`);
+      return passi.length <= 11 ? passi : null;
+    }
+    const parziali = [];
+    B.forEach((c, k) => {
+      const p = a * c * Math.pow(10, k); parziali.push(p);
+      passi.push(k === 0 ? `${f(a)} × ${c} (unità) = ${f(a * c)}.` : `${f(a)} × ${c} (${POSTI[k]}) = ${f(a * c)}: si scrive spostato di ${k} ${k === 1 ? "posto" : "posti"} a sinistra, cioè ${f(p)}.`);
+    });
+    passi.push(`Sommo i risultati: ${parziali.map(f).join(" + ")} = ${f(a * b)}.`);
+    passi.push(`Risultato: ${f(a)} × ${f(b)} = ${f(a * b)}.`);
+    return passi;
+  }
+  return null;
+}
+
+// ===================================================================
+//  🤖 NIENTE FRASI DA ROBOT SULLA LAVAGNA
+//  Si tolgono le frasi in cui il cervello parla delle sue istruzioni o di sé come
+//  "modello", e (se il disegno c'è) quelle in cui dice di non saper disegnare.
+// ===================================================================
+const FRASI_ROBOT = [
+  /\bistruzion[ie]\b[^.!?\n]{0,40}\b(date|ricevute|che ho|del sistema|fornite)/i,
+  /\b(come|in quanto|sono (solo )?(un|una))\s+(modello( linguistico| di (intelligenza artificiale|linguaggio))?|intelligenza artificiale|ia\b|ai\b|assistente virtuale|programma)/i,
+  /\b(system prompt|prompt di sistema|il mio prompt|le mie regole)\b/i,
+  /\bsiamo concentrati sull[ae]? /i,
+  /\bnon ho (accesso|la possibilità) (a internet|di navigare)/i
+];
+const FRASI_NO_DISEGNO = [
+  /\bnon (posso|possiamo|riesco a|sono in grado di) (creare|fare|generare|disegnare|mostrare|produrre)[^.!?\n]{0,25}\b(immagin[ie]|disegn[oi]|foto|figur[ae])/i,
+  /\bvuoi[^.!?\n]{0,60}\b(disegno|immagine)[^.!?\n]{0,40}\?/i,
+  /\bse (hai bisogno|vuoi|serve)[^.!?\n]{0,50}\b(disegno|immagine|figura)/i
+];
+function ripulisciRobot(testo) {
+  const haDisegno = /\[DISEGNO:/i.test(testo);
+  const regole = haDisegno ? [...FRASI_ROBOT, ...FRASI_NO_DISEGNO] : FRASI_ROBOT;
+  let tolte = 0;
+  const righe = testo.split("\n").map(riga => {
+    if (/^\s*\[DISEGNO:/i.test(riga)) return riga;
+    const m = riga.match(/^(\s*\d+[.)]\s+)?(.*)$/);
+    const pezzi = (m[2].match(/[^.!?]+[.!?]*\s*/g) || [m[2]]);
+    const resto = pezzi.filter(f => { const via = regole.some(re => re.test(f)); if (via) tolte++; return !via; }).join("").trim();
+    return resto ? (m[1] || "") + resto : null;
+  }).filter(r => r !== null);
+  const pulito = righe.join("\n").trim();
+  // se togliendo le frasi non resta quasi niente, meglio lasciare com'era (e lo dirà il controllo)
+  return { testo: pulito.replace(/\[DISEGNO:[^\]]*\]/gi, "").trim().length >= 25 ? pulito : testo, tolte };
+}

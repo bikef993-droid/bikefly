@@ -58,13 +58,16 @@ $OLL = Join-Path $env:LOCALAPPDATA 'Programs\Ollama'
 $exe = Join-Path $OLL 'ollama.exe'
 if (-not (Test-Path $exe)) { $c = Get-Command ollama -ErrorAction SilentlyContinue; if ($c) { $exe = $c.Source } }
 if (-not (Motore)) {
-  $app = Join-Path $OLL 'ollama app.exe'
-  if ((Test-Path $app) -and -not (Get-Process 'ollama app' -ErrorAction SilentlyContinue)) { Start-Process $app }
-  for ($i = 0; $i -lt 15 -and -not (Motore); $i++) { Start-Sleep 1 }
-  # l app di Ollama a volte si apre ma il motore non parte: lo facciamo partire noi, nascosto
-  if (-not (Motore) -and (Test-Path $exe)) {
+  # prima il motore NASCOSTO (niente finestra di Ollama con le sue "app")
+  if (Test-Path $exe) {
     Start-Process $exe -ArgumentList 'serve' -WindowStyle Hidden
     for ($i = 0; $i -lt 30 -and -not (Motore); $i++) { Start-Sleep 1 }
+  }
+  # se non parte, l app di Ollama
+  $app = Join-Path $OLL 'ollama app.exe'
+  if (-not (Motore) -and (Test-Path $app) -and -not (Get-Process 'ollama app' -ErrorAction SilentlyContinue)) {
+    Start-Process $app
+    for ($i = 0; $i -lt 20 -and -not (Motore); $i++) { Start-Sleep 1 }
   }
 }
 
