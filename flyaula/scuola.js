@@ -67,7 +67,7 @@ const Scuola = (() => {
       ultimoOk = Date.now();
       return r;
     } catch (e) {
-      if (st.cervelli.length < 2) throw e;
+      if (e.name === "AbortError" || st.cervelli.length < 2) throw e;   // fermata dal prof: non è un guasto
       // caduto proprio adesso: un tentativo sull'altro
       const altro = (st.attivo + 1) % st.cervelli.length;
       passaA(altro);
@@ -81,7 +81,7 @@ const Scuola = (() => {
   return {
     avvia, chiama, caricaOrario,
     get ruolo() { return st.ruolo; }, get aula() { return st.aula; }, get nome() { return st.nome; },
-    get suRiserva() { return st.riserva; }, get base() { return st.cervelli[st.attivo]; },
+    get suRiserva() { return st.riserva; }, get cervelloScelto() { return (st.info && st.info.cervello) || ""; }, get base() { return st.cervelli[st.attivo]; },
     parAula: () => st.aula ? "aula=" + encodeURIComponent(st.aula) : ""
   };
 })();

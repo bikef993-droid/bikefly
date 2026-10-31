@@ -9,23 +9,32 @@
 
 // calcolatrice per espressioni: "(1000 × 22) : 100", "3/4 × 120"…
 function valuta(espr) {
+  // scrittura italiana: 1.000 = mille, 2,5 = due e mezzo
   const t = String(espr).replace(/×|x|\*/gi, "*").replace(/:|÷/g, "/").replace(/−/g, "-").replace(/(\d)\.(\d{3})(?!\d)/g, "$1$2").replace(/,/g, ".");
-  if (!/^[\d.+\-*/()\s%]+$/.test(t)) return NaN;
-  const tok = t.match(/\d+(?:\.\d+)?|[+\-*/()%]/g) || [];
+  return valutaPulita(t);
+}
+// la calcolatrice vera e propria: numeri con il punto decimale, + - * / ( ) % ^ √
+function valutaPulita(t) {
+  t = String(t).replace(/sqrt/gi, "√");
+  if (!/^[\d.+\-*/()\s%^√]+$/.test(t)) return NaN;
+  const tok = t.match(/\d+(?:\.\d+)?|[+\-*/()%^√]/g) || [];
   let i = 0;
   const prossimo = () => tok[i], prendi = () => tok[i++];
   function fattore() {
     let v; const x = prendi();
     if (x === "(") { v = somma(); if (prendi() !== ")") return NaN; }
-    else if (x === "-") v = -fattore();
+    else if (x === "-") return -fattore();
+    else if (x === "√") v = Math.sqrt(fattore());
+    else if (x === undefined || !/^\d/.test(x)) return NaN;
     else v = Number(x);
     if (prossimo() === "%") { prendi(); v = v / 100; }
+    if (prossimo() === "^") { prendi(); v = Math.pow(v, fattore()); }
     return v;
   }
   function prodotto() { let v = fattore(); while (prossimo() === "*" || prossimo() === "/") { const o = prendi(), w = fattore(); v = o === "*" ? v * w : v / w; } return v; }
   function somma() { let v = prodotto(); while (prossimo() === "+" || prossimo() === "-") { const o = prendi(), w = prodotto(); v = o === "+" ? v + w : v - w; } return v; }
   const r = somma();
-  return i === tok.length ? r : NaN;
+  return i === tok.length && isFinite(r) ? r : NaN;
 }
 
 const ISTRUZIONI_ESERCIZIO = (materia, livello, argomento, evita) => `Inventa UN esercizio di ${materia} per la scuola ${livello}${argomento ? " sull'argomento: " + argomento : ""}.

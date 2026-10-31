@@ -1,10 +1,12 @@
 // ===================================================================
-//  FLY AULA v0.9.2 · il programma
+//  FLY AULA v0.9.3 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
 const OLLAMA = "http://localhost:11434";
-const MODELLI = ["qwen2.5:14b", "qwen2.5:7b", "gemma3:12b", "qwen3:8b", "llama3.1:8b"];
+// i cervelli che conosciamo, dal più forte al più leggero (tutti entrano in una scheda da 16 GB).
+// Se è stata fatta la GARA, vince il cervello scelto lì.
+const MODELLI = ["gemma4:26b-a4b", "gemma4:12b", "qwen3.5:9b", "qwen3:14b", "gpt-oss:20b", "qwen2.5:14b", "gemma3:12b", "qwen3:8b", "qwen2.5:7b", "llama3.1:8b"];
 let modello = null;
 window.modelliPresenti = [];
 const contesto = () => (Pagine.attive ? 16384 : 8192);
@@ -15,33 +17,119 @@ function scrivi(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function escape(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
 // ---------------- il cervello ----------------
+// Tetti di lunghezza: una risposta non può andare avanti per sempre
+const MAX_PAROLE_LAVAGNA = 1500, MAX_PAROLE_LAVORO = 2048, MAX_CARATTERI_LAVAGNA = 6000;
+// il "ragionamento lungo" dei cervelli nuovi: spento per la lavagna (risponde subito),
+// acceso solo nel terzo controllo dei casi difficili. Si chiede a Ollama cosa sa fare ogni cervello.
+const capacita = {};
+async function leggiCapacita(m) {
+  if (!m || capacita[m]) return capacita[m] || [];
+  try {
+    const r = await Scuola.chiama("/api/show", { method: "POST", body: JSON.stringify({ model: m }) });
+    capacita[m] = r.ok ? ((await r.json()).capabilities || []) : [];
+  } catch (e) { capacita[m] = []; }
+  return capacita[m];
+}
+function pensiero(m, pensa) {
+  if (!(capacita[m] || []).includes("thinking")) return {};
+  if (/gpt-oss/.test(m)) return { think: pensa ? "medium" : "low" };   // gpt-oss non si spegne del tutto
+  return { think: !!pensa };
+}
+const tetto = (m, pensa, base) => { const t = pensiero(m, pensa).think; return t && t !== false ? base + 6144 : base; };
+const senzaPensieri = t => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, "");
+
+// 🔁 il "disco rotto": il cervello ripete la stessa cosa all'infinito.
+// Se succede si tiene solo la prima volta e ci si ferma.
+const NUMERO_PASSO = /^\s*\d+[.)]\s*/;
+function trovaGiro(testo) {
+  // a) la stessa riga ripetuta (anche se cambia il numero del passaggio)
+  const visti = new Map(); let pos = 0;
+  for (const r of testo.split("\n")) {
+    const k = r.replace(NUMERO_PASSO, "").replace(/\s+/g, " ").trim().toLowerCase();
+    if (k.length >= 4) {
+      const v = visti.get(k);
+      if (!v) visti.set(k, { n: 1, seconda: 0 });
+      else {
+        v.n++;
+        if (v.n === 2) v.seconda = pos;
+        if (v.n >= 4) return { testo: testo.slice(0, v.seconda).trimEnd(), giro: true };
+      }
+    }
+    pos += r.length + 1;
+  }
+  // b) lo stesso pezzo ripetuto di fila: "320 : 8 320 : 8 320 : 8 …"
+  const inizio = Math.max(0, testo.length - 600), coda = testo.slice(inizio);
+  const m = coda.match(/([^\n]{3,80}?)(?:[\s,;.]*\1){6,}[\s,;.]*$/);
+  if (m) {
+    // si tolgono anche le ripetizioni più indietro: resta una volta sola
+    const pezzo = m[1].trim(), sep = /[ \t,;.]*$/;
+    let prima = testo.slice(0, inizio + m.index);
+    for (let k = 0; k < 2000 && pezzo; k++) {
+      const p = prima.replace(sep, "");
+      if (!p.endsWith(pezzo)) break;
+      prima = p.slice(0, -pezzo.length);
+    }
+    prima = prima.replace(sep, "");
+    return { testo: (prima + (prima && !prima.endsWith("\n") ? " " : "") + pezzo).trim(), giro: true };
+  }
+  return null;
+}
+
 // risposta intera (per revisore, esercizi, esame, riassunti)
-async function cervello(sistema, utente, { temperature = 0.2, format } = {}) {
+async function cervello(sistema, utente, { temperature = 0.2, format, pensa = false } = {}) {
   const r = await Scuola.chiama("/api/chat", {
     method: "POST",
-    body: JSON.stringify({ model: modello, stream: false, keep_alive: "2h", ...(format ? { format } : {}),
-      options: { temperature, num_ctx: contesto() }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] })
+    body: JSON.stringify({ model: modello, stream: false, keep_alive: "2h", ...(format ? { format } : {}), ...pensiero(modello, pensa),
+      options: { temperature, num_ctx: contesto(), num_predict: tetto(modello, pensa, MAX_PAROLE_LAVORO) }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] })
   });
   const j = await r.json();
-  const t = (j.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-  return format ? t : pulisciLatex(t);      // il LaTeX diventa simboli normali (nel JSON lo pulisce chi lo legge)
+  let t = senzaPensieri(j.message?.content || "").trim();
+  if (format) return t;                      // JSON: lo pulisce chi lo legge
+  const g = trovaGiro(t);
+  if (g) t = g.testo;
+  return pulisciLatex(t);                    // il LaTeX diventa simboli normali
 }
-// risposta che si scrive mentre arriva (per la lavagna)
+
+// risposta che si scrive mentre arriva (per la lavagna).
+// Si ferma da sola se si incanta o diventa troppo lunga; il prof la può fermare (⏹ o Esc).
+// Restituisce { testo, fine }: fine = null (tutto ok) | "giro" | "lunga" | "fermata"
+let rispostaInCorso = null;
+function fermaRisposta() { if (rispostaInCorso) rispostaInCorso.abort(); }
 async function cervelloInDiretta(messaggi, ogniPezzo) {
-  const r = await Scuola.chiama("/api/chat", {
-    method: "POST",
-    body: JSON.stringify({ model: modello, stream: true, keep_alive: "2h", options: { temperature: 0.2, num_ctx: contesto() }, messages: messaggi })
-  });
-  const lettore = r.body.getReader(), dec = new TextDecoder();
-  let resto = "", testo = "";
-  for (;;) {
-    const { value, done } = await lettore.read();
-    if (done) break;
-    resto += dec.decode(value, { stream: true });
-    const righe = resto.split("\n"); resto = righe.pop();
-    for (const l of righe) if (l.trim()) { testo += JSON.parse(l).message?.content || ""; ogniPezzo(pulisciLatex(testo.replace(/<think>[\s\S]*?(<\/think>|$)/g, ""))); }
-  }
-  return pulisciLatex(testo.replace(/<think>[\s\S]*?<\/think>/g, "").trim());
+  const ctrl = new AbortController();
+  rispostaInCorso = ctrl;
+  let testo = "", fine = null;
+  try {
+    const r = await Scuola.chiama("/api/chat", {
+      method: "POST", signal: ctrl.signal,
+      body: JSON.stringify({ model: modello, stream: true, keep_alive: "2h", ...pensiero(modello, false), options: { temperature: 0.2, num_ctx: contesto(), num_predict: tetto(modello, false, MAX_PAROLE_LAVAGNA) }, messages: messaggi })
+    });
+    const lettore = r.body.getReader(), dec = new TextDecoder();
+    let resto = "", controllato = 0;
+    flusso: for (;;) {
+      const { value, done } = await lettore.read();
+      if (done) break;
+      resto += dec.decode(value, { stream: true });
+      const righe = resto.split("\n"); resto = righe.pop();
+      for (const l of righe) {
+        if (!l.trim()) continue;
+        testo += JSON.parse(l).message?.content || "";
+        const pulito = senzaPensieri(testo);
+        if (pulito.length - controllato >= 30) {
+          controllato = pulito.length;
+          const g = trovaGiro(pulito);
+          if (g) { testo = g.testo; fine = "giro"; break flusso; }
+        }
+        if (pulito.length > MAX_CARATTERI_LAVAGNA) { testo = pulito; fine = "lunga"; break flusso; }
+        ogniPezzo(pulisciLatex(pulito));
+      }
+    }
+    if (fine) ctrl.abort();                  // così il cervello smette davvero di scrivere
+  } catch (e) {
+    if (e.name !== "AbortError") throw e;
+    fine = fine || "fermata";
+  } finally { if (rispostaInCorso === ctrl) rispostaInCorso = null; }
+  return { testo: pulisciLatex(senzaPensieri(testo).trim()), fine };
 }
 
 // ---------------- tabella degli errori ----------------
@@ -129,9 +217,15 @@ async function nuovaLezione(salva = true) {
 // ---------------- impaginazione: passaggi, conti, disegni ----------------
 function impagina(testo, finito, segna) {
   const righe = testo.split(/\n+/).filter(r => r.trim());
+  const disegnati = new Set();                 // ogni disegno una volta sola, al massimo 3
   return righe.map(r => {
     const dis = r.trim().match(/^\[DISEGNO:\s*(.+?)\]\s*$/i);
-    if (dis) return finito ? (disegna(dis[1]) || "") : `<div class="lavoro">🎨 preparo il disegno…</div>`;
+    if (dis) {
+      const k = dis[1].replace(/\s+/g, " ").toLowerCase();
+      if (disegnati.has(k) || disegnati.size >= 3) return "";
+      disegnati.add(k);
+      return finito ? (disegna(dis[1]) || "") : `<div class="lavoro">🎨 preparo il disegno…</div>`;
+    }
     let e = escape(r).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\[DISEGNO:[^\]]*\]/gi, "");
     const m = e.match(/^\s*(\d+)[.)]\s+(.*)$/);
     const corpo = finito ? controllaConti(m ? m[2] : e, segna) : (m ? m[2] : e);
@@ -151,6 +245,18 @@ function disegnoPerConto(conto) {
   if ("+".includes(op)) return a < 1e9 && b < 1e9 ? `[DISEGNO: colonna ${a} + ${b}]` : null;
   if ("-−".includes(op)) return a >= b && a < 1e9 ? `[DISEGNO: colonna ${a} − ${b}]` : null;
   return a < 1e7 && b < 1000 ? `[DISEGNO: colonna ${a} × ${b}]` : null;
+}
+
+// ---------------- 🧮 la calcolatrice fa i conti ----------------
+// conto secco ("320 : 8"): lo fa subito. Problema con numeri: il cervello dice quali conti servono, la calcolatrice li fa.
+async function contiPrima(domanda, materia, bolla) {
+  if (!MATERIE[materia].calcoli || !/\d/.test(domanda)) return [];
+  const secco = contoNellaDomanda(domanda);
+  if (secco) return [{ cosa: "", testo: secco.testo, risultato: secco.risultato }];
+  if (bolla) bolla.innerHTML = `<div class="lavoro">🧮 La calcolatrice prepara i conti…</div>`;
+  const fatti = await pianoConti(cervello, domanda, MATERIE[materia].nome);
+  if (bolla) bolla.innerHTML = '<span class="cursore"></span>';
+  return fatti;
 }
 
 // ---------------- la domanda: risposta + CONTROLLO SEMPRE ----------------
@@ -183,11 +289,29 @@ async function chiedi(domanda, speciale = {}) {
   const bolla = aggiungi("ai", '<span class="cursore"></span>');
   const attesa = setTimeout(() => { if (bolla.querySelector(".cursore") && bolla.textContent.trim() === "") bolla.innerHTML = `<div class="lavoro">${Scuola.ruolo === "lim" ? "⏳ Fly Aula sta aiutando altre classi, arrivo…" : "☕ Ci penso un attimo…"}</div>`; }, 4000);
   const materia = $("materia").value, livello = $("livello").value;
-  const sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + istruzioniProgramma(materia, livello, $("classe").value) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni() + DSA.istruzioni();
-  try {
-    // 1) prima stesura (si vede mentre la scrive)
-    let testo = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { clearTimeout(attesa); bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; });
+  let sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + istruzioniProgramma(materia, livello, $("classe").value) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni() + DSA.istruzioni();
+  try { fatto: {
+    // 0) 🧮 i conti li fa la calcolatrice PRIMA che il cervello scriva
+    const fatti = await contiPrima(domanda, materia, bolla);
+    sistema += istruzioniFatti(fatti);
+    // 1) prima stesura (si vede mentre la scrive; il prof la può fermare con ⏹)
+    mostraFerma(true);
+    const prima = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { clearTimeout(attesa); bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; });
+    mostraFerma(false);
     clearTimeout(attesa);
+    let testo = prima.testo;
+    if (prima.fine === "fermata") {
+      bolla.innerHTML = (testo ? impagina(testo, true) : "") + `<div class="timbri"><span class="timbro rosso">⏹ Fermata dal prof: questa risposta non è stata controllata</span></div>`;
+      storia.pop();
+      break fatto;
+    }
+    if (prima.fine && testo.replace(/\[DISEGNO:[^\]]*\]/gi, "").trim().length < 40) {
+      bolla.innerHTML = "🔁 Mi sono incantata e mi sono fermata da sola. Riprova con altre parole 🙂";
+      annotaErrore("Si ripeteva (fermata da sola)", "non era rimasto niente di utile da mostrare");
+      storia.pop();
+      break fatto;
+    }
+    if (prima.fine) annotaErrore(prima.fine === "giro" ? "Si ripeteva (fermata da sola)" : "Risposta troppo lunga (accorciata)", testo.slice(-160));
     // 2) CONTROLLO SEMPRE: 2 volte, 3 nei casi speciali
     bolla.classList.add("controllo");
     bolla.insertAdjacentHTML("beforeend", `<div class="lavoro" id="lavoroRev">🧮 Controllo 1: la calcolatrice rifà i conti…</div>`);
@@ -201,7 +325,7 @@ async function chiedi(domanda, speciale = {}) {
     if (Pagine.attive) ctx += "\n" + Pagine.fonte();
     const es = await ricontrolloCompleto(cervello, {
       domanda, testo, contesto: ctx, conto,
-      speciale: !!speciale.esercizio || !MATERIE[materia].calcoli,
+      speciale: !!speciale.esercizio || !MATERIE[materia].calcoli || !!prima.fine,
       risultatoObbligatorio: modoProf === "normale",
       ogniPasso: n => { const l = $("lavoroRev"); if (l) l.textContent = passi[n]; }
     });
@@ -220,6 +344,8 @@ async function chiedi(domanda, speciale = {}) {
     } else timbri.push(`<span class="timbro">Controllata ${quante}</span>`);
     if (es.contiCorretti) timbri.push(`<span class="timbro giallo">🧮 ${es.contiCorretti} ${es.contiCorretti === 1 ? "conto corretto" : "conti corretti"} dalla calcolatrice</span>`);
     if (Pagine.attive) timbri.push(`<span class="timbro blu">📷 Usate le pagine del libro</span>`);
+    if (fatti.length) timbri.push(`<span class="timbro blu">🧮 ${fatti.length === 1 ? "Conto fatto" : fatti.length + " conti fatti"} dalla calcolatrice</span>`);
+    if (prima.fine) timbri.push(`<span class="timbro giallo">${prima.fine === "giro" ? "🔁 Si stava ripetendo: ho tolto le ripetizioni" : "✂️ Era troppo lunga: l'ho accorciata"}</span>`);
     // disegno automatico del conto, se il cervello non l'ha messo
     if (conto && MATERIE[materia].calcoli && !/\[DISEGNO:/i.test(testo)) {
       const dis = disegnoPerConto(conto);
@@ -238,7 +364,8 @@ async function chiedi(domanda, speciale = {}) {
     const lingua = $("lingua").value;
     if (lingua) { chat.scrollTop = chat.scrollHeight; await aggiungiTraduzione(bolla, testo, lingua); }
     if (storia.length > 14) riassumi();
-  } catch (e) {
+  } } catch (e) {
+    mostraFerma(false);
     bolla.classList.remove("controllo");
     clearTimeout(attesa);
     bolla.innerHTML = Scuola.ruolo === "lim" ? "☕ Fly Aula non riesce a raggiungere il cervello della scuola. Riprova tra un attimo: se continua, chiama il tecnico." : "☕ Fly Aula si sta svegliando: riprova tra qualche secondo.";
@@ -355,18 +482,16 @@ async function nuovoEsercizio(argomento = "") {
 
 // ---------------- esame delle domande ----------------
 let esameAttivo = false, esameRighe = [];
-async function esame() {
-  if (!modello) return mostraAiuto();
-  esameAttivo = true; esameRighe = [];
-  $("esVia").style.display = "none"; $("esStop").style.display = ""; $("esCsv").style.display = "none";
-  const n = +$("esN").value, livello = $("esLivello").value, domande = creaEsame(n, livello);
-  const per = {}, inizio = Date.now();
-  let prima = 0, dopo = 0;
+// un cervello risponde a tutte le domande: prima senza controlli, poi con i controlli
+async function provaCervello(domande, livello, ogniDomanda) {
+  const per = {}, inizio = Date.now(), calcPrima = $("esCalc").checked;
+  let prima = 0, dopo = 0, dubbi = 0, fatte = 0;
   for (let i = 0; i < domande.length && esameAttivo; i++) {
     const q = domande[i], mat = q.categoria === "Economia aziendale" ? "economia" : "matematica";
     let r1 = "", x1 = NaN, x2 = NaN, rev = { ok: null };
     try {
-      r1 = await cervello(istruzioniMateria(mat, livello === "elementari" && mat === "economia" ? "superiori" : livello, "Esame", "") + "\nAlla fine scrivi su una riga da sola: RISULTATO: <solo il numero>", q.d, { temperature: 0.2 });
+      const fatti = calcPrima ? await contiPrima(q.d, mat, null) : [];
+      r1 = await cervello(istruzioniMateria(mat, livello === "elementari" && mat === "economia" ? "superiori" : livello, "Esame", "") + istruzioniFatti(fatti) + "\nAlla fine scrivi su una riga da sola: RISULTATO: <solo il numero>", q.d, { temperature: 0.2 });
       x1 = leggiRisultato(r1);
       // con i controlli: calcolatrice sui conti + revisore severo (senza suggerirgli il risultato)
       const es = await ricontrolloCompleto(cervello, { domanda: q.d, testo: r1, contesto: MATERIE[mat].nome + ". La risposta deve finire con 'RISULTATO: numero'.", risultatoObbligatorio: false });
@@ -374,26 +499,101 @@ async function esame() {
       x2 = leggiRisultato(es.testo);
     } catch (e) {}
     const ok1 = giusto(x1, q.r), ok2 = giusto(x2, q.r);
-    prima += ok1; dopo += ok2;
+    prima += ok1; dopo += ok2; dubbi += !!rev.dubbio; fatte++;
     (per[q.categoria] = per[q.categoria] || { n: 0, p: 0, d: 0 }); per[q.categoria].n++; per[q.categoria].p += ok1; per[q.categoria].d += ok2;
-    esameRighe.push([i + 1, q.categoria, q.d, formatta(q.r), isFinite(x1) ? formatta(x1) : "?", ok1 ? "giusta" : "SBAGLIATA", isFinite(x2) ? formatta(x2) : "?", ok2 ? "giusta" : "SBAGLIATA", (rev.dubbio ? "DUBBIO: " : rev.problema ? "corretta: " : "ok") + (rev.problema || "") + (rev.controlli ? " (" + rev.controlli + " controlli)" : "")]);
-    const fatte = i + 1, sec = (Date.now() - inizio) / 1000 / fatte;
+    const riga = [i + 1, q.categoria, q.d, formatta(q.r), isFinite(x1) ? formatta(x1) : "?", ok1 ? "giusta" : "SBAGLIATA", isFinite(x2) ? formatta(x2) : "?", ok2 ? "giusta" : "SBAGLIATA", (rev.dubbio ? "DUBBIO: " : rev.problema ? "corretta: " : "ok") + (rev.problema || "") + (rev.controlli ? " (" + rev.controlli + " controlli)" : "")];
+    ogniDomanda({ riga, fatte, prima, dopo, per, sec: (Date.now() - inizio) / 1000 / fatte });
+  }
+  return { fatte, prima, dopo, dubbi, per, sec: fatte ? (Date.now() - inizio) / 1000 / fatte : 0 };
+}
+async function esame() {
+  if (!modello) return mostraAiuto();
+  esameAttivo = true; esameRighe = [];
+  mostraBottoniEsame(true);
+  const n = +$("esN").value, livello = $("esLivello").value, domande = creaEsame(n, livello);
+  const fine = await provaCervello(domande, livello, ({ riga, fatte, prima, dopo, per, sec }) => {
+    esameRighe.push(riga);
     $("esBarra").style.width = (100 * fatte / domande.length) + "%";
     $("esRisultato").innerHTML = disegnaEsame(fatte, domande.length, prima, dopo, per, Math.round(sec * (domande.length - fatte) / 60));
-  }
+  });
   esameAttivo = false;
-  $("esVia").style.display = ""; $("esStop").style.display = "none"; $("esCsv").style.display = "";
-  scrivi("flyaula_esame_" + modello, JSON.stringify({ quando: new Date().toLocaleString("it-IT"), n: esameRighe.length, prima, dopo }));
+  mostraBottoniEsame(false);
+  scrivi("flyaula_esame_" + modello, JSON.stringify({ quando: new Date().toLocaleString("it-IT"), n: fine.fatte, prima: fine.prima, dopo: fine.dopo }));
+}
+function mostraBottoniEsame(inCorso) {
+  $("esVia").style.display = $("esGara").style.display = inCorso ? "none" : "";
+  $("esStop").style.display = inCorso ? "" : "none";
+  $("esCsv").style.display = !inCorso && esameRighe.length ? "" : "none";
+}
+
+// ---------------- 🏁 la GARA tra cervelli ----------------
+// Stesse domande per tutti, stessi controlli. Vince chi sbaglia meno (a parità, il più veloce).
+// Si decide con i numeri veri su QUESTO computer, non con le classifiche di internet.
+function cervelliDaGara() {
+  return (window.modelliPresenti || []).filter(m => !/vl[:\-]|vision|llava|embed|ocr|whisper/.test(m));   // niente cervelli solo-foto
+}
+function preparaGara() {
+  const el = $("esModelli"), tutti = cervelliDaGara();
+  if (tutti.length < 2) { el.innerHTML = `<span class="sotto">Per la gara servono almeno 2 cervelli scaricati (es. <code>ollama pull gemma4:12b</code>).</span>`; $("esGara").disabled = true; return; }
+  $("esGara").disabled = false;
+  el.innerHTML = tutti.map(m => `<label class="scelta-cervello"><input type="checkbox" value="${escape(m)}" checked> ${escape(m)}${m === modello ? " <small>(in uso)</small>" : ""}</label>`).join("");
+}
+async function gara() {
+  const scelti = [...$("esModelli").querySelectorAll("input:checked")].map(i => i.value);
+  if (scelti.length < 2) { $("esRisultato").innerHTML = `<p class="sotto">Scegli almeno 2 cervelli per la gara.</p>`; return; }
+  const inUso = modello, livello = $("esLivello").value, n = +$("esNGara").value;
+  const domande = creaEsame(n, livello), risultati = [];
+  esameAttivo = true; esameRighe = [];
+  mostraBottoniEsame(true);
+  const totale = scelti.length * domande.length;
+  for (let k = 0; k < scelti.length && esameAttivo; k++) {
+    const m = scelti[k];
+    modello = m; await leggiCapacita(m);
+    const t0 = Date.now();
+    const r = await provaCervello(domande, livello, ({ riga, fatte, prima, dopo, sec }) => {
+      esameRighe.push([m, ...riga]);
+      $("esBarra").style.width = (100 * (k * domande.length + fatte) / totale) + "%";
+      const resta = Math.round((sec * (domande.length - fatte) + sec * domande.length * (scelti.length - k - 1)) / 60);
+      $("esRisultato").innerHTML = disegnaGara(risultati, { m, fatte, tot: domande.length, prima, dopo }, resta);
+    });
+    if (r.fatte) risultati.push({ m, ...r, minuti: (Date.now() - t0) / 60000 });
+    // libera la scheda video per il prossimo concorrente
+    if (m !== inUso) Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: m, keep_alive: 0 }) }).catch(() => {});
+  }
+  modello = inUso;
+  esameAttivo = false;
+  mostraBottoniEsame(false);
+  $("esRisultato").innerHTML = disegnaGara(risultati, null, 0);
+  const b = $("esRisultato").querySelector(".usa-vincitore");
+  if (b) b.onclick = async () => { await usaCervello(b.dataset.m); b.outerHTML = `<p class="ok-gara">✓ Da adesso Fly Aula usa <b>${escape(b.dataset.m)}</b>${Scuola.ruolo === "server" ? " su tutte le LIM della scuola" : ""}.</p>`; preparaGara(); };
+  scrivi("flyaula_gara", JSON.stringify({ quando: new Date().toLocaleString("it-IT"), n: domande.length, risultati: risultati.map(r => ({ m: r.m, prima: r.prima, dopo: r.dopo, fatte: r.fatte, sec: Math.round(r.sec) })) }));
+}
+// classifica: più risposte giuste con i controlli; a parità, meno dubbi; poi il più veloce
+function classifica(risultati) {
+  return [...risultati].sort((a, b) => b.dopo / b.fatte - a.dopo / a.fatte || a.dubbi - b.dubbi || a.sec - b.sec);
+}
+function disegnaGara(risultati, inCorso, minuti) {
+  const pc = (x, n) => n ? (Math.round(1000 * x / n) / 10).toLocaleString("it-IT") + "%" : "–";
+  const ord = classifica(risultati), medaglie = ["🥇", "🥈", "🥉"];
+  const secondi = x => (x < 10 ? Math.round(x * 10) / 10 : Math.round(x)).toLocaleString("it-IT") + " s";
+  const righe = ord.map((r, i) => `<tr${i === 0 && !inCorso ? ' class="vincitore"' : ""}><td>${medaglie[i] || i + 1}</td><td><b>${escape(r.m)}</b></td><td>${pc(r.prima, r.fatte)}</td><td><b>${pc(r.dopo, r.fatte)}</b></td><td>${r.dubbi}</td><td>${secondi(r.sec)}</td></tr>`).join("");
+  const ora = inCorso ? `<tr><td>⏳</td><td><b>${escape(inCorso.m)}</b> <small>sta rispondendo: ${inCorso.fatte}/${inCorso.tot}</small></td><td>${pc(inCorso.prima, inCorso.fatte)}</td><td>${pc(inCorso.dopo, inCorso.fatte)}</td><td></td><td></td></tr>` : "";
+  const v = !inCorso && ord[0];
+  return `${inCorso ? `<p class="sotto">🏁 Gara in corso · tempo che manca: ~${minuti} min</p>` : ""}
+    <table class="tab-gara"><thead><tr><th></th><th>Cervello</th><th>Giuste alla prima risposta</th><th>Giuste con i controlli</th><th>Dubbi</th><th>Tempo per domanda</th></tr></thead><tbody>${righe}${ora}</tbody></table>
+    ${v ? `<div class="fine-gara"><p>🏆 Vince <b>${escape(v.m)}</b>: ${pc(v.dopo, v.fatte)} giuste con i controlli, ${secondi(v.sec).replace(" s", " secondi")} per domanda.</p>
+      ${v.m !== modello ? `<button class="btn usa-vincitore" data-m="${escape(v.m)}">✓ Usa ${escape(v.m)} da adesso</button>` : `<p class="ok-gara">✓ È già il cervello in uso.</p>`}
+      <p class="sotto">Il tempo conta: in classe una risposta dovrebbe arrivare in meno di 20-30 secondi. Prima di scegliere un cervello per tutta la scuola, prova anche il <b>test di carico</b> nella pagina del tecnico.</p></div>` : ""}`;
 }
 function disegnaEsame(fatte, tot, prima, dopo, per, minuti) {
   const pc = x => (Math.round(1000 * x / fatte) / 10).toLocaleString("it-IT") + "%";
   return `<div class="stat">
       <div><span>domande</span><b style="color:var(--latte)">${fatte}/${tot}</b></div>
-      <div><span>giuste SENZA controlli</span><b style="color:var(--sole)">${pc(prima)}</b></div>
+      <div><span>giuste alla prima risposta</span><b style="color:var(--sole)">${pc(prima)}</b></div>
       <div><span>giuste CON i controlli</span><b>${pc(dopo)}</b></div>
       <div><span>cervello</span><b style="color:var(--cielo);font-size:22px">${escape(modello)}</b></div>
       <div><span>tempo che manca</span><b style="color:var(--latte);font-size:26px">${fatte < tot ? "~" + minuti + " min" : "finito ✓"}</b></div></div>
-    <table><thead><tr><th>Categoria</th><th>Domande</th><th>Senza controlli</th><th>Con i controlli</th></tr></thead><tbody>
+    <table><thead><tr><th>Categoria</th><th>Domande</th><th>Prima risposta</th><th>Con i controlli</th></tr></thead><tbody>
     ${Object.entries(per).map(([c, v]) => `<tr><td>${c}</td><td>${v.n}</td><td>${Math.round(100 * v.p / v.n)}%</td><td><b>${Math.round(100 * v.d / v.n)}%</b></td></tr>`).join("")}</tbody></table>
     ${esameRighe.filter(r => r[7] !== "giusta").length ? `<h3 style="margin-top:24px">Le sbagliate (anche dopo i controlli)</h3><table><tbody>${esameRighe.filter(r => r[7] !== "giusta").slice(-15).map(r => `<tr><td>${escape(r[2])}</td><td>giusto: <b>${r[3]}</b></td><td>Fly Aula: ${r[6]}</td></tr>`).join("")}</tbody></table>` : ""}`;
 }
@@ -449,10 +649,23 @@ async function controlla() {
     const j = await r.json();
     const presenti = (j.models || []).map(m => m.name);
     window.modelliPresenti = presenti;
-    modello = MODELLI.find(m => presenti.includes(m)) || presenti.find(m => !/vl|vision|llava|embed/.test(m)) || null;
+    modello = scegliModello(presenti);
+    await leggiCapacita(modello);
     if (modello) $("aiuto").style.display = "none"; else mostraAiuto(true);
   } catch (e) { modello = null; mostraAiuto(false); }
   aggiornaEtichettaStato();
+}
+// quale cervello usare: 1) quello scelto con la gara (sul server della scuola vale per tutte le LIM)
+// 2) quello scelto su questo computer  3) il più forte tra quelli scaricati
+function trova(presenti, m) { return m ? presenti.find(x => x === m || x === m + ":latest" || x.startsWith(m + "-")) : null; }
+function scegliModello(presenti) {
+  for (const m of [Scuola.cervelloScelto, leggi("flyaula_modello"), ...MODELLI]) { const t = trova(presenti, m); if (t) return t; }
+  return presenti.find(m => !/vl|vision|llava|embed|ocr/.test(m)) || null;
+}
+async function usaCervello(m) {
+  scrivi("flyaula_modello", m);
+  try { await fetch("/fa/config", { method: "POST", body: JSON.stringify({ cervello: m }) }); } catch (e) {}   // sul server: vale per tutte le LIM
+  modello = m; await leggiCapacita(m); aggiornaEtichettaStato();
 }
 // in alto: parole semplici per i prof (i dettagli tecnici sono nel "title", per il tecnico)
 window.aggiornaEtichettaStato = function () {
@@ -465,7 +678,7 @@ window.aggiornaEtichettaStato = function () {
 setInterval(() => { if (!modello) controlla(); }, 15000);
 function mostraAiuto(acceso) {
   const tecnico = acceso
-    ? `<h2>Manca il cervello di Fly Aula</h2><p>Ollama è acceso, ma non c'è ancora il modello. Apri <b>PowerShell</b> e scrivi:</p><p><code>ollama pull qwen2.5:7b</code></p><p>(circa 4,7 GB, si scarica una volta sola). Poi <b>ricarica questa pagina</b>.</p>`
+    ? `<h2>Manca il cervello di Fly Aula</h2><p>Ollama è acceso, ma non c'è ancora il modello. Apri <b>PowerShell</b> e scrivi:</p><p><code>ollama pull gemma4:12b</code></p><p>(circa 7,6 GB, si scarica una volta sola; su un PC poco potente va bene anche <code>qwen2.5:7b</code>, 4,7 GB). Poi <b>ricarica questa pagina</b>.</p>`
     : `<h2>Fly Aula non trova il suo cervello</h2><p>1. Controlla che <b>Ollama</b> sia aperto (icona del lama vicino all'orologio).</p><p>2. Se è aperto ma non va, apri <b>PowerShell</b> e scrivi:<br><code>setx OLLAMA_ORIGINS "*"</code><br>poi chiudi Ollama (tasto destro sull'icona → Quit) e riaprilo.</p><p>3. Se Chrome chiede il permesso per la <b>rete locale</b>, tocca <b>Consenti</b>.</p><p>Poi ricarica la pagina.</p><button class="btn" style="padding:14px 24px" onclick="controlla()">Riprova</button>`;
   // ai prof: due righe semplici. Le istruzioni tecniche restano chiuse in "Per il tecnico".
   $("aiutoBox").innerHTML = `<div class="sveglia">☕</div><h2>Fly Aula si sta svegliando</h2>
@@ -520,10 +733,13 @@ document.addEventListener("click", () => $("menu").classList.remove("aperto"));
 $("apriRegistro").onclick = () => { disegnaRegistro(); apri("pRegistro"); };
 $("scaricaCsv").onclick = () => scaricaCsv("fly-aula-errori.csv", ["Quando", "Classe", "Materia", "Livello", "Modello", "Tipo", "Domanda", "Cosa era sbagliato"], registro().map(e => [e.quando, e.classe, e.materia, e.livello, e.modello, e.tipo, e.domanda, e.dettaglio]));
 $("svuota").onclick = () => { scrivi("flyaula_errori", "[]"); scrivi("flyaula_stat", "{}"); $("nErrori").textContent = 0; disegnaRegistro(); };
-$("apriEsame").onclick = () => { $("esLivello").value = $("livello").value; apri("pEsame"); };
+$("apriEsame").onclick = () => { $("esLivello").value = $("livello").value; preparaGara(); apri("pEsame"); };
 $("esVia").onclick = esame;
+$("esGara").onclick = gara;
 $("esStop").onclick = () => { esameAttivo = false; };
-$("esCsv").onclick = () => scaricaCsv("fly-aula-esame.csv", ["N", "Categoria", "Domanda", "Risultato giusto", "Fly Aula (senza controlli)", "Esito", "Fly Aula (con i controlli)", "Esito", "Controlli"], esameRighe);
+$("esCsv").onclick = () => esameRighe[0] && esameRighe[0].length > 9
+  ? scaricaCsv("fly-aula-gara.csv", ["Cervello", "N", "Categoria", "Domanda", "Risultato giusto", "Prima risposta", "Esito", "Con i controlli", "Esito", "Controlli"], esameRighe)
+  : scaricaCsv("fly-aula-esame.csv", ["N", "Categoria", "Domanda", "Risultato giusto", "Fly Aula (prima risposta)", "Esito", "Fly Aula (con i controlli)", "Esito", "Controlli"], esameRighe);
 $("apriOrario").onclick = () => {
   Orario.disegnaEditor($("editorOrario"));
   if (Scuola.ruolo === "lim") {
@@ -562,6 +778,10 @@ $("copiaCmd").onclick = async () => {
 $("vSblocca").onclick = () => Prof.sbloccaVerifica();
 Pagine.collega();
 Prof.applicaTema(); Prof.aggiornaPill(); Prof.mostraVerifica();
+// ⏹ il prof può fermare una risposta mentre la scrive (pulsante o tasto Esc)
+function mostraFerma(on) { $("ferma").hidden = !on; $("invia").hidden = !!on; }
+$("ferma").onclick = fermaRisposta;
+document.addEventListener("keydown", e => { if (e.key === "Escape" && rispostaInCorso) fermaRisposta(); });
 $("modulo").onsubmit = e => { e.preventDefault(); const d = $("domanda").value.trim(); if (d) { $("domanda").value = ""; chiedi(d); } };
 $("nuova").onclick = () => nuovaLezione(true);
 $("classe").onchange = () => nuovaLezione(false);
