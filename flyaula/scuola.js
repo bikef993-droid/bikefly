@@ -82,7 +82,7 @@ const Scuola = (() => {
     avvia, chiama, caricaOrario,
     get ruolo() { return st.ruolo; }, get aula() { return st.aula; }, get nome() { return st.nome; },
     get suRiserva() { return st.riserva; }, get cervelloScelto() { return (st.info && st.info.cervello) || ""; },
-    get secondoScelto() { return (st.info && st.info.cervello2) || ""; }, get vram() { return Number(st.info && st.info.vram) || 0; }, get base() { return st.cervelli[st.attivo]; },
+    get secondoScelto() { return (st.info && st.info.cervello2) || ""; }, get vram() { return Number(st.info && st.info.vram) || 0; }, get parallelo() { return Number(st.info && st.info.parallelo) || 0; }, get base() { return st.cervelli[st.attivo]; },
     parAula: () => st.aula ? "aula=" + encodeURIComponent(st.aula) : ""
   };
 })();

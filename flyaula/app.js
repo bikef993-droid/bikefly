@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.4 · il programma
+//  FLY AULA v0.9.5 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -76,16 +76,55 @@ function trovaGiro(testo) {
   return null;
 }
 
+// ---------------- 🛟 ANTI-BLOCCO ----------------
+// Nessuna chiamata può restare appesa: se un cervello non risponde in tempo si passa all'altro
+// della coppia (e quello lento viene tolto dalla coppia). Senza coppia, si avvisa e si riprova.
+const LIMITI = {
+  prima: Number(leggi("flyaula_t_prima")) || 90000,      // prima parola sulla lavagna (comprende il caricamento del cervello)
+  silenzio: Number(leggi("flyaula_t_silenzio")) || 45000, // pausa massima a metà risposta
+  lavoro: Number(leggi("flyaula_t_lavoro")) || 150000,    // un controllo (risposta intera)
+  pensa: Number(leggi("flyaula_t_pensa")) || 300000       // un controllo con il ragionamento lungo
+};
+class CervelloLento extends Error { constructor(m) { super(`${m} non risponde in tempo`); this.name = "CervelloLento"; } }
+const altroDellaCoppia = m => secondo ? (m === modello ? secondo : m === secondo ? modello : null) : null;
+const coppieNo = () => { try { return JSON.parse(leggi("flyaula_coppie_no") || "[]"); } catch (e) { return []; } };
+const chiaveCoppia = (a, b) => [a, b].sort().join(" + ");
+function scaricaDallaScheda(m) { Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: m, keep_alive: 0 }) }).catch(() => {}); }
+// un cervello della coppia non va: si toglie dalla coppia (e non si riprova più questa coppia su questo computer)
+function togliDallaCoppia(m, motivo) {
+  if (!secondo || (m !== modello && m !== secondo)) return;
+  const no = coppieNo(); no.push(chiaveCoppia(modello, secondo)); scrivi("flyaula_coppie_no", JSON.stringify([...new Set(no)].slice(-20)));
+  if (m === modello) modello = secondo;
+  secondo = null;
+  scaricaDallaScheda(m);
+  try { annotaErrore("Cervello tolto dalla coppia", `${m}: ${motivo}. Fly Aula continua con ${modello}.`, "(automatico)"); } catch (e) {}
+  aggiornaEtichettaStato();
+}
+async function unaChiamata(m, corpo, ms) {
+  const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await Scuola.chiama("/api/chat", { method: "POST", signal: ctrl.signal, body: JSON.stringify({ ...corpo, model: m, ...pensiero(m, corpo._pensa), _pensa: undefined }) });
+    if (!r.ok) throw new Error(`Ollama ha risposto ${r.status}: ${(await r.text()).slice(0, 160)}`);
+    return await r.json();
+  } catch (e) { throw e.name === "AbortError" ? new CervelloLento(m) : e; }
+  finally { clearTimeout(t); }
+}
+
 // risposta intera (per revisore, esercizi, esame, riassunti)
 // usa = quale cervello (se non si dice: il principale)
 async function cervello(sistema, utente, { temperature = 0.2, format, pensa = false, usa } = {}) {
-  const m = usa || modello;
-  const r = await Scuola.chiama("/api/chat", {
-    method: "POST",
-    body: JSON.stringify({ model: m, stream: false, keep_alive: "2h", ...(format ? { format } : {}), ...pensiero(m, pensa),
-      options: { temperature, num_ctx: contesto(), num_predict: tetto(m, pensa, MAX_PAROLE_LAVORO) }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] })
-  });
-  const j = await r.json();
+  const m = usa && (usa === modello || usa === secondo) ? usa : modello;   // un cervello tolto dalla coppia non si usa più
+  const corpo = m2 => ({ stream: false, keep_alive: "2h", ...(format ? { format } : {}), _pensa: pensa,
+    options: { temperature, num_ctx: contesto(), num_predict: tetto(m2, pensa, MAX_PAROLE_LAVORO) }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] });
+  const ms = pensa ? LIMITI.pensa : LIMITI.lavoro;
+  let j;
+  try { j = await unaChiamata(m, corpo(m), ms); }
+  catch (e) {
+    const altro = altroDellaCoppia(m);
+    if (!altro) throw e;
+    togliDallaCoppia(m, e.message);           // il controllo lo rifà l'altro cervello
+    j = await unaChiamata(altro, corpo(altro), ms);
+  }
   let t = senzaPensieri(j.message?.content || "").trim();
   if (format) return t;                      // JSON: lo pulisce chi lo legge
   const g = trovaGiro(t);
@@ -95,18 +134,23 @@ async function cervello(sistema, utente, { temperature = 0.2, format, pensa = fa
 
 // risposta che si scrive mentre arriva (per la lavagna).
 // Si ferma da sola se si incanta o diventa troppo lunga; il prof la può fermare (⏹ o Esc).
-// Restituisce { testo, fine }: fine = null (tutto ok) | "giro" | "lunga" | "fermata"
+// Restituisce { testo, fine }: fine = null (tutto ok) | "giro" | "lunga" | "fermata" | "lento"
 let rispostaInCorso = null;
 function fermaRisposta() { if (rispostaInCorso) rispostaInCorso.abort(); }
 async function cervelloInDiretta(messaggi, ogniPezzo, m = modello) {
   const ctrl = new AbortController();
   rispostaInCorso = ctrl;
-  let testo = "", fine = null;
+  let testo = "", fine = null, ultimo = Date.now(), arrivato = false;
+  // il guardiano: se il cervello tace troppo, si ferma tutto (anche se si è bloccato prima della prima parola)
+  const guardiano = setInterval(() => {
+    if (Date.now() - ultimo > (arrivato ? LIMITI.silenzio : LIMITI.prima)) { fine = "lento"; ctrl.abort(); }
+  }, 1000);
   try {
     const r = await Scuola.chiama("/api/chat", {
       method: "POST", signal: ctrl.signal,
       body: JSON.stringify({ model: m, stream: true, keep_alive: "2h", ...pensiero(m, false), options: { temperature: 0.2, num_ctx: contesto(), num_predict: tetto(m, false, MAX_PAROLE_LAVAGNA) }, messages: messaggi })
     });
+    if (!r.ok) throw new Error(`Ollama ha risposto ${r.status}: ${(await r.text()).slice(0, 160)}`);
     const lettore = r.body.getReader(), dec = new TextDecoder();
     let resto = "", controllato = 0;
     flusso: for (;;) {
@@ -116,7 +160,10 @@ async function cervelloInDiretta(messaggi, ogniPezzo, m = modello) {
       const righe = resto.split("\n"); resto = righe.pop();
       for (const l of righe) {
         if (!l.trim()) continue;
-        testo += JSON.parse(l).message?.content || "";
+        const pezzo = JSON.parse(l);
+        if (pezzo.error) throw new Error("Ollama: " + String(pezzo.error).slice(0, 160));
+        ultimo = Date.now(); arrivato = true;            // anche il "ragionamento" conta: il cervello è vivo
+        testo += pezzo.message?.content || "";
         const pulito = senzaPensieri(testo);
         if (pulito.length - controllato >= 30) {
           controllato = pulito.length;
@@ -131,7 +178,7 @@ async function cervelloInDiretta(messaggi, ogniPezzo, m = modello) {
   } catch (e) {
     if (e.name !== "AbortError") throw e;
     fine = fine || "fermata";
-  } finally { if (rispostaInCorso === ctrl) rispostaInCorso = null; }
+  } finally { clearInterval(guardiano); if (rispostaInCorso === ctrl) rispostaInCorso = null; }
   return { testo: pulisciLatex(senzaPensieri(testo).trim()), fine };
 }
 
@@ -318,11 +365,29 @@ async function chiedi(domanda, speciale = {}) {
     sistema += istruzioniFatti(fatti);
     // 1) prima stesura (si vede mentre la scrive; il prof la può fermare con ⏹)
     mostraFerma(true);
-    const sq = squadra(domandaDifficile(domanda, materia, speciale));
-    const prima = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { clearTimeout(attesa); bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; }, sq.autore);
+    const difficile = domandaDifficile(domanda, materia, speciale);
+    let sq, prima;
+    // se il cervello che scrive non risponde (o dà errore) e c'è la coppia, si riprova subito con l'altro
+    for (let tentativo = 0; tentativo < 2; tentativo++) {
+      sq = squadra(difficile);
+      let errore = null;
+      try { prima = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { clearTimeout(attesa); bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; }, sq.autore); }
+      catch (e) { errore = e; prima = { testo: "", fine: "lento" }; }
+      const vuota = prima.testo.replace(/\[DISEGNO:[^\]]*\]/gi, "").trim().length < 40;
+      if (prima.fine !== "lento" || !vuota) break;
+      if (!altroDellaCoppia(sq.autore)) { if (errore) throw errore; break; }
+      togliDallaCoppia(sq.autore, errore ? errore.message : "non ha risposto in tempo");
+      bolla.innerHTML = `<div class="lavoro">🔁 Il primo cervello non risponde: provo con l'altro…</div>`;
+    }
     mostraFerma(false);
     clearTimeout(attesa);
     let testo = prima.testo;
+    if (prima.fine === "lento" && testo.replace(/\[DISEGNO:[^\]]*\]/gi, "").trim().length < 40) {
+      bolla.innerHTML = Scuola.ruolo === "lim" ? "🐢 Il cervello della scuola è molto lento in questo momento. Riprova tra un attimo: se continua, chiama il tecnico." : "🐢 Il cervello ci sta mettendo troppo. Riprova tra un attimo: se continua, riavvia Fly Aula.";
+      annotaErrore("Cervello troppo lento", `${sq.autore} non ha risposto in tempo`);
+      storia.pop();
+      break fatto;
+    }
     if (prima.fine === "fermata") {
       bolla.innerHTML = (testo ? impagina(testo, true) : "") + `<div class="timbri"><span class="timbro rosso">⏹ Fermata dal prof: questa risposta non è stata controllata</span></div>`;
       storia.pop();
@@ -334,7 +399,7 @@ async function chiedi(domanda, speciale = {}) {
       storia.pop();
       break fatto;
     }
-    if (prima.fine) annotaErrore(prima.fine === "giro" ? "Si ripeteva (fermata da sola)" : "Risposta troppo lunga (accorciata)", testo.slice(-160));
+    if (prima.fine) annotaErrore(prima.fine === "giro" ? "Si ripeteva (fermata da sola)" : prima.fine === "lento" ? "Si è fermato a metà (troppo lento)" : "Risposta troppo lunga (accorciata)", testo.slice(-160));
     // 2) CONTROLLO SEMPRE: 2 volte, 3 nei casi speciali
     bolla.classList.add("controllo");
     bolla.insertAdjacentHTML("beforeend", `<div class="lavoro" id="lavoroRev">🧮 Controllo 1: la calcolatrice rifà i conti…</div>`);
@@ -370,7 +435,7 @@ async function chiedi(domanda, speciale = {}) {
     if (Pagine.attive) timbri.push(`<span class="timbro blu">📷 Usate le pagine del libro</span>`);
     if (sq.autore !== sq.controllore) timbri.push(`<span class="timbro blu" title="Ha scritto ${escape(sq.autore)}, ha controllato ${escape(sq.controllore)}">🤝 Controllata da un secondo cervello</span>`);
     if (fatti.length) timbri.push(`<span class="timbro blu">🧮 ${fatti.length === 1 ? "Conto fatto" : fatti.length + " conti fatti"} dalla calcolatrice</span>`);
-    if (prima.fine) timbri.push(`<span class="timbro giallo">${prima.fine === "giro" ? "🔁 Si stava ripetendo: ho tolto le ripetizioni" : "✂️ Era troppo lunga: l'ho accorciata"}</span>`);
+    if (prima.fine) timbri.push(`<span class="timbro giallo">${prima.fine === "giro" ? "🔁 Si stava ripetendo: ho tolto le ripetizioni" : prima.fine === "lento" ? "🐢 Si è fermato a metà: ho controllato la parte scritta" : "✂️ Era troppo lunga: l'ho accorciata"}</span>`);
     // disegno automatico del conto, se il cervello non l'ha messo
     if (conto && MATERIE[materia].calcoli && !/\[DISEGNO:/i.test(testo)) {
       const dis = disegnoPerConto(conto);
@@ -383,6 +448,7 @@ async function chiedi(domanda, speciale = {}) {
     bolla.classList.remove("controllo");
     bolla.innerHTML = html + `<div class="timbri">${timbri.join("")}</div>`;
     conta("risposte");
+    if (sq.autore !== sq.controllore) controllaMemoria();
     aggiungiAzioni(bolla, domanda, testo);
     storia.push({ role: "assistant", content: testo });
     if (leggiAuto) leggiRisposta(bolla, testo);
@@ -510,7 +576,7 @@ let esameAttivo = false, esameRighe = [];
 // un cervello risponde a tutte le domande: prima senza controlli, poi con i controlli
 async function provaCervello(domande, livello, ogniDomanda) {
   const per = {}, inizio = Date.now(), calcPrima = $("esCalc").checked;
-  let prima = 0, dopo = 0, dubbi = 0, fatte = 0;
+  let prima = 0, dopo = 0, dubbi = 0, fatte = 0, guasti = 0, ritirato = false;
   for (let i = 0; i < domande.length && esameAttivo; i++) {
     const q = domande[i], mat = q.categoria === "Economia aziendale" ? "economia" : "matematica";
     let r1 = "", x1 = NaN, x2 = NaN, rev = { ok: null };
@@ -523,14 +589,18 @@ async function provaCervello(domande, livello, ogniDomanda) {
       const es = await ricontrolloCompleto(cervelloDi(sq.autore), { controllore: cervelloDi(sq.controllore), domanda: q.d, testo: r1, contesto: MATERIE[mat].nome + ". La risposta deve finire con 'RISULTATO: numero'.", risultatoObbligatorio: false });
       rev = { ok: es.stato === "ok", problema: es.correzioni.join(" · "), controlli: es.controlli, dubbio: es.stato === "dubbio" };
       x2 = leggiRisultato(es.testo);
-    } catch (e) {}
+      guasti = 0;
+    } catch (e) {
+      // un cervello che non risponde due volte di fila si ritira (invece di far aspettare ore)
+      if (++guasti >= 2) { ritirato = true; break; }
+    }
     const ok1 = giusto(x1, q.r), ok2 = giusto(x2, q.r);
     prima += ok1; dopo += ok2; dubbi += !!rev.dubbio; fatte++;
     (per[q.categoria] = per[q.categoria] || { n: 0, p: 0, d: 0 }); per[q.categoria].n++; per[q.categoria].p += ok1; per[q.categoria].d += ok2;
     const riga = [i + 1, q.categoria, q.d, formatta(q.r), isFinite(x1) ? formatta(x1) : "?", ok1 ? "giusta" : "SBAGLIATA", isFinite(x2) ? formatta(x2) : "?", ok2 ? "giusta" : "SBAGLIATA", (rev.dubbio ? "DUBBIO: " : rev.problema ? "corretta: " : "ok") + (rev.problema || "") + (rev.controlli ? " (" + rev.controlli + " controlli)" : "")];
     ogniDomanda({ riga, fatte, prima, dopo, per, sec: (Date.now() - inizio) / 1000 / fatte });
   }
-  return { fatte, prima, dopo, dubbi, per, sec: fatte ? (Date.now() - inizio) / 1000 / fatte : 0 };
+  return { fatte, prima, dopo, dubbi, per, ritirato, sec: fatte ? (Date.now() - inizio) / 1000 / fatte : 0 };
 }
 async function esame() {
   if (!modello) return mostraAiuto();
@@ -544,6 +614,7 @@ async function esame() {
   });
   esameAttivo = false;
   mostraBottoniEsame(false);
+  if (fine.ritirato) $("esRisultato").insertAdjacentHTML("afterbegin", `<p class="sotto" style="color:var(--corallo)">⛔ Il cervello ${escape(modello)} non risponde: esame fermato. Controlla Ollama nella pagina del tecnico.</p>`);
   scrivi("flyaula_esame_" + modello, JSON.stringify({ quando: new Date().toLocaleString("it-IT"), n: fine.fatte, prima: fine.prima, dopo: fine.dopo }));
 }
 function mostraBottoniEsame(inCorso) {
@@ -585,7 +656,7 @@ async function gara() {
       const resta = Math.round((sec * (domande.length - fatte) + sec * domande.length * (giri - k - 1)) / 60);
       $("esRisultato").innerHTML = disegnaGara(risultati, { m: nome, fatte, tot: domande.length, prima, dopo }, resta);
     });
-    if (r.fatte) risultati.push({ m: nome, forte, secondo: sec2, ...r, minuti: (Date.now() - t0) / 60000 });
+    if (r.fatte || r.ritirato) risultati.push({ m: nome, forte, secondo: sec2, ...r, minuti: (Date.now() - t0) / 60000 });
   };
   const libera = m => Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: m, keep_alive: 0 }) }).catch(() => {});
   for (const m of scelti) {
@@ -595,7 +666,7 @@ async function gara() {
   }
   // 🤝 la coppia: il migliore + il migliore di un'altra famiglia che sta nella scheda insieme a lui
   if (esameAttivo) {
-    const ord = classifica(risultati).map(r => r.forte);
+    const ord = classifica(risultati).filter(r => !r.ritirato).map(r => r.forte);
     let c = null;
     for (let i = 0; i < ord.length && !c; i++) for (let k = i + 1; k < ord.length && !c; k++) if (coppiaPossibile(ord[i], ord[k])) c = [ord[i], ord[k]];
     if (c) await corri(c[0], c[1]);
@@ -614,15 +685,15 @@ async function gara() {
 }
 // classifica: più risposte giuste con i controlli; a parità, meno dubbi; poi il più veloce
 function classifica(risultati) {
-  return [...risultati].sort((a, b) => b.dopo / b.fatte - a.dopo / a.fatte || a.dubbi - b.dubbi || a.sec - b.sec);
+  return [...risultati].sort((a, b) => (a.ritirato - b.ritirato) || b.dopo / b.fatte - a.dopo / a.fatte || a.dubbi - b.dubbi || a.sec - b.sec);
 }
 function disegnaGara(risultati, inCorso, minuti) {
   const pc = (x, n) => n ? (Math.round(1000 * x / n) / 10).toLocaleString("it-IT") + "%" : "–";
   const ord = classifica(risultati), medaglie = ["🥇", "🥈", "🥉"];
   const secondi = x => (x < 10 ? Math.round(x * 10) / 10 : Math.round(x)).toLocaleString("it-IT") + " s";
-  const righe = ord.map((r, i) => `<tr${i === 0 && !inCorso ? ' class="vincitore"' : ""}><td>${medaglie[i] || i + 1}</td><td><b>${escape(r.m)}</b>${r.secondo ? ' <small class="tag-coppia">🤝 coppia</small>' : ""}</td><td>${pc(r.prima, r.fatte)}</td><td><b>${pc(r.dopo, r.fatte)}</b></td><td>${r.dubbi}</td><td>${secondi(r.sec)}</td></tr>`).join("");
+  const righe = ord.map((r, i) => `<tr${i === 0 && !inCorso ? ' class="vincitore"' : ""}><td>${medaglie[i] || i + 1}</td><td><b>${escape(r.m)}</b>${r.secondo ? ' <small class="tag-coppia">🤝 coppia</small>' : ""}${r.ritirato ? ' <small class="tag-ritirato">⛔ ritirato: non risponde</small>' : ""}</td><td>${pc(r.prima, r.fatte)}</td><td><b>${pc(r.dopo, r.fatte)}</b></td><td>${r.dubbi}</td><td>${secondi(r.sec)}</td></tr>`).join("");
   const ora = inCorso ? `<tr><td>⏳</td><td><b>${escape(inCorso.m)}</b> <small>sta rispondendo: ${inCorso.fatte}/${inCorso.tot}</small></td><td>${pc(inCorso.prima, inCorso.fatte)}</td><td>${pc(inCorso.dopo, inCorso.fatte)}</td><td></td><td></td></tr>` : "";
-  const v = !inCorso && ord[0];
+  const v = !inCorso && ord[0] && !ord[0].ritirato && ord[0];
   return `${inCorso ? `<p class="sotto">🏁 Gara in corso · tempo che manca: ~${minuti} min</p>` : ""}
     <table class="tab-gara"><thead><tr><th></th><th>Cervello</th><th>Giuste alla prima risposta</th><th>Giuste con i controlli</th><th>Dubbi</th><th>Tempo per domanda</th></tr></thead><tbody>${righe}${ora}</tbody></table>
     ${v ? `<div class="fine-gara"><p>🏆 Vince <b>${escape(v.m)}</b>${v.secondo ? " (coppia: uno scrive, l'altro controlla)" : ""}: ${pc(v.dopo, v.fatte)} giuste con i controlli, ${secondi(v.sec).replace(" s", " secondi")} per domanda.</p>
@@ -714,12 +785,40 @@ function scegliModello(presenti) {
 // ---- il secondo cervello della coppia ----
 const pesi = {};                                                     // quanto pesa ogni cervello (byte)
 const famiglia = m => String(m).split(":")[0].replace(/[\d.]+$/, "").replace(/[-_]$/, "").toLowerCase();
-// ci stanno tutti e due nella scheda video, insieme, lasciando spazio per le domande delle classi?
+// ci stanno tutti e due nella scheda video, insieme, con lo spazio di lavoro per le classi?
+// Per ogni cervello: il suo peso + ~0,8 GB di lavoro fisso + ~0,4 GB per ogni classe che può chiedere insieme.
+// (È una stima prudente: dopo la prima risposta Fly Aula CONTROLLA davvero con Ollama, vedi controllaMemoria)
 function stannoInsieme(a, b) {
   const vram = Scuola.vram * 1024 * 1024;                            // MB → byte (0 = non si sa)
-  return vram > 0 && pesi[a] > 0 && pesi[b] > 0 && pesi[a] + pesi[b] + 2.5e9 <= vram;
+  const limite = Number(leggi("flyaula_limite_coppia")) || Infinity;   // una coppia di questa misura NON ci è stata davvero
+  return vram > 0 && pesi[a] > 0 && pesi[b] > 0 && memoriaCoppia(a, b) <= vram && memoriaCoppia(a, b) < limite;
 }
-function coppiaPossibile(a, b) { return a && b && a !== b && famiglia(a) !== famiglia(b) && stannoInsieme(a, b); }
+function memoriaCoppia(a, b) {
+  const classi = Math.max(1, Number(Scuola.parallelo) || 1);
+  const serve = m => pesi[m] + 0.8e9 + classi * 0.4e9;
+  return serve(a) + serve(b);
+}
+function coppiaPossibile(a, b) { return a && b && a !== b && famiglia(a) !== famiglia(b) && !coppieNo().includes(chiaveCoppia(a, b)) && stannoInsieme(a, b); }
+// la prova vera: dopo una risposta della coppia, Ollama dice dove sono i cervelli.
+// Se uno è finito (anche in parte) sul processore, o se uno ha dovuto cacciare l'altro, la coppia NON ci sta.
+async function controllaMemoria() {
+  if (!secondo) return;
+  try {
+    const r = await Scuola.chiama("/api/ps", { cache: "no-store" });
+    const caricati = (await r.json()).models || [];
+    const qui = m => caricati.find(x => x.name === m || x.model === m);
+    const a = qui(modello), b = qui(secondo);
+    const sulProcessore = [a, b].filter(x => x && x.size_vram < x.size * 0.97);
+    if (!a || !b || sulProcessore.length) {
+      // da ora si provano solo coppie PIÙ PICCOLE di questa
+      const m = memoriaCoppia(modello, secondo);
+      if (m > 0) scrivi("flyaula_limite_coppia", String(Math.min(m, Number(leggi("flyaula_limite_coppia")) || Infinity)));
+      // funzionano tutti e due, ma non insieme: si tiene il più forte (il principale)
+      if (!a || !b) togliDallaCoppia(secondo, "i due cervelli non stanno insieme nella scheda video (uno caccia l'altro)");
+      else togliDallaCoppia(secondo, "nella scheda video non c'è posto per tutti e due (una parte finisce sul processore, lentissimo)");
+    }
+  } catch (e) {}
+}
 function scegliSecondo(presenti, forte) {
   if (!forte) return null;
   // 1) scelto con la gara ("nessuno" = un cervello solo, per scelta)
