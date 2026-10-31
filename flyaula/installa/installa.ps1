@@ -17,6 +17,12 @@ function Passo($n, $tot, $t) { Write-Host ''; Write-Host "[$n/$tot] $t" -Foregro
 function Ok($t) { Write-Host "   OK  $t" -ForegroundColor Green }
 function Ko($t) { Write-Host "   !!  $t" -ForegroundColor Yellow }
 function Fine($codice) { Write-Host ''; Read-Host 'Premi Invio per chiudere' | Out-Null; exit $codice }
+function Scarica($m) {
+  # scarica un cervello; se internet salta, riprova una volta
+  & $exe pull $m | Out-Host
+  if ($LASTEXITCODE -ne 0) { Start-Sleep 10; & $exe pull $m | Out-Host }
+  return ($LASTEXITCODE -eq 0)
+}
 function Amministratore($cmd) {
   $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
   try { Start-Process powershell -Verb RunAs -Wait -WindowStyle Hidden -ArgumentList '-NoProfile', '-EncodedCommand', $b64; return $true } catch { return $false }
@@ -115,10 +121,19 @@ else {
 
 Passo 3 $TOT 'Collego il cervello'
 [Environment]::SetEnvironmentVariable('OLLAMA_ORIGINS', '*', 'User'); $env:OLLAMA_ORIGINS = '*'
+# quanta memoria ha la scheda video (MB)
+$mb = 0
+try { $mb = [int]((& nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>$null | Select-Object -First 1).Trim()) } catch {}
+# scheda grande (12 GB o piu): ci stanno DUE cervelli insieme, uno scrive e l altro controlla
+$coppia = ($mb -ge 12000)
+if ($coppia) {
+  # memoria usata in modo piu furbo: cosi i due cervelli stanno insieme nella scheda
+  foreach ($v in @(@('OLLAMA_FLASH_ATTENTION', '1'), @('OLLAMA_KV_CACHE_TYPE', 'q8_0'), @('OLLAMA_MAX_LOADED_MODELS', '3'))) {
+    [Environment]::SetEnvironmentVariable($v[0], $v[1], 'User'); Set-Item -Path "env:$($v[0])" -Value $v[1]
+  }
+}
 if ($ruolo -eq 'server') {
   # il cervello ascolta tutta la rete della scuola e risponde a piu classi insieme
-  $mb = 0
-  try { $mb = [int]((& nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>$null | Select-Object -First 1).Trim()) } catch {}
   $par = if ($mb -ge 30000) { 8 } elseif ($mb -ge 20000) { 6 } elseif ($mb -ge 15000) { 4 } elseif ($mb -ge 11000) { 3 } else { 2 }
   foreach ($v in @(@('OLLAMA_HOST', '0.0.0.0:11434'), @('OLLAMA_NUM_PARALLEL', "$par"), @('OLLAMA_KEEP_ALIVE', '24h'))) {
     [Environment]::SetEnvironmentVariable($v[0], $v[1], 'User'); Set-Item -Path "env:$($v[0])" -Value $v[1]
@@ -142,12 +157,19 @@ if (-not $acceso) {
 }
 if ($acceso) { Ok 'Cervello acceso' } else { Ko 'Il cervello non risponde ancora: riavvia il computer e apri Fly Aula dall icona.' }
 
-Passo 4 $TOT 'Scarico il modello qwen2.5:7b (circa 4,7 GB, una volta sola)'
 # il comando parla col cervello su questo PC (anche se il server ascolta tutta la rete)
 $env:OLLAMA_HOST = '127.0.0.1:11434'
-& $exe pull qwen2.5:7b
-if ($LASTEXITCODE -ne 0) { Start-Sleep 10; & $exe pull qwen2.5:7b }
-if ($LASTEXITCODE -eq 0) { Ok 'Modello pronto' } else { Ko 'Download non riuscito: rilancia l installazione con internet stabile.' }
+$pronti = 0
+if ($coppia) {
+  Passo 4 $TOT 'Scarico la COPPIA di cervelli: gemma4:12b + qwen3.5:9b (circa 14 GB, una volta sola)'
+  if (Scarica 'gemma4:12b') { $pronti++; Ok 'Primo cervello pronto (gemma4:12b, di Google)' } else { Ko 'gemma4:12b non scaricato' }
+  if (Scarica 'qwen3.5:9b') { $pronti++; Ok 'Secondo cervello pronto (qwen3.5:9b, di Alibaba)' } else { Ko 'qwen3.5:9b non scaricato' }
+  if ($pronti -eq 2) { Ok 'Coppia pronta: uno scrive, l altro controlla' }
+}
+if ($pronti -eq 0) {
+  if (-not $coppia) { Passo 4 $TOT 'Scarico il cervello qwen2.5:7b (circa 4,7 GB, una volta sola)' } else { Ko 'Scarico il cervello di riserva qwen2.5:7b (4,7 GB)' }
+  if (Scarica 'qwen2.5:7b') { Ok 'Modello pronto' } else { Ko 'Download non riuscito: rilancia l installazione con internet stabile.' }
+}
 Write-Host ''
 $vis = Read-Host '   Vuoi che Fly Aula legga anche le FOTO delle pagine del libro? Scarica altri 6 GB. (S/N)'
 if ($vis -match '^[sSyY]') {
@@ -159,8 +181,16 @@ Passo 5 $TOT 'Permessi di rete (Windows chiede di confermare: tocca Si)'
 $porte = if ($ruolo -eq 'server') { '8780,11434' } else { '8780' }
 $cmd = "netsh http add urlacl url=http://+:8780/ sddl='D:(A;;GX;;;WD)'; netsh advfirewall firewall delete rule name=FlyAula | Out-Null; netsh advfirewall firewall add rule name=FlyAula dir=in action=allow protocol=TCP localport=$porte profile=private,domain"
 if (Amministratore $cmd) { Ok 'Permesso dato' } else { Ko 'Permesso non dato: senza, le LIM e i telefoni non raggiungono questo computer.' }
+# se Fly Aula era gia installata si tengono le scelte di prima (server di riserva, cervelli scelti con la gara)
+$vecchio = $null
+try { $vecchio = [IO.File]::ReadAllText((Join-Path $DIR 'config.json'), $UTF8) | ConvertFrom-Json } catch {}
 $cfg = @{ ruolo = $ruolo; nome = ''; riserva = '' }
-if ($ruolo -eq 'server') { $cfg.nome = (Read-Host '   Nome della scuola (es. Romagnosi Piacenza)').Trim() }
+foreach ($k in 'riserva', 'cervello', 'cervello2') { if ($vecchio -and $vecchio.$k) { $cfg[$k] = [string]$vecchio.$k } }
+if ($ruolo -eq 'server') {
+  $prima = if ($vecchio -and $vecchio.nome) { [string]$vecchio.nome } else { '' }
+  $n = (Read-Host "   Nome della scuola (es. Romagnosi Piacenza)$(if ($prima) { ' - Invio per tenere: ' + $prima })").Trim()
+  $cfg.nome = if ($n) { $n } else { $prima }
+}
 [IO.File]::WriteAllText((Join-Path $DIR 'config.json'), ($cfg | ConvertTo-Json), $UTF8)
 
 Passo 6 $TOT 'Icona sul desktop e avvio'

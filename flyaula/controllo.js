@@ -170,7 +170,9 @@ function controllaScritture(testo) {
 //    - il caso è speciale (esercizi, lingue, materie senza calcolatrice…)
 //  Se dopo il terzo c'è ancora un dubbio: NON si inventa, si avvisa il prof.
 // ===================================================================
-async function ricontrolloCompleto(cervello, { domanda, testo, contesto, conto = null, speciale = false, risultatoObbligatorio = true, ogniPasso = () => {} }) {
+// cervello = chi ha scritto la risposta; controllore = chi la controlla (con la coppia è l'altro cervello)
+async function ricontrolloCompleto(cervello, { controllore = null, domanda, testo, contesto, conto = null, speciale = false, risultatoObbligatorio = true, ogniPasso = () => {} }) {
+  const altro = controllore || cervello;
   const esito = { controlli: 0, contiCorretti: 0, correzioni: [], stato: "ok", testo };
   // controllo 1: calcolatrice
   ogniPasso(1);
@@ -182,8 +184,8 @@ async function ricontrolloCompleto(cervello, { domanda, testo, contesto, conto =
     + (scrittureSbagliate.length ? ` FATTO SICURO (calcolatrice): ${scrittureSbagliate.join("; ")}. Va corretta.` : "");
   // controllo 2: revisore (se non risponde bene, riprova una volta)
   ogniPasso(2);
-  let r1 = await revisiona(cervello, domanda, esito.testo, ctx);
-  if (r1.ok === null) r1 = await revisiona(cervello, domanda, esito.testo, ctx);
+  let r1 = await revisiona(altro, domanda, esito.testo, ctx);
+  if (r1.ok === null) r1 = await revisiona(altro, domanda, esito.testo, ctx);
   esito.controlli++;
   if (r1.ok === false) {
     esito.correzioni.push(r1.problema);
@@ -195,6 +197,7 @@ async function ricontrolloCompleto(cervello, { domanda, testo, contesto, conto =
   if (terzo) {
     ogniPasso(3);
     // caso difficile (errore trovato o disaccordo): il terzo revisore ragiona a lungo
+    // con la coppia lo fa il cervello che NON ha fatto il controllo 2: ogni controllo è un parere nuovo
     const r2 = await revisiona(cervello, domanda, esito.testo, ctx, ISTRUZIONI_TERZO, r1.ok !== true || disaccordo);
     esito.controlli++;
     if (r2.ok === false) {

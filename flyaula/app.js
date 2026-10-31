@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.3 · il programma
+//  FLY AULA v0.9.4 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -7,7 +7,8 @@ const OLLAMA = "http://localhost:11434";
 // i cervelli che conosciamo, dal più forte al più leggero (tutti entrano in una scheda da 16 GB).
 // Se è stata fatta la GARA, vince il cervello scelto lì.
 const MODELLI = ["gemma4:26b-a4b", "gemma4:12b", "qwen3.5:9b", "qwen3:14b", "gpt-oss:20b", "qwen2.5:14b", "gemma3:12b", "qwen3:8b", "qwen2.5:7b", "llama3.1:8b"];
-let modello = null;
+let modello = null;      // il cervello principale (il più forte)
+let secondo = null;      // il secondo cervello della COPPIA (di un'altra famiglia), oppure null
 window.modelliPresenti = [];
 const contesto = () => (Pagine.attive ? 16384 : 8192);
 const $ = id => document.getElementById(id);
@@ -76,11 +77,13 @@ function trovaGiro(testo) {
 }
 
 // risposta intera (per revisore, esercizi, esame, riassunti)
-async function cervello(sistema, utente, { temperature = 0.2, format, pensa = false } = {}) {
+// usa = quale cervello (se non si dice: il principale)
+async function cervello(sistema, utente, { temperature = 0.2, format, pensa = false, usa } = {}) {
+  const m = usa || modello;
   const r = await Scuola.chiama("/api/chat", {
     method: "POST",
-    body: JSON.stringify({ model: modello, stream: false, keep_alive: "2h", ...(format ? { format } : {}), ...pensiero(modello, pensa),
-      options: { temperature, num_ctx: contesto(), num_predict: tetto(modello, pensa, MAX_PAROLE_LAVORO) }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] })
+    body: JSON.stringify({ model: m, stream: false, keep_alive: "2h", ...(format ? { format } : {}), ...pensiero(m, pensa),
+      options: { temperature, num_ctx: contesto(), num_predict: tetto(m, pensa, MAX_PAROLE_LAVORO) }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] })
   });
   const j = await r.json();
   let t = senzaPensieri(j.message?.content || "").trim();
@@ -95,14 +98,14 @@ async function cervello(sistema, utente, { temperature = 0.2, format, pensa = fa
 // Restituisce { testo, fine }: fine = null (tutto ok) | "giro" | "lunga" | "fermata"
 let rispostaInCorso = null;
 function fermaRisposta() { if (rispostaInCorso) rispostaInCorso.abort(); }
-async function cervelloInDiretta(messaggi, ogniPezzo) {
+async function cervelloInDiretta(messaggi, ogniPezzo, m = modello) {
   const ctrl = new AbortController();
   rispostaInCorso = ctrl;
   let testo = "", fine = null;
   try {
     const r = await Scuola.chiama("/api/chat", {
       method: "POST", signal: ctrl.signal,
-      body: JSON.stringify({ model: modello, stream: true, keep_alive: "2h", ...pensiero(modello, false), options: { temperature: 0.2, num_ctx: contesto(), num_predict: tetto(modello, false, MAX_PAROLE_LAVAGNA) }, messages: messaggi })
+      body: JSON.stringify({ model: m, stream: true, keep_alive: "2h", ...pensiero(m, false), options: { temperature: 0.2, num_ctx: contesto(), num_predict: tetto(m, false, MAX_PAROLE_LAVAGNA) }, messages: messaggi })
     });
     const lettore = r.body.getReader(), dec = new TextDecoder();
     let resto = "", controllato = 0;
@@ -247,6 +250,25 @@ function disegnoPerConto(conto) {
   return a < 1e7 && b < 1000 ? `[DISEGNO: colonna ${a} × ${b}]` : null;
 }
 
+// ---------------- 🤝 la COPPIA di cervelli ----------------
+// Due cervelli di famiglie diverse (es. Google + Alibaba) non fanno gli stessi errori:
+// uno scrive, l'altro controlla. Chi scrive dipende dalla domanda:
+//  - domanda facile (un conto secco, una definizione): scrive il secondo, controlla il principale
+//  - domanda difficile (problemi, sistemi, partita doppia, perché…): scrive il principale, controlla il secondo
+//  - il terzo controllo (quando serve) lo fa il cervello che NON ha fatto il secondo; nei casi difficili ragiona a lungo
+const cervelloDi = m => (sistema, utente, o = {}) => cervello(sistema, utente, { ...o, usa: m });
+function domandaDifficile(domanda, materia, speciale = {}) {
+  if (speciale.esercizio || Pagine.attive) return true;
+  const calcoli = MATERIE[materia] && MATERIE[materia].calcoli;
+  if (calcoli && contoNellaDomanda(domanda)) return false;          // conto secco: i numeri li ha già la calcolatrice
+  if (calcoli && /\d/.test(domanda)) return true;                   // problema con i numeri
+  return domanda.length > 140 || /problem|sistem|equazion|disequaz|dimostr|risolv|partita doppia|scrittur|bilanci|perch[eé]|confront|differenz|analizz/i.test(domanda);
+}
+function squadra(difficile) {
+  if (!secondo) return { autore: modello, controllore: modello };
+  return difficile ? { autore: modello, controllore: secondo } : { autore: secondo, controllore: modello };
+}
+
 // ---------------- 🧮 la calcolatrice fa i conti ----------------
 // conto secco ("320 : 8"): lo fa subito. Problema con numeri: il cervello dice quali conti servono, la calcolatrice li fa.
 async function contiPrima(domanda, materia, bolla) {
@@ -296,7 +318,8 @@ async function chiedi(domanda, speciale = {}) {
     sistema += istruzioniFatti(fatti);
     // 1) prima stesura (si vede mentre la scrive; il prof la può fermare con ⏹)
     mostraFerma(true);
-    const prima = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { clearTimeout(attesa); bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; });
+    const sq = squadra(domandaDifficile(domanda, materia, speciale));
+    const prima = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(-16)], t => { clearTimeout(attesa); bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; }, sq.autore);
     mostraFerma(false);
     clearTimeout(attesa);
     let testo = prima.testo;
@@ -323,7 +346,8 @@ async function chiedi(domanda, speciale = {}) {
     if (modoProf === "spiega") ctx += " SCELTA DEL PROF: la risposta NON deve contenere il risultato finale, deve fermarsi prima dell'ultimo passaggio. Non è un errore.";
     if (modoProf === "guida") ctx += " SCELTA DEL PROF: la risposta deve essere UNA domanda guida con un indizio, senza risultato. Non è un errore.";
     if (Pagine.attive) ctx += "\n" + Pagine.fonte();
-    const es = await ricontrolloCompleto(cervello, {
+    const es = await ricontrolloCompleto(cervelloDi(sq.autore), {
+      controllore: cervelloDi(sq.controllore),
       domanda, testo, contesto: ctx, conto,
       speciale: !!speciale.esercizio || !MATERIE[materia].calcoli || !!prima.fine,
       risultatoObbligatorio: modoProf === "normale",
@@ -344,6 +368,7 @@ async function chiedi(domanda, speciale = {}) {
     } else timbri.push(`<span class="timbro">Controllata ${quante}</span>`);
     if (es.contiCorretti) timbri.push(`<span class="timbro giallo">🧮 ${es.contiCorretti} ${es.contiCorretti === 1 ? "conto corretto" : "conti corretti"} dalla calcolatrice</span>`);
     if (Pagine.attive) timbri.push(`<span class="timbro blu">📷 Usate le pagine del libro</span>`);
+    if (sq.autore !== sq.controllore) timbri.push(`<span class="timbro blu" title="Ha scritto ${escape(sq.autore)}, ha controllato ${escape(sq.controllore)}">🤝 Controllata da un secondo cervello</span>`);
     if (fatti.length) timbri.push(`<span class="timbro blu">🧮 ${fatti.length === 1 ? "Conto fatto" : fatti.length + " conti fatti"} dalla calcolatrice</span>`);
     if (prima.fine) timbri.push(`<span class="timbro giallo">${prima.fine === "giro" ? "🔁 Si stava ripetendo: ho tolto le ripetizioni" : "✂️ Era troppo lunga: l'ho accorciata"}</span>`);
     // disegno automatico del conto, se il cervello non l'ha messo
@@ -491,10 +516,11 @@ async function provaCervello(domande, livello, ogniDomanda) {
     let r1 = "", x1 = NaN, x2 = NaN, rev = { ok: null };
     try {
       const fatti = calcPrima ? await contiPrima(q.d, mat, null) : [];
-      r1 = await cervello(istruzioniMateria(mat, livello === "elementari" && mat === "economia" ? "superiori" : livello, "Esame", "") + istruzioniFatti(fatti) + "\nAlla fine scrivi su una riga da sola: RISULTATO: <solo il numero>", q.d, { temperature: 0.2 });
+      const sq = squadra(domandaDifficile(q.d, mat));
+      r1 = await cervelloDi(sq.autore)(istruzioniMateria(mat, livello === "elementari" && mat === "economia" ? "superiori" : livello, "Esame", "") + istruzioniFatti(fatti) + "\nAlla fine scrivi su una riga da sola: RISULTATO: <solo il numero>", q.d, { temperature: 0.2 });
       x1 = leggiRisultato(r1);
       // con i controlli: calcolatrice sui conti + revisore severo (senza suggerirgli il risultato)
-      const es = await ricontrolloCompleto(cervello, { domanda: q.d, testo: r1, contesto: MATERIE[mat].nome + ". La risposta deve finire con 'RISULTATO: numero'.", risultatoObbligatorio: false });
+      const es = await ricontrolloCompleto(cervelloDi(sq.autore), { controllore: cervelloDi(sq.controllore), domanda: q.d, testo: r1, contesto: MATERIE[mat].nome + ". La risposta deve finire con 'RISULTATO: numero'.", risultatoObbligatorio: false });
       rev = { ok: es.stato === "ok", problema: es.correzioni.join(" · "), controlli: es.controlli, dubbio: es.stato === "dubbio" };
       x2 = leggiRisultato(es.testo);
     } catch (e) {}
@@ -536,36 +562,54 @@ function preparaGara() {
   const el = $("esModelli"), tutti = cervelliDaGara();
   if (tutti.length < 2) { el.innerHTML = `<span class="sotto">Per la gara servono almeno 2 cervelli scaricati (es. <code>ollama pull gemma4:12b</code>).</span>`; $("esGara").disabled = true; return; }
   $("esGara").disabled = false;
-  el.innerHTML = tutti.map(m => `<label class="scelta-cervello"><input type="checkbox" value="${escape(m)}" checked> ${escape(m)}${m === modello ? " <small>(in uso)</small>" : ""}</label>`).join("");
+  el.innerHTML = tutti.map(m => `<label class="scelta-cervello"><input type="checkbox" value="${escape(m)}" checked> ${escape(m)}${m === modello || m === secondo ? " <small>(in uso)</small>" : ""}</label>`).join("");
 }
 async function gara() {
   const scelti = [...$("esModelli").querySelectorAll("input:checked")].map(i => i.value);
   if (scelti.length < 2) { $("esRisultato").innerHTML = `<p class="sotto">Scegli almeno 2 cervelli per la gara.</p>`; return; }
-  const inUso = modello, livello = $("esLivello").value, n = +$("esNGara").value;
+  const inUso = modello, inUsoS = secondo, livello = $("esLivello").value, n = +$("esNGara").value;
   const domande = creaEsame(n, livello), risultati = [];
   esameAttivo = true; esameRighe = [];
   mostraBottoniEsame(true);
-  const totale = scelti.length * domande.length;
-  for (let k = 0; k < scelti.length && esameAttivo; k++) {
-    const m = scelti[k];
-    modello = m; await leggiCapacita(m);
-    const t0 = Date.now();
+  // c'è almeno una coppia possibile? allora alla fine gareggia anche la coppia
+  const coppiaInVista = scelti.some((a, i) => scelti.some((b, k) => k > i && coppiaPossibile(a, b)));
+  const giri = scelti.length + (coppiaInVista ? 1 : 0), totale = giri * domande.length;
+  let giro = 0;
+  const corri = async (forte, sec2) => {
+    modello = forte; secondo = sec2;
+    await leggiCapacita(forte); if (sec2) await leggiCapacita(sec2);
+    const nome = sec2 ? `${forte} + ${sec2}` : forte, t0 = Date.now(), k = giro++;
     const r = await provaCervello(domande, livello, ({ riga, fatte, prima, dopo, sec }) => {
-      esameRighe.push([m, ...riga]);
+      esameRighe.push([nome, ...riga]);
       $("esBarra").style.width = (100 * (k * domande.length + fatte) / totale) + "%";
-      const resta = Math.round((sec * (domande.length - fatte) + sec * domande.length * (scelti.length - k - 1)) / 60);
-      $("esRisultato").innerHTML = disegnaGara(risultati, { m, fatte, tot: domande.length, prima, dopo }, resta);
+      const resta = Math.round((sec * (domande.length - fatte) + sec * domande.length * (giri - k - 1)) / 60);
+      $("esRisultato").innerHTML = disegnaGara(risultati, { m: nome, fatte, tot: domande.length, prima, dopo }, resta);
     });
-    if (r.fatte) risultati.push({ m, ...r, minuti: (Date.now() - t0) / 60000 });
-    // libera la scheda video per il prossimo concorrente
-    if (m !== inUso) Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: m, keep_alive: 0 }) }).catch(() => {});
+    if (r.fatte) risultati.push({ m: nome, forte, secondo: sec2, ...r, minuti: (Date.now() - t0) / 60000 });
+  };
+  const libera = m => Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: m, keep_alive: 0 }) }).catch(() => {});
+  for (const m of scelti) {
+    if (!esameAttivo) break;
+    await corri(m, null);
+    if (m !== inUso && m !== inUsoS) libera(m);         // libera la scheda video per il prossimo concorrente
   }
-  modello = inUso;
+  // 🤝 la coppia: il migliore + il migliore di un'altra famiglia che sta nella scheda insieme a lui
+  if (esameAttivo) {
+    const ord = classifica(risultati).map(r => r.forte);
+    let c = null;
+    for (let i = 0; i < ord.length && !c; i++) for (let k = i + 1; k < ord.length && !c; k++) if (coppiaPossibile(ord[i], ord[k])) c = [ord[i], ord[k]];
+    if (c) await corri(c[0], c[1]);
+  }
+  modello = inUso; secondo = inUsoS;
   esameAttivo = false;
   mostraBottoniEsame(false);
   $("esRisultato").innerHTML = disegnaGara(risultati, null, 0);
   const b = $("esRisultato").querySelector(".usa-vincitore");
-  if (b) b.onclick = async () => { await usaCervello(b.dataset.m); b.outerHTML = `<p class="ok-gara">✓ Da adesso Fly Aula usa <b>${escape(b.dataset.m)}</b>${Scuola.ruolo === "server" ? " su tutte le LIM della scuola" : ""}.</p>`; preparaGara(); };
+  if (b) b.onclick = async () => {
+    await usaCervello(b.dataset.m, b.dataset.s || null);
+    b.outerHTML = `<p class="ok-gara">✓ Da adesso Fly Aula usa <b>${escape(b.dataset.s ? b.dataset.m + " + " + b.dataset.s : b.dataset.m)}</b>${b.dataset.s ? " (coppia)" : ""}${Scuola.ruolo === "server" ? " su tutte le LIM della scuola" : ""}.</p>`;
+    preparaGara();
+  };
   scrivi("flyaula_gara", JSON.stringify({ quando: new Date().toLocaleString("it-IT"), n: domande.length, risultati: risultati.map(r => ({ m: r.m, prima: r.prima, dopo: r.dopo, fatte: r.fatte, sec: Math.round(r.sec) })) }));
 }
 // classifica: più risposte giuste con i controlli; a parità, meno dubbi; poi il più veloce
@@ -576,13 +620,13 @@ function disegnaGara(risultati, inCorso, minuti) {
   const pc = (x, n) => n ? (Math.round(1000 * x / n) / 10).toLocaleString("it-IT") + "%" : "–";
   const ord = classifica(risultati), medaglie = ["🥇", "🥈", "🥉"];
   const secondi = x => (x < 10 ? Math.round(x * 10) / 10 : Math.round(x)).toLocaleString("it-IT") + " s";
-  const righe = ord.map((r, i) => `<tr${i === 0 && !inCorso ? ' class="vincitore"' : ""}><td>${medaglie[i] || i + 1}</td><td><b>${escape(r.m)}</b></td><td>${pc(r.prima, r.fatte)}</td><td><b>${pc(r.dopo, r.fatte)}</b></td><td>${r.dubbi}</td><td>${secondi(r.sec)}</td></tr>`).join("");
+  const righe = ord.map((r, i) => `<tr${i === 0 && !inCorso ? ' class="vincitore"' : ""}><td>${medaglie[i] || i + 1}</td><td><b>${escape(r.m)}</b>${r.secondo ? ' <small class="tag-coppia">🤝 coppia</small>' : ""}</td><td>${pc(r.prima, r.fatte)}</td><td><b>${pc(r.dopo, r.fatte)}</b></td><td>${r.dubbi}</td><td>${secondi(r.sec)}</td></tr>`).join("");
   const ora = inCorso ? `<tr><td>⏳</td><td><b>${escape(inCorso.m)}</b> <small>sta rispondendo: ${inCorso.fatte}/${inCorso.tot}</small></td><td>${pc(inCorso.prima, inCorso.fatte)}</td><td>${pc(inCorso.dopo, inCorso.fatte)}</td><td></td><td></td></tr>` : "";
   const v = !inCorso && ord[0];
   return `${inCorso ? `<p class="sotto">🏁 Gara in corso · tempo che manca: ~${minuti} min</p>` : ""}
     <table class="tab-gara"><thead><tr><th></th><th>Cervello</th><th>Giuste alla prima risposta</th><th>Giuste con i controlli</th><th>Dubbi</th><th>Tempo per domanda</th></tr></thead><tbody>${righe}${ora}</tbody></table>
-    ${v ? `<div class="fine-gara"><p>🏆 Vince <b>${escape(v.m)}</b>: ${pc(v.dopo, v.fatte)} giuste con i controlli, ${secondi(v.sec).replace(" s", " secondi")} per domanda.</p>
-      ${v.m !== modello ? `<button class="btn usa-vincitore" data-m="${escape(v.m)}">✓ Usa ${escape(v.m)} da adesso</button>` : `<p class="ok-gara">✓ È già il cervello in uso.</p>`}
+    ${v ? `<div class="fine-gara"><p>🏆 Vince <b>${escape(v.m)}</b>${v.secondo ? " (coppia: uno scrive, l'altro controlla)" : ""}: ${pc(v.dopo, v.fatte)} giuste con i controlli, ${secondi(v.sec).replace(" s", " secondi")} per domanda.</p>
+      ${v.forte !== modello || (v.secondo || null) !== (secondo || null) ? `<button class="btn usa-vincitore" data-m="${escape(v.forte)}" data-s="${escape(v.secondo || "")}">✓ Usa ${escape(v.m)} da adesso</button>` : `<p class="ok-gara">✓ È già ${v.secondo ? "la coppia" : "il cervello"} in uso.</p>`}
       <p class="sotto">Il tempo conta: in classe una risposta dovrebbe arrivare in meno di 20-30 secondi. Prima di scegliere un cervello per tutta la scuola, prova anche il <b>test di carico</b> nella pagina del tecnico.</p></div>` : ""}`;
 }
 function disegnaEsame(fatte, tot, prima, dopo, per, minuti) {
@@ -649,8 +693,13 @@ async function controlla() {
     const j = await r.json();
     const presenti = (j.models || []).map(m => m.name);
     window.modelliPresenti = presenti;
+    (j.models || []).forEach(m => { pesi[m.name] = m.size || 0; });
     modello = scegliModello(presenti);
-    await leggiCapacita(modello);
+    secondo = scegliSecondo(presenti, modello);
+    // nessuna scelta fatta con la gara: se c'è una COPPIA che sta nella scheda, è meglio di un cervello da solo
+    const scelto = Scuola.cervelloScelto || leggi("flyaula_modello");
+    if (!secondo && !scelto) { const c = migliorCoppia(presenti); if (c) [modello, secondo] = c; }
+    await leggiCapacita(modello); if (secondo) await leggiCapacita(secondo);
     if (modello) $("aiuto").style.display = "none"; else mostraAiuto(true);
   } catch (e) { modello = null; mostraAiuto(false); }
   aggiornaEtichettaStato();
@@ -660,12 +709,41 @@ async function controlla() {
 function trova(presenti, m) { return m ? presenti.find(x => x === m || x === m + ":latest" || x.startsWith(m + "-")) : null; }
 function scegliModello(presenti) {
   for (const m of [Scuola.cervelloScelto, leggi("flyaula_modello"), ...MODELLI]) { const t = trova(presenti, m); if (t) return t; }
-  return presenti.find(m => !/vl|vision|llava|embed|ocr/.test(m)) || null;
+  return presenti.find(m => !/vl[:\-]|vision|llava|embed|ocr|whisper/.test(m)) || null;
 }
-async function usaCervello(m) {
-  scrivi("flyaula_modello", m);
-  try { await fetch("/fa/config", { method: "POST", body: JSON.stringify({ cervello: m }) }); } catch (e) {}   // sul server: vale per tutte le LIM
-  modello = m; await leggiCapacita(m); aggiornaEtichettaStato();
+// ---- il secondo cervello della coppia ----
+const pesi = {};                                                     // quanto pesa ogni cervello (byte)
+const famiglia = m => String(m).split(":")[0].replace(/[\d.]+$/, "").replace(/[-_]$/, "").toLowerCase();
+// ci stanno tutti e due nella scheda video, insieme, lasciando spazio per le domande delle classi?
+function stannoInsieme(a, b) {
+  const vram = Scuola.vram * 1024 * 1024;                            // MB → byte (0 = non si sa)
+  return vram > 0 && pesi[a] > 0 && pesi[b] > 0 && pesi[a] + pesi[b] + 2.5e9 <= vram;
+}
+function coppiaPossibile(a, b) { return a && b && a !== b && famiglia(a) !== famiglia(b) && stannoInsieme(a, b); }
+function scegliSecondo(presenti, forte) {
+  if (!forte) return null;
+  // 1) scelto con la gara ("nessuno" = un cervello solo, per scelta)
+  for (const s of [Scuola.secondoScelto, leggi("flyaula_secondo")]) {
+    if (s === "nessuno") return null;
+    const t = trova(presenti, s);
+    if (t && t !== forte) return t;
+  }
+  // 2) da solo: il migliore di un'ALTRA famiglia che sta nella scheda insieme al principale
+  for (const m of MODELLI) { const t = trova(presenti, m); if (t && coppiaPossibile(forte, t)) return t; }
+  return null;
+}
+function migliorCoppia(presenti) {
+  const noti = MODELLI.map(m => trova(presenti, m)).filter(Boolean);
+  for (let i = 0; i < noti.length; i++) for (let k = i + 1; k < noti.length; k++) if (coppiaPossibile(noti[i], noti[k])) return [noti[i], noti[k]];
+  return null;
+}
+async function usaCervello(m, s = null) {
+  scrivi("flyaula_modello", m); scrivi("flyaula_secondo", s || "nessuno");
+  // sul server della scuola la scelta vale per tutte le LIM
+  try { await fetch("/fa/config", { method: "POST", body: JSON.stringify({ cervello: m, cervello2: s || "nessuno" }) }); } catch (e) {}
+  modello = m; secondo = s || null;
+  await leggiCapacita(m); if (secondo) await leggiCapacita(secondo);
+  aggiornaEtichettaStato();
 }
 // in alto: parole semplici per i prof (i dettagli tecnici sono nel "title", per il tecnico)
 window.aggiornaEtichettaStato = function () {
@@ -673,7 +751,7 @@ window.aggiornaEtichettaStato = function () {
   if (!modello) { s.textContent = "☕ Si sta svegliando…"; s.className = "ko"; s.title = "Il cervello non risponde"; return; }
   s.textContent = Scuola.suRiserva ? "🟡 Pronta · server di riserva" : Scuola.ruolo === "lim" ? "🟢 Pronta · server della scuola" : "🟢 Pronta";
   s.className = Scuola.suRiserva ? "riserva" : "ok";
-  s.title = `Cervello: ${modello} · ${Scuola.base}${Scuola.aula ? " · aula " + Scuola.aula : ""}`;
+  s.title = `${secondo ? "Cervelli: " + modello + " + " + secondo + " (coppia)" : "Cervello: " + modello} · ${Scuola.base}${Scuola.aula ? " · aula " + Scuola.aula : ""}`;
 };
 setInterval(() => { if (!modello) controlla(); }, 15000);
 function mostraAiuto(acceso) {
