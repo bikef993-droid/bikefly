@@ -25,6 +25,7 @@ flyaula/classe.js
 flyaula/gara.js
 flyaula/programmi.js
 flyaula/creaverifica.js
+flyaula/strumenti.js
 flyaula/report.js
 flyaula/demo.js
 flyaula/telefono.html

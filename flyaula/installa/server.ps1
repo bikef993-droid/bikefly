@@ -87,6 +87,7 @@ function HashPin([string]$pin, [string]$sale) {
 }
 function LeggiProf { $t = @{}; try { $j = [IO.File]::ReadAllText($PROFF, $UTF8) | ConvertFrom-Json; foreach ($x in $j.PSObject.Properties) { $t[$x.Name] = @{ nome = [string]$x.Value.nome; sale = [string]$x.Value.sale; hash = [string]$x.Value.hash } } } catch {}; return $t }
 function SalvaProf($t) { [IO.File]::WriteAllText($PROFF, ($t | ConvertTo-Json -Depth 4 -Compress), $UTF8) }
+function CartellaDip { $c = Join-Path $PROFD 'dipartimento'; New-Item -ItemType Directory -Force -Path $c | Out-Null; return $c }
 function CartellaArchivio($id) { $c = Join-Path (Join-Path $PROFD $id) 'archivio'; New-Item -ItemType Directory -Force -Path $c | Out-Null; return $c }
 function ProfDi($q) {
   $t = [string]$q.Headers['X-FlyAula-Prof']
@@ -391,7 +392,7 @@ while ($ascolta.IsListening) {
       }
     }
     elseif ($p -eq '/fa/prof/esci' -and $daRete) { $SESSIONI.Remove([string]$q.Headers['X-FlyAula-Prof']); Testo $ctx 200 '{"ok":true}' }
-    elseif ($daRete -and @('/fa/prof/mie', '/fa/prof/cambiapin', '/fa/prof/archivio', '/fa/prof/foglio') -contains $p) {
+    elseif ($daRete -and @('/fa/prof/mie', '/fa/prof/cambiapin', '/fa/prof/archivio', '/fa/prof/foglio', '/fa/prof/condividi', '/fa/dip') -contains $p) {
       $id = ProfDi $q
       if (-not $id) { Testo $ctx 401 '{"errore":"entra"}' }
       elseif ($p -eq '/fa/prof/mie') {
@@ -404,6 +405,41 @@ while ($ascolta.IsListening) {
         $t = LeggiProf
         if ($q.HttpMethod -ne 'POST' -or -not (PinValido ([string]$j.nuovo)) -or -not (PinValido ([string]$j.vecchio)) -or (HashPin ([string]$j.vecchio) $t[$id].sale) -ne $t[$id].hash) { Testo $ctx 403 '{"errore":"pin"}' }
         else { $sale = Casuale 16; $t[$id].sale = $sale; $t[$id].hash = HashPin ([string]$j.nuovo) $sale; SalvaProf $t; Testo $ctx 200 '{"ok":true}' }
+      }
+      elseif ($p -eq '/fa/prof/condividi') {
+        # una COPIA di un foglio del proprio archivio va nell archivio di dipartimento (la vedono gli altri prof, con il nome di chi l ha fatta)
+        $n = [string]$q.QueryString['id']; $src = Join-Path (CartellaArchivio $id) "$n.json"
+        if ($q.HttpMethod -ne 'POST' -or $n -notmatch '^[0-9a-f]{12}$' -or -not (Test-Path $src)) { Testo $ctx 404 '{}' }
+        else {
+          $dip = CartellaDip; $chiave = $id + $n; $dst = Join-Path $dip "$chiave.json"
+          if (-not (Test-Path $dst) -and @(Get-ChildItem $dip -File).Count -ge 1000) { Testo $ctx 507 '{"errore":"pieno"}' }
+          else {
+            try {
+              $j = [IO.File]::ReadAllText($src, $UTF8) | ConvertFrom-Json
+              $j | Add-Member -NotePropertyName autore -NotePropertyValue ([string](LeggiProf)[$id].nome) -Force
+              $j | Add-Member -NotePropertyName autoreId -NotePropertyValue $id -Force
+              $j | Add-Member -NotePropertyName condiviso -NotePropertyValue ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) -Force
+              [IO.File]::WriteAllText($dst, ($j | ConvertTo-Json -Depth 30 -Compress), $UTF8)
+              Testo $ctx 200 ('{"ok":true,"id":"' + $chiave + '"}')
+            } catch { Testo $ctx 400 '{"errore":"json"}' }
+          }
+        }
+      }
+      elseif ($p -eq '/fa/dip') {
+        # l archivio di dipartimento: lo vedono tutti i prof entrati con il loro PIN; cancella solo chi l ha condiviso
+        $dip = CartellaDip; $n = [string]$q.QueryString['id']
+        if ($n -and $n -notmatch '^[0-9a-f]{20}$') { Testo $ctx 400 '{"errore":"id"}' }
+        elseif (-not $n) {
+          $l = @(Get-ChildItem $dip -Filter '*.json' | Sort-Object LastWriteTime -Descending | ForEach-Object {
+            try { $j = [IO.File]::ReadAllText($_.FullName, $UTF8) | ConvertFrom-Json; @{ id = $_.BaseName; tipo = [string]$j.tipo; titolo = [string]$j.titolo; materia = [string]$j.materia; classe = [string]$j.classe; autore = [string]$j.autore; mio = ([string]$j.autoreId -eq $id); data = [long]$j.condiviso } } catch {}
+          })
+          Testo $ctx 200 (ConvertTo-Json -InputObject $l -Compress)
+        }
+        elseif ($q.HttpMethod -eq 'DELETE') {
+          if ($n.StartsWith($id)) { Remove-Item (Join-Path $dip "$n.json") -Force -ErrorAction SilentlyContinue; Testo $ctx 200 '{"ok":true}' } else { Testo $ctx 403 '{"errore":"non tuo"}' }
+        }
+        elseif (Test-Path (Join-Path $dip "$n.json")) { Manda $ctx 200 'application/json; charset=utf-8' ([IO.File]::ReadAllBytes((Join-Path $dip "$n.json"))) }
+        else { Testo $ctx 404 '{}' }
       }
       elseif ($p -eq '/fa/prof/archivio') {
         # l elenco: solo i dati per riconoscerle (titolo, classe, materia, aula, data)

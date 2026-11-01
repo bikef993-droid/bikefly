@@ -39,6 +39,13 @@ const Report = (() => {
     }).join("");
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="Domande al giorno negli ultimi 30 giorni">${g}<line x1="${L}" x2="${W - 4}" y1="${y(0)}" y2="${y(0)}" stroke="${ink}"/>${barre}</svg>`;
   }
+  // ⏱️ ore risparmiate: stime prudenti di quanto tempo ci vorrebbe a farlo a mano
+  const MINUTI = { verificheCreate: [40, "verifica preparata"], lezioniPronte: [30, "lezione pronta"], uda: [90, "UDA in bozza"], correzioni: [4, "risposta corretta"], riassunti: [10, "riassunto per gli assenti"] };
+  function risparmio(s) {
+    let min = 0; const pezzi = [];
+    for (const [k, [m, nome]] of Object.entries(MINUTI)) { const q = s[k] || 0; if (q) { min += q * m; pezzi.push(`${q} × ${m} min (${nome})`); } }
+    return { ore: (Math.round(min / 6) / 10).toLocaleString("it-IT"), dettaglio: pezzi.length ? pezzi.join(" + ") : "ancora niente da contare" };
+  }
   function contenuto(stampa = false) {
     const { s, giorni, perMateria, esame } = dati();
     const affid = s.risposte ? Math.round(1000 * (1 - (s.segnalate || 0) / s.risposte)) / 10 : null;
@@ -47,6 +54,8 @@ const Report = (() => {
     return `
       <h3>📚 Uso</h3>
       <div class="stat">${tile(n(s.risposte), "risposte date")}${tile(n(s.lezioni), "lezioni")}${tile(n(s.esercizi), "esercizi alla LIM")}${tile(n(s.verificheCreate), "verifiche preparate")}${tile(n(s.ripassi), "ripassi")}${tile(n(s.gare), "gare a squadre")}${tile(n(s.riassunti), "riassunti per assenti")}${tile(n(s.traduzioni), "traduzioni per alunni stranieri")}</div>
+      <h3>⏱️ Tempo risparmiato ai prof</h3>
+      ${(() => { const r = risparmio(s); return `<div class="stat">${tile(r.ore, "ore risparmiate (stima)")}${tile(n(s.lezioniPronte), "lezioni pronte")}${tile(n(s.uda), "UDA in bozza")}${tile(n(s.correzioni), "aiuti a correggere")}</div><p class="nota-s">Stima prudente: ${r.dettaglio}. Sono minuti risparmiati a preparare, non a insegnare.</p>`; })()}
       <h3>✅ Qualità e controlli</h3>
       <div class="stat">${tile(n(s.doppi), "controllate 2 volte")}${tile(n(s.tripli), "controllate 3 volte")}${tile(n(s.correttiRevisore), "errori corretti dal ricontrollo")}${tile(n(s.contiCorretti), "conti corretti dalla calcolatrice")}${tile(n(s.dubbi), "dubbi segnalati al prof (invece di inventare)")}${tile(n(s.segnalate), "errori segnalati dai prof")}${tile(affid === null ? "—" : affid.toLocaleString("it-IT") + "%", "risposte senza segnalazioni")}${esame ? tile(`${Math.round(100 * esame.dopo / esame.n)}%`, `esame (${esame.n} domande): giuste con i controlli`) : ""}</div>
       <h3>📅 Domande al giorno · ultimi 30 giorni</h3>

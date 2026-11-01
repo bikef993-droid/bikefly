@@ -205,7 +205,7 @@ const Prof = (() => {
           <p class="nota-s">Fly Aula si mette in pausa: niente domande, niente esercizi, niente voce. Si sblocca da sola alla fine, o con il PIN.</p>
           <div class="riga-btn"><select id="pfDurata"><option value="30">30 min</option><option value="60" selected>1 ora</option><option value="90">1 ora e mezza</option><option value="120">2 ore</option></select>
           <button class="btn" id="pfVerifica">📝 Inizia la verifica</button></div>
-          <div class="riga-btn" style="margin-bottom:0"><button class="btn sec" id="pfCrea">📄 Crea una verifica da stampare</button></div></section>
+          <div class="riga-btn" style="margin-bottom:0"><button class="btn sec" id="pfCrea">📄 Crea una verifica da stampare</button><button class="btn sec" id="pfStrumenti">🧰 Lezione pronta, UDA, aiuto a correggere</button></div></section>
       </div>
       <div class="riga-btn"><button class="btn" id="pfSalva">✓ Salva</button><button class="btn sec" id="pfPin">🔑 Cambia PIN</button><button class="btn sec chiudi-prof">Chiudi</button></div>`;
     el("pfModo").value = imp.modo; el("pfTema").value = imp.tema;
@@ -221,6 +221,7 @@ const Prof = (() => {
     if (el("pfArchivio")) el("pfArchivio").onclick = () => { prendi(); chiudi(); apriArchivio(); };
     el("pfVerifica").onclick = () => { prendi(); chiudi(); iniziaVerifica(+el("pfDurata").value); };
     el("pfCrea").onclick = () => { prendi(); chiudi(); CreaVerifica.apri(); };
+    el("pfStrumenti").onclick = () => { prendi(); chiudi(); Strumenti.apri(); };
     p.querySelector(".chiudi-prof").onclick = () => { prendi(); chiudi(); };
   }
   // ---------- 📚 l'archivio del prof: verifiche e riassunti, sul server, solo suoi ----------
@@ -235,6 +236,39 @@ const Prof = (() => {
     await disegnaArchivio();
   }
   const chiudiArchivio = () => { if (el("pArchivio")) el("pArchivio").style.display = "none"; };
+  const ICONE = { verifica: "📄", riassunto: "📒", lezione: "📚", uda: "📑" };
+  // 🤝 ARCHIVIO DI DIPARTIMENTO: quello che i prof della scuola hanno scelto di condividere
+  async function disegnaDip(filtro) {
+    const c = el("arCorpo"); c.innerHTML = `<div class="lavoro">🤝 Apro l'archivio di dipartimento…</div>`;
+    const r = await chiamaProf("/fa/dip");
+    if (r.stato !== 200) return disegnaArchivio();
+    const tutte = Array.isArray(r.j) ? r.j : [], mat = filtro === undefined ? (el("materia") ? el("materia").value : "") : filtro;
+    const l = tutte.filter(x => !mat || x.materia === mat);
+    const nomeM = k => (typeof MATERIE !== "undefined" && MATERIE[k] ? MATERIE[k].emoji + " " + MATERIE[k].nome : k || "—");
+    const materie = [...new Set(tutte.map(x => x.materia).filter(Boolean))];
+    c.innerHTML = `<p class="nota-s">🤝 Quello che i prof della scuola hanno condiviso. Puoi copiarlo nel tuo archivio e cambiarlo come vuoi: l'originale resta di chi l'ha fatto.</p>
+      <div class="riga-btn" style="margin:6px 0"><select class="pill" id="dipMat"><option value="">Tutte le materie (${tutte.length})</option>${materie.map(m => `<option value="${escapeP(m)}" ${m === mat ? "selected" : ""}>${escapeP(nomeM(m))}</option>`).join("")}</select></div>
+      ${l.length ? `<table class="cv-tab ar-tab" id="dipTab"><thead><tr><th></th><th>Titolo</th><th>Classe</th><th>Materia</th><th>Di</th><th></th></tr></thead><tbody>
+        ${l.map((x, i) => `<tr><td>${ICONE[x.tipo] || "📄"}</td><td><b>${escapeP(x.titolo)}</b></td><td>${escapeP(x.classe)}</td><td>${escapeP(nomeM(x.materia))}</td><td>${x.mio ? "<b>te</b>" : escapeP(x.autore)}</td>
+          <td class="cv-az"><button data-k="${i}" title="Copia nel mio archivio">📥</button>${x.mio ? `<button data-t="${i}" title="Togli dal dipartimento">✕</button>` : ""}</td></tr>`).join("")}</tbody></table>`
+        : `<p class="sotto">${tutte.length ? "Niente per questa materia." : "Ancora niente: nel tuo archivio tocca 🤝 su una verifica per condividerla."}</p>`}
+      <div class="riga-btn"><button class="btn sec" id="dipIndietro">← Il mio archivio</button></div>`;
+    el("dipMat").onchange = () => disegnaDip(el("dipMat").value);
+    el("dipIndietro").onclick = () => disegnaArchivio();
+    c.querySelectorAll("[data-k]").forEach(b => b.onclick = async () => {
+      const x = l[+b.dataset.k]; b.disabled = true;
+      const f = await chiamaProf("/fa/dip?id=" + x.id);
+      if (f.stato !== 200 || !f.j) { b.textContent = "⚠️"; return; }
+      const copia = { ...f.j, titolo: String(f.j.titolo || "Foglio").slice(0, 70) + (x.mio ? "" : ` (da ${String(x.autore).split(" ")[0]})`), data: new Date().toISOString() };
+      delete copia.autore; delete copia.autoreId; delete copia.condiviso;
+      const s2 = await chiamaProf("/fa/prof/foglio", { metodo: "POST", corpo: copia });
+      b.textContent = s2.stato === 200 ? "✓" : "⚠️"; b.title = s2.stato === 200 ? "Copiata nel tuo archivio" : "Non riuscita (archivio pieno?)";
+    });
+    c.querySelectorAll("[data-t]").forEach(b => b.onclick = async () => {
+      if (b.dataset.sicuro !== "1") { b.dataset.sicuro = "1"; b.textContent = "Sicuro?"; return; }
+      await chiamaProf("/fa/dip?id=" + l[+b.dataset.t].id, { metodo: "DELETE" }); disegnaDip(el("dipMat") ? el("dipMat").value : mat);
+    });
+  }
   async function disegnaArchivio() {
     const c = el("arCorpo"); c.innerHTML = `<div class="lavoro">📚 Apro l'archivio…</div>`;
     const r = await chiamaProf("/fa/prof/archivio");
@@ -250,17 +284,23 @@ const Prof = (() => {
     const nomeM = k => (typeof MATERIE !== "undefined" && MATERIE[k] ? MATERIE[k].emoji + " " + MATERIE[k].nome : k);
     c.innerHTML = `<p class="nota-s">👤 <b>${escapeP(sessione.nome)}</b> · ${l.length} ${l.length === 1 ? "foglio" : "fogli"} · li vedi solo tu, da qualsiasi LIM della scuola.</p>
       ${l.length ? `<table class="cv-tab ar-tab"><thead><tr><th></th><th>Titolo</th><th>Classe</th><th>Materia</th><th>Aula</th><th>Data</th><th></th></tr></thead><tbody>
-        ${l.map((x, i) => `<tr><td>${x.tipo === "riassunto" ? "📒" : "📄"}</td><td><b>${escapeP(x.titolo)}</b></td><td>${escapeP(x.classe)}</td><td>${escapeP(nomeM(x.materia))}</td><td>${escapeP(x.aula || "—")}</td><td>${escapeP(data(x.data))}</td>
-          <td class="cv-az"><button data-a="${i}" title="Apri">📂</button><button data-d="${i}" title="Cancella">🗑️</button></td></tr>`).join("")}</tbody></table>`
+        ${l.map((x, i) => `<tr><td>${ICONE[x.tipo] || "📄"}</td><td><b>${escapeP(x.titolo)}</b></td><td>${escapeP(x.classe)}</td><td>${escapeP(nomeM(x.materia))}</td><td>${escapeP(x.aula || "—")}</td><td>${escapeP(data(x.data))}</td>
+          <td class="cv-az"><button data-a="${i}" title="Apri">📂</button>${x.tipo === "correzione" ? "" : `<button data-c="${i}" title="Condividi con i prof del dipartimento">🤝</button>`}<button data-d="${i}" title="Cancella">🗑️</button></td></tr>`).join("")}</tbody></table>`
         : `<p class="sotto">Ancora vuoto. Le verifiche che crei si salvano qui da sole; i riassunti delle lezioni con il pulsante "💾 Nel mio archivio".</p>`}
-      <div class="riga-btn"><button class="btn sec" id="arChiudi">Chiudi</button></div>`;
+      <div class="riga-btn"><button class="btn" id="arDip">🤝 Archivio di dipartimento</button><button class="btn sec" id="arChiudi">Chiudi</button></div>`;
     el("arChiudi").onclick = chiudiArchivio;
+    el("arDip").onclick = () => disegnaDip();
+    c.querySelectorAll("[data-c]").forEach(b => b.onclick = async () => {
+      b.disabled = true; const r = await chiamaProf("/fa/prof/condividi?id=" + l[+b.dataset.c].id, { metodo: "POST" });
+      b.textContent = r.stato === 200 ? "✓" : "⚠️"; b.title = r.stato === 200 ? "Condivisa: la vedono i prof della scuola (con il tuo nome)" : "Non riuscita";
+    });
     c.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => {
       const x = l[+b.dataset.a]; b.disabled = true;
       const f = await chiamaProf("/fa/prof/foglio?id=" + x.id);
       if (f.stato !== 200 || !f.j) { b.disabled = false; return disegnaArchivio(); }
       chiudiArchivio();
       if (f.j.tipo === "riassunto") window.mostraRiassuntoSalvato && window.mostraRiassuntoSalvato(f.j);
+      else if (f.j.tipo === "lezione" || f.j.tipo === "uda") typeof Strumenti !== "undefined" && Strumenti.mostra(f.j, x.id);
       else CreaVerifica.carica(f.j, x.id);
     });
     c.querySelectorAll("[data-d]").forEach(b => b.onclick = async () => {

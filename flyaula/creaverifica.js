@@ -112,6 +112,7 @@ const CreaVerifica = (() => {
         <td class="cv-az"><button data-r="${i}" title="Rifai questo esercizio">🔄</button><button data-x="${i}" title="Togli questo esercizio">✕</button></td></tr>`).join("")}
       </tbody></table>
       ${lav.A.length ? `<div class="riga-btn"><button class="btn" id="cvStA">🖨️ Stampa fila A</button>${lav.B ? '<button class="btn" id="cvStB">🖨️ Stampa fila B</button>' : ""}${lav.C ? '<button class="btn" id="cvStC">🖨️ Stampa fila C</button>' : ""}<button class="btn sec" id="cvStS">🖨️ Soluzioni (solo prof)</button></div>
+      <div class="riga-btn cv-dsa"><span class="nota-s">♿ <b>Versione per DSA</b> (carattere grande, più spazio, numeri in evidenza):</span><button class="btn sec" data-dsa="A">Fila A</button>${lav.B ? '<button class="btn sec" data-dsa="B">Fila B</button>' : ""}${lav.C ? '<button class="btn sec" data-dsa="C">Fila C</button>' : ""}<label class="nota-s"><input type="checkbox" id="cvRiduci"> meno esercizi (circa −30%)</label></div>
       <p class="nota-s">Dalla finestra di stampa puoi anche scegliere <b>Salva come PDF</b>. La verifica la prepara Fly Aula, ma la decide il prof: rileggila sempre.</p>` : ""}`;
     el("cvLavoro").querySelectorAll("[data-r]").forEach(b => b.onclick = async () => {
       const i = +b.dataset.r; b.disabled = true; b.textContent = "⏳";
@@ -125,17 +126,23 @@ const CreaVerifica = (() => {
     if (el("cvStA")) el("cvStA").onclick = () => stampaFila("A");
     if (el("cvStB")) el("cvStB").onclick = () => stampaFila("B");
     if (el("cvStC")) el("cvStC").onclick = () => stampaFila("C");
+    el("cvLavoro").querySelectorAll("[data-dsa]").forEach(b => b.onclick = () => stampaFila(b.dataset.dsa, { dsa: true, riduci: el("cvRiduci") && el("cvRiduci").checked }));
     if (el("cvStS")) el("cvStS").onclick = stampaSoluzioni;
   }
   function testa(fila) {
     return `<h1>${escC(lav.titolo)}${fila ? " · Fila " + fila : ""}</h1>${lav.scuola ? `<div>${escC(lav.scuola)}</div>` : ""}
       <div class="testa"><span>Nome e cognome ______________________________</span><span>Classe ${escC(lav.classe)}</span><span>Data ____________</span></div>`;
   }
-  function stampaFila(f) {
-    const lista = f === "C" ? lav.C : f === "B" ? lav.B : lav.A;
-    stampa(`${lav.titolo} - Fila ${f}`, testa(f) + (lav.argomento ? `<p><b>Argomento:</b> ${escC(lav.argomento)}</p>` : "") +
-      lista.map((e, i) => `<div class="es"><span class="punti">punti ____</span><b class="n">${i + 1}.</b> ${escC(e.testo)}<div class="spazio"></div></div>`).join("") +
-      `<p style="margin-top:18px"><b>Punteggio totale: ______</b></p>`);
+  // ♿ versione per DSA: carattere senza grazie e grande, interlinea ampia, un esercizio per riquadro, numeri in grassetto,
+  // più spazio per scrivere; se il prof lo sceglie, circa il 30% di esercizi in meno (gli ultimi)
+  const DSA_STILE = `<style>.dsa{font-family:Verdana,Arial,sans-serif;font-size:18px;line-height:1.9;letter-spacing:.03em}.dsa h1{font-size:24px}.dsa .es{border:2px solid #444;border-radius:10px;padding:12px 16px;margin:16px 0;break-inside:avoid}.dsa .es b.num{font-size:20px}.dsa .spazio{height:170px}.dsa .punti{font-size:15px}</style>`;
+  const numeriInEvidenza = t => escC(t).replace(/(\d+(?:[.,]\d+)*)/g, '<b class="num">$1</b>');
+  function stampaFila(f, { dsa = false, riduci = false } = {}) {
+    let lista = f === "C" ? lav.C : f === "B" ? lav.B : lav.A;
+    if (dsa && riduci) lista = lista.slice(0, Math.max(1, Math.ceil(lista.length * 0.7)));
+    stampa(`${lav.titolo} - Fila ${f}${dsa ? " (DSA)" : ""}`, (dsa ? DSA_STILE + '<div class="dsa">' : "") + testa(f) + (lav.argomento ? `<p><b>Argomento:</b> ${escC(lav.argomento)}</p>` : "") +
+      lista.map((e, i) => `<div class="es"><span class="punti">punti ____</span><b class="n">${i + 1}.</b> ${dsa ? numeriInEvidenza(e.testo) : escC(e.testo)}<div class="spazio"></div></div>`).join("") +
+      `<p style="margin-top:18px"><b>Punteggio totale: ______</b></p>` + (dsa ? "</div>" : ""));
   }
   function stampaSoluzioni() {
     const blocco = (lista, f) => `<h2>Fila ${f}</h2>` + lista.map((e, i) => `<div class="es"><b class="n">${i + 1}.</b> ${escC(e.testo)}<div class="sol"><b>Soluzione: ${escC(soluzioneDi(e))}</b>${e.conto ? ` &nbsp;(${escC(e.conto)})` : ""}${e.spiegazione ? `<br>${escC(e.spiegazione).replace(/\n/g, "<br>")}` : ""}</div></div>`).join("");
