@@ -12,10 +12,12 @@ $PAG  = Join-Path $DIR 'pagine'
 $ORARI = Join-Path $DIR 'orari'
 $CFGF = Join-Path $DIR 'config.json'
 $MEMO = Join-Path $DIR 'memo'
+$PROFD = Join-Path $DIR 'prof'
+$PROFF = Join-Path $PROFD 'prof.json'
 $PORTA = 8780
 $UTF8 = New-Object Text.UTF8Encoding $false
 Remove-Item $PAG -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $PAG, $ORARI, $MEMO | Out-Null
+New-Item -ItemType Directory -Force -Path $PAG, $ORARI, $MEMO, $PROFD | Out-Null
 
 function LeggiConfig {
   $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = '' }
@@ -73,6 +75,28 @@ $CODICI = @{}
 $FILA = @{}
 # i tempi di risposta di oggi (solo numeri: niente domande, niente nomi)
 $TEMPI = @{ giorno = ''; n = 0; somma = 0; max = 0; memoria = 0; lente = 0 }
+# ---- i prof: ognuno con il suo PIN (cifrato) e il suo archivio di verifiche ----
+# prof.json: { "id": { nome, sale, hash } } - prof\<id>\mie.json - prof\<id>\archivio\<n>.json
+$SESSIONI = @{}   # token -> @{ id; visto }  (si chiude da sola dopo 15 minuti senza usarla)
+$TENTATIVI = @{}  # "id|ip" -> @{ n; fino }  (5 PIN sbagliati = 5 minuti di blocco)
+function Casuale([int]$byte) { $b = New-Object byte[] $byte; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); return (($b | ForEach-Object { $_.ToString('x2') }) -join '') }
+function HashPin([string]$pin, [string]$sale) {
+  $sb = New-Object byte[] ($sale.Length / 2); for ($i = 0; $i -lt $sb.Length; $i++) { $sb[$i] = [Convert]::ToByte($sale.Substring($i * 2, 2), 16) }
+  $k = New-Object Security.Cryptography.Rfc2898DeriveBytes($pin, $sb, 20000)
+  return (($k.GetBytes(32) | ForEach-Object { $_.ToString('x2') }) -join '')
+}
+function LeggiProf { $t = @{}; try { $j = [IO.File]::ReadAllText($PROFF, $UTF8) | ConvertFrom-Json; foreach ($x in $j.PSObject.Properties) { $t[$x.Name] = @{ nome = [string]$x.Value.nome; sale = [string]$x.Value.sale; hash = [string]$x.Value.hash } } } catch {}; return $t }
+function SalvaProf($t) { [IO.File]::WriteAllText($PROFF, ($t | ConvertTo-Json -Depth 4 -Compress), $UTF8) }
+function CartellaArchivio($id) { $c = Join-Path (Join-Path $PROFD $id) 'archivio'; New-Item -ItemType Directory -Force -Path $c | Out-Null; return $c }
+function ProfDi($q) {
+  $t = [string]$q.Headers['X-FlyAula-Prof']
+  if ($t -notmatch '^[0-9a-f]{32}$' -or -not $SESSIONI.ContainsKey($t)) { return $null }
+  $s = $SESSIONI[$t]
+  if (([DateTime]::UtcNow - $s.visto).TotalMinutes -gt 15) { $SESSIONI.Remove($t); return $null }
+  $s.visto = [DateTime]::UtcNow
+  return $s.id
+}
+function PinValido([string]$pin) { return $pin -match '^\d{4,6}$' }
 function NomeAula([string]$a) {
   if (-not $a) { return '_' }
   $s = $a -replace '[^\p{L}\p{N}]', '_'
@@ -219,6 +243,107 @@ while ($ascolta.IsListening) {
       if ($TEMPI.giorno -ne $oggi) { Testo $ctx 200 '{"n":0,"media":0,"max":0,"memoria":0,"lente":0}' }
       else { Testo $ctx 200 (@{ n = $TEMPI.n; media = $(if ($TEMPI.n) { [Math]::Round($TEMPI.somma / $TEMPI.n) } else { 0 }); max = $TEMPI.max; memoria = $TEMPI.memoria; lente = $TEMPI.lente } | ConvertTo-Json -Compress) }
     }
+    elseif ($p -eq '/fa/prof/nomi' -and $daRete) {
+      $t = LeggiProf
+      $l = @($t.Keys | ForEach-Object { @{ id = $_; nome = $t[$_].nome } } | Sort-Object { $_.nome })
+      Testo $ctx 200 (ConvertTo-Json -InputObject $l -Compress)
+    }
+    elseif ($p -eq '/fa/prof/entra' -and $daRete -and $q.HttpMethod -eq 'POST') {
+      $j = $null; try { $j = (Corpo $q 2000) | ConvertFrom-Json } catch {}
+      $t = LeggiProf; $id = [string]$j.id; $pin = [string]$j.pin
+      $chi = "$id|$($q.RemoteEndPoint.Address)"; $ora = [DateTime]::UtcNow
+      if ($TENTATIVI.ContainsKey($chi) -and $TENTATIVI[$chi].fino -gt $ora) { Testo $ctx 429 ('{"errore":"bloccato","secondi":' + [int]($TENTATIVI[$chi].fino - $ora).TotalSeconds + '}') }
+      elseif ($id -notmatch '^[0-9a-f]{8}$' -or -not $t.ContainsKey($id) -or -not (PinValido $pin)) { Testo $ctx 400 '{"errore":"dati"}' }
+      elseif ((HashPin $pin $t[$id].sale) -eq $t[$id].hash) {
+        $TENTATIVI.Remove($chi)
+        foreach ($x in @($SESSIONI.Keys)) { if (($ora - $SESSIONI[$x].visto).TotalMinutes -gt 15) { $SESSIONI.Remove($x) } }
+        $tok = Casuale 16; $SESSIONI[$tok] = @{ id = $id; visto = $ora }
+        Testo $ctx 200 (@{ token = $tok; id = $id; nome = $t[$id].nome } | ConvertTo-Json -Compress)
+      } else {
+        # 5 PIN sbagliati di fila: quel prof, da quel computer, si blocca per 5 minuti
+        if (-not $TENTATIVI.ContainsKey($chi) -or $TENTATIVI[$chi].n -ge 5) { $TENTATIVI[$chi] = @{ n = 0; fino = $ora } }
+        $TENTATIVI[$chi].n++
+        if ($TENTATIVI[$chi].n -ge 5) { $TENTATIVI[$chi].fino = $ora.AddMinutes(5); Testo $ctx 429 '{"errore":"bloccato","secondi":300}' }
+        else { Testo $ctx 403 ('{"errore":"pin","resta":' + (5 - $TENTATIVI[$chi].n) + '}') }
+      }
+    }
+    elseif ($p -eq '/fa/prof/esci' -and $daRete) { $SESSIONI.Remove([string]$q.Headers['X-FlyAula-Prof']); Testo $ctx 200 '{"ok":true}' }
+    elseif ($daRete -and @('/fa/prof/mie', '/fa/prof/cambiapin', '/fa/prof/archivio', '/fa/prof/foglio') -contains $p) {
+      $id = ProfDi $q
+      if (-not $id) { Testo $ctx 401 '{"errore":"entra"}' }
+      elseif ($p -eq '/fa/prof/mie') {
+        $f = Join-Path (Join-Path $PROFD $id) 'mie.json'
+        if ($q.HttpMethod -eq 'POST') { $b = Corpo $q 5000; try { $null = $b | ConvertFrom-Json; New-Item -ItemType Directory -Force -Path (Split-Path $f) | Out-Null; [IO.File]::WriteAllText($f, $b, $UTF8); Testo $ctx 200 '{"ok":true}' } catch { Testo $ctx 400 '{"errore":"json"}' } }
+        elseif (Test-Path $f) { Manda $ctx 200 'application/json; charset=utf-8' ([IO.File]::ReadAllBytes($f)) } else { Testo $ctx 200 '{}' }
+      }
+      elseif ($p -eq '/fa/prof/cambiapin') {
+        $j = $null; try { $j = (Corpo $q 2000) | ConvertFrom-Json } catch {}
+        $t = LeggiProf
+        if ($q.HttpMethod -ne 'POST' -or -not (PinValido ([string]$j.nuovo)) -or -not (PinValido ([string]$j.vecchio)) -or (HashPin ([string]$j.vecchio) $t[$id].sale) -ne $t[$id].hash) { Testo $ctx 403 '{"errore":"pin"}' }
+        else { $sale = Casuale 16; $t[$id].sale = $sale; $t[$id].hash = HashPin ([string]$j.nuovo) $sale; SalvaProf $t; Testo $ctx 200 '{"ok":true}' }
+      }
+      elseif ($p -eq '/fa/prof/archivio') {
+        # l elenco: solo i dati per riconoscerle (titolo, classe, materia, aula, data)
+        $l = @(Get-ChildItem (CartellaArchivio $id) -Filter '*.json' | Sort-Object LastWriteTime -Descending | ForEach-Object {
+          try { $j = [IO.File]::ReadAllText($_.FullName, $UTF8) | ConvertFrom-Json; @{ id = $_.BaseName; tipo = [string]$j.tipo; titolo = [string]$j.titolo; materia = [string]$j.materia; classe = [string]$j.classe; aula = [string]$j.aula; data = [string]$j.data } } catch {}
+        })
+        Testo $ctx 200 (ConvertTo-Json -InputObject $l -Compress)
+      }
+      else {
+        # un foglio dell archivio: leggere, salvare (nuovo o sopra uno vecchio), togliere
+        $cart = CartellaArchivio $id; $n = [string]$q.QueryString['id']
+        if ($n -and $n -notmatch '^[0-9a-f]{12}$') { Testo $ctx 400 '{"errore":"id"}' }
+        elseif ($q.HttpMethod -eq 'POST') {
+          $b = Corpo $q 400000
+          if ($null -eq $b) { Testo $ctx 413 '{"errore":"troppo"}' }
+          elseif (-not $n -and @(Get-ChildItem $cart -File).Count -ge 300) { Testo $ctx 507 '{"errore":"pieno"}' }
+          elseif ($n -and -not (Test-Path (Join-Path $cart "$n.json"))) { Testo $ctx 404 '{}' }
+          else {
+            try { $j = $b | ConvertFrom-Json; if (-not $j.titolo) { throw 'vuoto' }; if (-not $n) { $n = Casuale 6 }; [IO.File]::WriteAllText((Join-Path $cart "$n.json"), $b, $UTF8); Testo $ctx 200 ('{"ok":true,"id":"' + $n + '"}') }
+            catch { Testo $ctx 400 '{"errore":"json"}' }
+          }
+        }
+        elseif (-not $n) { Testo $ctx 400 '{"errore":"id"}' }
+        elseif ($q.HttpMethod -eq 'DELETE') { Remove-Item (Join-Path $cart "$n.json") -Force -ErrorAction SilentlyContinue; Testo $ctx 200 '{"ok":true}' }
+        elseif (Test-Path (Join-Path $cart "$n.json")) { Manda $ctx 200 'application/json; charset=utf-8' ([IO.File]::ReadAllBytes((Join-Path $cart "$n.json"))) }
+        else { Testo $ctx 404 '{}' }
+      }
+    }
+    elseif ($p -eq '/fa/prof/elenco' -and $locale) {
+      # solo dal pannello del tecnico: i prof, con quante cose hanno nell archivio
+      $t = LeggiProf
+      $l = @($t.Keys | ForEach-Object { @{ id = $_; nome = $t[$_].nome; archivio = @(Get-ChildItem (Join-Path (Join-Path $PROFD $_) 'archivio') -File -ErrorAction SilentlyContinue).Count } } | Sort-Object { $_.nome })
+      Testo $ctx 200 (ConvertTo-Json -InputObject $l -Compress)
+    }
+    elseif (($p -eq '/fa/prof/nuovo' -or $p -eq '/fa/prof/pin') -and $locale -and $q.HttpMethod -eq 'POST') {
+      $j = $null; try { $j = (Corpo $q 2000) | ConvertFrom-Json } catch {}
+      $t = LeggiProf; $nome = ([string]$j.nome).Trim(); $pin = [string]$j.pin
+      if (-not (PinValido $pin)) { Testo $ctx 400 '{"errore":"pin"}' }
+      elseif ($p -eq '/fa/prof/nuovo') {
+        if (-not $nome -or $nome.Length -gt 40) { Testo $ctx 400 '{"errore":"nome"}' }
+        elseif (@($t.Values | Where-Object { $_.nome -eq $nome }).Count) { Testo $ctx 409 '{"errore":"doppio"}' }
+        elseif ($t.Count -ge 300) { Testo $ctx 507 '{"errore":"pieno"}' }
+        else { $id = Casuale 4; $sale = Casuale 16; $t[$id] = @{ nome = $nome; sale = $sale; hash = (HashPin $pin $sale) }; SalvaProf $t; Testo $ctx 200 ('{"ok":true,"id":"' + $id + '"}') }
+      }
+      else {
+        $id = [string]$j.id
+        if (-not $t.ContainsKey($id)) { Testo $ctx 404 '{}' }
+        else {
+          $sale = Casuale 16; $t[$id].sale = $sale; $t[$id].hash = HashPin $pin $sale; SalvaProf $t
+          foreach ($x in @($SESSIONI.Keys)) { if ($SESSIONI[$x].id -eq $id) { $SESSIONI.Remove($x) } }
+          foreach ($x in @($TENTATIVI.Keys)) { if ($x.StartsWith("$id|")) { $TENTATIVI.Remove($x) } }
+          Testo $ctx 200 '{"ok":true}'
+        }
+      }
+    }
+    elseif ($p -eq '/fa/prof' -and $locale -and $q.HttpMethod -eq 'DELETE') {
+      $id = [string]$q.QueryString['id']; $t = LeggiProf
+      if ($id -match '^[0-9a-f]{8}$' -and $t.ContainsKey($id)) {
+        $t.Remove($id); SalvaProf $t; Remove-Item (Join-Path $PROFD $id) -Recurse -Force -ErrorAction SilentlyContinue
+        foreach ($x in @($SESSIONI.Keys)) { if ($SESSIONI[$x].id -eq $id) { $SESSIONI.Remove($x) } }
+        Testo $ctx 200 '{"ok":true}'
+      } else { Testo $ctx 404 '{}' }
+    }
     elseif ($p -eq '/fa/memo-quante' -and $locale) { Testo $ctx 200 ('{"quante":' + @(Get-ChildItem $MEMO -File).Count + '}') }
     elseif ($p -eq '/fa/stato' -and $daRete) {
       Testo $ctx 200 (@{ codice = (CodiceDi $aula); ip = (IpLocale); rete = $rete; porta = $PORTA } | ConvertTo-Json -Compress)
@@ -260,7 +385,7 @@ while ($ascolta.IsListening) {
       if ($rel -eq '') { $ctx.Response.Redirect('/flyaula/'); $ctx.Response.Close(); continue }
       if ($rel.EndsWith('/')) { $rel += 'index.html' }
       $pieno = [IO.Path]::GetFullPath((Join-Path $ROOT $rel))
-      $ok = $pieno.StartsWith($ROOT + '\') -and (Test-Path $pieno -PathType Leaf)
+      $ok = $pieno.StartsWith($ROOT + [IO.Path]::DirectorySeparatorChar) -and (Test-Path $pieno -PathType Leaf)
       if (-not $locale) {
         # dalla rete: la pagina delle foto sempre; Fly Aula intera solo se questo e il server
         $permesso = ($rel -eq 'flyaula/telefono.html') -or ($SERVER -and ($rel -like 'flyaula/*' -or $rel -like 'font/*') -and $rel -ne 'flyaula/tecnico.html' -and $rel -notlike 'flyaula/installa/*')

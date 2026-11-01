@@ -400,3 +400,12 @@ body.con-guida main#chat,body.con-guida footer{margin-right:min(430px,36vw);tran
 #demoSlide .demo-materie div{padding:9px 14px;border-radius:16px}
 #demoSlide .demo-materie span{font-size:26px}
 #demoSlide .demo-materie b{font-size:clamp(14px,1.15vw,18px)}
+
+/* prof con PIN personale e archivio */
+.pin-chi{display:block;width:100%;margin:10px 0 0;background:var(--notte);border:2px solid rgba(255,255,255,.18);color:var(--latte);border-radius:16px;padding:12px 14px;font:800 20px Figtree;outline:none}
+.prof-chi{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:rgba(0,210,160,.08);border:1px solid rgba(0,210,160,.25);border-radius:18px;padding:10px 14px;margin-bottom:14px}
+.prof-chi span{flex:1;font-size:19px}
+.ar-tab td{vertical-align:middle}
+.ar-tab .cv-az button{min-width:46px}
+.cv-archivio{margin:10px 0 0;font-size:16px}
+.cv-archivio .btn{padding:8px 14px;font-size:15px;margin-left:8px}

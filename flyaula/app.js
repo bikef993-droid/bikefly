@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.9 · il programma
+//  FLY AULA v0.9.10 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -645,6 +645,7 @@ async function riassuntoAssenti() {
   if (!modello) return mostraAiuto();
   if (occupato || inPausa()) return;
   $("pRiassunto").style.display = "block";
+  $("riaArchivio").textContent = "💾 Nel mio archivio"; $("riaArchivio").style.display = Prof.conProfili ? "" : "none";
   const c = $("riaCorpo");
   if (storia.length < 2) { c.innerHTML = `<p class="sotto">La lezione è appena iniziata: fate qualche domanda a Fly Aula e poi il riassunto si prepara da solo.</p>`; return; }
   occupato = true;
@@ -1182,6 +1183,7 @@ $("apriReport").onclick = () => { $("menu").classList.remove("aperto"); Report.a
 $("rpStampa").onclick = () => Report.stampaReport();
 $("apriDemo").onclick = () => { $("menu").classList.remove("aperto"); Demo.apri(); };
 Demo.collega();
+Prof.caricaProfili(); setInterval(() => Prof.caricaProfili(), 10 * 60000);   // la scuola usa i PIN personali dei prof?
 $("dsa").onclick = () => DSA.cambia();
 DSA.applica();
 $("lingua").innerHTML = `<option value="">🌍 Solo italiano</option>` + Object.entries(LINGUE).map(([k, l]) => `<option value="${k}">${l.bandiera} + ${l.nome}${l.prova ? " (in prova)" : ""}</option>`).join("");
@@ -1190,6 +1192,19 @@ $("apriRipasso").onclick = () => { $("menu").classList.remove("aperto"); ripasso
 $("apriRiassunto").onclick = () => { $("menu").classList.remove("aperto"); riassuntoAssenti(); };
 $("ripChiudiX").onclick = () => { $("pRipasso").style.display = "none"; };
 $("riaChiudi").onclick = () => { $("pRiassunto").style.display = "none"; };
+// 📒 il riassunto nell'archivio del prof (con il PIN personale), e riaperto da lì
+$("riaArchivio").onclick = async () => {
+  if (!ultimoRiassunto) return;
+  if (!Prof.sessione && !(await Prof.entra("Salva nel tuo archivio"))) return;
+  const materia = $("materia").value, oggi = new Date();
+  const id = await Prof.salvaFoglio({ tipo: "riassunto", titolo: `Riassunto · ${MATERIE[materia].nome} · ${oggi.toLocaleDateString("it-IT")}`, materia, classe: $("classe").value, aula: Scuola.aula || "", data: oggi.toISOString(), testo: ultimoRiassunto });
+  $("riaArchivio").textContent = id ? "✓ Nel tuo archivio" : "⚠️ Non salvato: riprova";
+};
+window.mostraRiassuntoSalvato = f => {
+  ultimoRiassunto = String(f.testo || "");
+  $("riaCorpo").innerHTML = `<div class="ria-testa">📒 ${escape(f.titolo || "Riassunto")} · ${escape(f.classe || "")}</div><div class="ria-testo">${riassuntoInHtml(ultimoRiassunto)}</div>`;
+  $("riaArchivio").textContent = "✓ Nel tuo archivio"; $("riaArchivio").style.display = ""; $("pRiassunto").style.display = "block";
+};
 $("riaStampa").onclick = () => { if (!ultimoRiassunto) return; stampa("Riassunto della lezione", `<h1>Riassunto della lezione</h1><div class="testa"><span>${escape(MATERIE[$("materia").value].nome)} · classe ${escape($("classe").value)}</span><span>${new Date().toLocaleDateString("it-IT")}</span></div>` + riassuntoInHtml(ultimoRiassunto).replace(/<span class="(verificato|corretto)">[^<]*<\/span>/g, "")); };
 $("riaCopia").onclick = async () => { try { await navigator.clipboard.writeText(ultimoRiassunto.replace(/\*\*/g, "")); $("riaCopia").textContent = "✓ Copiato"; } catch (e) {} };
 $("apriProf").onclick = () => { $("menu").classList.remove("aperto"); Prof.apri(); };

@@ -1,5 +1,6 @@
 // ===================================================================
 //  FLY AULA · 📄 crea una verifica da stampare (solo per il prof, con PIN)
+//  Con il PIN personale del prof si salva da sola nel suo archivio (sul server della scuola).
 //  Ogni esercizio: controllato 3 volte. Fila B: stessi tipi, numeri diversi.
 //  La verifica la PREPARA Fly Aula, ma la rilegge e la decide il prof.
 //  I voti restano del prof: qui non si valuta nessuno.
@@ -27,11 +28,43 @@ const CreaVerifica = (() => {
       <div class="riga-btn"><button class="btn" id="cvVia">🪄 Prepara la verifica</button><button class="btn sec" id="cvStop" style="display:none">⏹️ Ferma</button><button class="btn sec" id="cvChiudi">Chiudi</button></div>
       <div class="barra" id="cvBarraBox" style="display:none"><div id="cvBarra"></div></div>
       <div id="cvStato" class="nota-s" style="font-size:16px"></div>
+      <div id="cvArchivio" class="nota-s cv-archivio"></div>
       <div id="cvLavoro"></div>`;
     el("cvVia").onclick = prepara;
     el("cvStop").onclick = () => { fermo = true; };
     el("cvChiudi").onclick = chiudi;
-    if (lav && lav.A.length) disegna();
+    if (lav && lav.A.length) { disegna(); mostraArchivio(); }
+  }
+  // ---------- 📚 archivio del prof: la verifica si salva da sola mentre si prepara ----------
+  let salvataggio = Promise.resolve();
+  function foglio() {
+    return { tipo: "verifica", titolo: lav.titolo, materia: lav.materia, livello: lav.livello, classe: lav.classe, aula: lav.aula || "", argomento: lav.argomento, scuola: lav.scuola, data: lav.data, A: lav.A, B: lav.B };
+  }
+  function mostraArchivio(t) {
+    const b = el("cvArchivio"); if (!b) return;
+    if (t !== undefined) { b.innerHTML = t; return; }
+    const s = Prof.sessione;
+    if (s && lav && lav.idArchivio) b.innerHTML = `💾 Salvata nell'archivio di <b>${escC(s.nome)}</b>`;
+    else if (Prof.conProfili && lav && lav.A.length) { b.innerHTML = `💾 Non è nel tuo archivio. <button class="btn sec" id="cvEntra">🔒 Salvala con il tuo PIN</button>`; el("cvEntra").onclick = async () => { if (await Prof.entra("Salva nel tuo archivio")) salvaInArchivio(); }; }
+    else b.innerHTML = "";
+  }
+  function salvaInArchivio() {
+    // uno alla volta, così il primo salvataggio crea il foglio e i successivi lo aggiornano (niente doppioni)
+    salvataggio = salvataggio.then(async () => {
+      if (!lav || !lav.A.length || !Prof.sessione) return mostraArchivio();
+      const id = await Prof.salvaFoglio(foglio(), lav.idArchivio);
+      if (id) lav.idArchivio = id;
+      mostraArchivio(id ? undefined : "⚠️ Non sono riuscito a salvarla nell'archivio: stampala o salvala come PDF.");
+    }).catch(() => {});
+    return salvataggio;
+  }
+  // riaperta dall'archivio: si può ristampare, rifare un esercizio, toglierlo
+  function carica(f, id) {
+    lav = { A: Array.isArray(f.A) ? f.A : [], B: Array.isArray(f.B) ? f.B : null, materia: MATERIE[f.materia] ? f.materia : el("materia").value, livello: f.livello || el("livello").value,
+      classe: f.classe || "", aula: f.aula || "", argomento: f.argomento || "", titolo: f.titolo || "Verifica", scuola: f.scuola || "", data: f.data || new Date().toISOString(), idArchivio: id };
+    apri();
+    el("cvStato").textContent = `📂 Aperta dal tuo archivio: ${lav.A.length} esercizi${lav.B ? " per fila" : ""}. Puoi ristamparla, rifare o togliere un esercizio (le modifiche si salvano da sole).`;
+    el("cvVia").textContent = "🪄 Fanne una nuova";
   }
   function chiudi() { fermo = true; el("pCreaVer").style.display = "none"; }
 
@@ -39,7 +72,8 @@ const CreaVerifica = (() => {
     if (!modello) return mostraAiuto();
     const materia = el("materia").value, livello = el("livello").value, n = +el("cvN").value, conB = el("cvFile").value === "AB";
     scriviC("flyaula_scuola", el("cvScuola").value.trim());
-    lav = { A: [], B: conB ? [] : null, materia, livello, classe: el("classe").value, argomento: el("cvArg").value.trim(), titolo: el("cvTitolo").value.trim() || "Verifica", scuola: el("cvScuola").value.trim() };
+    lav = { A: [], B: conB ? [] : null, materia, livello, classe: el("classe").value, aula: (typeof Scuola !== "undefined" && Scuola.aula) || "", argomento: el("cvArg").value.trim(), titolo: el("cvTitolo").value.trim() || "Verifica", scuola: el("cvScuola").value.trim(), data: new Date().toISOString(), idArchivio: null };
+    mostraArchivio("");
     fermo = false;
     el("cvVia").style.display = "none"; el("cvStop").style.display = ""; el("cvBarraBox").style.display = "";
     const totale = n * (conB ? 2 : 1); let fatti = 0;
@@ -52,12 +86,14 @@ const CreaVerifica = (() => {
         avanza(`✏️ Esercizio ${i + 1} di ${n} (fila B): stessi tipi, numeri diversi, altri 3 controlli…`);
         lav.B.push(await creaVariante(cervello, a, MATERIE[materia].nome, livello, materia, lav.argomento)); fatti++; disegna();
       }
+      salvaInArchivio();          // si salva un pezzo alla volta: se si chiude a metà, quello fatto non si perde
     }
     if (conB) while (lav.B.length < lav.A.length) lav.B.push(esercizioDiRiserva(materia, livello, lav.argomento));
     avanza(fermo ? "⏹️ Fermata: puoi stampare quello che c'è o ripartire." : `✓ Pronta! ${lav.A.length} esercizi${conB ? " per fila" : ""}, ognuno controllato 3 volte. Rileggila prima di stamparla.`);
     el("cvVia").style.display = ""; el("cvVia").textContent = "🪄 Rifai da capo"; el("cvStop").style.display = "none";
     conta("verificheCreate");
     disegna();
+    salvaInArchivio();
   }
 
   function rigaEs(e) {
@@ -77,9 +113,9 @@ const CreaVerifica = (() => {
       const evita = lav.A.map(e => e.testo);
       lav.A[i] = await creaEsercizio(cervello, MATERIE[lav.materia].nome, lav.livello, lav.argomento, { evita, chiave: lav.materia });
       if (lav.B) lav.B[i] = await creaVariante(cervello, lav.A[i], MATERIE[lav.materia].nome, lav.livello, lav.materia, lav.argomento);
-      disegna();
+      disegna(); salvaInArchivio();
     });
-    el("cvLavoro").querySelectorAll("[data-x]").forEach(b => b.onclick = () => { const i = +b.dataset.x; lav.A.splice(i, 1); if (lav.B) lav.B.splice(i, 1); disegna(); });
+    el("cvLavoro").querySelectorAll("[data-x]").forEach(b => b.onclick = () => { const i = +b.dataset.x; lav.A.splice(i, 1); if (lav.B) lav.B.splice(i, 1); disegna(); salvaInArchivio(); });
     if (el("cvStA")) el("cvStA").onclick = () => stampaFila("A");
     if (el("cvStB")) el("cvStB").onclick = () => stampaFila("B");
     if (el("cvStS")) el("cvStS").onclick = stampaSoluzioni;
@@ -99,5 +135,5 @@ const CreaVerifica = (() => {
     stampa(`${lav.titolo} - Soluzioni`, `<h1>${escC(lav.titolo)} · SOLUZIONI (solo per il docente)</h1><div class="testa"><span>Classe ${escC(lav.classe)}</span><span>${escC(lav.argomento || "")}</span><span>${new Date().toLocaleDateString("it-IT")}</span></div>
       <p>Ogni soluzione è stata controllata 3 volte (calcolatrice, revisore, esercizio risolto da capo). Il docente la rilegge prima dell'uso.</p>` + blocco(lav.A, "A") + (lav.B ? `<div class="salto"></div>` + blocco(lav.B, "B") : ""));
   }
-  return { apri, stato: () => lav };
+  return { apri, carica, stato: () => lav };
 })();

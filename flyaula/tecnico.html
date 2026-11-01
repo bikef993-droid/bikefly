@@ -21,7 +21,8 @@ body{display:block;overflow:auto}
 .t-riga .btn{padding:12px 20px}
 .aule{display:flex;gap:8px;flex-wrap:wrap}.aule button{background:rgba(124,92,255,.18);border:1px solid rgba(124,92,255,.45);color:var(--latte);border-radius:99px;padding:8px 14px;font:800 15px Figtree;cursor:pointer}
 .aule button.on{background:var(--viola)}
-#tCarico td,#tCarico th{font-size:16px}
+#tCarico td,#tCarico th,#tProfTab td,#tProfTab th{font-size:16px}
+#tProfTab{width:100%;max-width:900px;border-collapse:collapse}#tProfTab td,#tProfTab th{text-align:left;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.1)}#tProfTab .btn{padding:8px 14px;font-size:15px}
 .stima{font:900 30px Figtree;color:var(--menta);margin:14px 0 4px}
 .qr-lim{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
 code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
@@ -49,6 +50,12 @@ code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
   <h2>⚡ Memoria delle risposte</h2>
   <p class="nota-s">Le risposte già controllate restano qui 30 giorni: se un'altra classe fa la stessa domanda, arriva subito. Se un prof segnala un errore, quella risposta si cancella da sola.</p>
   <div class="t-riga"><span id="tMemo" class="nota-s"></span><button class="btn sec" id="tMemoVia">🧹 Svuota la memoria</button></div>
+
+  <h2>👩‍🏫 I prof e i loro PIN</h2>
+  <p class="nota-s">Ogni prof ha il suo PIN: entra nel pannello da qualsiasi LIM e ritrova il suo archivio (verifiche e riassunti), che vede solo lui. Se qui non c'è nessun prof, ogni LIM usa il suo PIN unico come prima. I PIN sono salvati cifrati: nemmeno da qui si possono rileggere.</p>
+  <div class="t-riga"><input id="tProfNome" placeholder="Nome e cognome del prof" maxlength="40"><button class="btn" id="tProfNuovo">➕ Aggiungi il prof</button></div>
+  <div id="tProfPin"></div>
+  <div id="tProf"></div>
 
   <h2>📅 Orari delle aule</h2>
   <p class="nota-s">Si scrive una volta per ogni aula: ogni LIM sa da sola che classe c'è, che materia e quando finisce l'ora.</p>
@@ -111,6 +118,35 @@ async function stato() {
       + carta("La più lenta", t.n ? sec(t.max) : "—") + carta("Dalla memoria ⚡", t.n ? Math.round(100 * t.memoria / t.n) + "%" : "—") + carta("Oltre 1 minuto", t.lente, t.lente ? "ko" : "");
   } catch (e) { $("tTempi").innerHTML = ""; }
 }
+// ---- i prof: il PIN lo sceglie Fly Aula (6 cifre a caso) e si vede UNA volta sola ----
+const nuovoPin = () => { const b = new Uint32Array(1); crypto.getRandomValues(b); return String(100000 + b[0] % 900000); };
+function mostraPin(nome, pin) {
+  $("tProfPin").innerHTML = `<div class="t-carta ok" style="max-width:640px"><span>PIN di ${esc(nome)} — scrivilo e daglielo: dopo non si può più rivedere</span><b style="font-size:34px;letter-spacing:6px">${pin}</b></div>`;
+}
+async function profi() {
+  let l = []; try { l = await json("/fa/prof/elenco"); } catch (e) {}
+  $("tProf").innerHTML = l.length ? `<table id="tProfTab"><thead><tr><th>Prof</th><th>Nel suo archivio</th><th></th></tr></thead><tbody>${l.map(p => `<tr><td><b>${esc(p.nome)}</b></td><td>${p.archivio}</td>
+    <td><button class="btn sec" data-pin="${p.id}" data-nome="${esc(p.nome)}">🔑 Nuovo PIN</button> <button class="btn sec" data-via="${p.id}">🗑️ Togli</button></td></tr>`).join("")}</tbody></table>`
+    : `<p class="nota-s">Nessun prof: le LIM usano il PIN unico.</p>`;
+  $("tProf").querySelectorAll("[data-pin]").forEach(b => b.onclick = async () => {
+    const pin = nuovoPin();
+    const r = await fetch("/fa/prof/pin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.dataset.pin, pin }) });
+    if (r.ok) mostraPin(b.dataset.nome, pin);
+  });
+  $("tProf").querySelectorAll("[data-via]").forEach(b => b.onclick = async () => {
+    if (b.dataset.sicuro !== "1") { b.dataset.sicuro = "1"; b.textContent = "Sicuro? Si cancella anche il suo archivio"; return; }
+    await fetch("/fa/prof?id=" + b.dataset.via, { method: "DELETE" }); $("tProfPin").innerHTML = ""; profi();
+  });
+}
+$("tProfNuovo").onclick = async () => {
+  const nome = $("tProfNome").value.trim(); if (!nome) return $("tProfNome").focus();
+  const pin = nuovoPin();
+  const r = await fetch("/fa/prof/nuovo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome, pin }) });
+  if (r.ok) { mostraPin(nome, pin); $("tProfNome").value = ""; profi(); }
+  else $("tProfPin").innerHTML = `<p class="nota-s" style="color:var(--corallo)">${r.status === 409 ? "C'è già un prof con questo nome." : "Non sono riuscito ad aggiungerlo."}</p>`;
+};
+$("tProfNome").onkeydown = e => { if (e.key === "Enter") $("tProfNuovo").click(); };
+profi();
 $("tMemoVia").onclick = async () => { await fetch("/fa/memo", { method: "DELETE" }); stato(); };
 $("tSalva").onclick = async () => {
   await fetch("/fa/config", { method: "POST", body: JSON.stringify({ nome: $("tNome").value.trim(), riserva: $("tRiserva").value.trim() }) });
