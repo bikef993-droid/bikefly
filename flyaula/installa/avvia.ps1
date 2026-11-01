@@ -101,6 +101,22 @@ if (-not (Accesa)) {
   for ($i = 0; $i -lt 30 -and -not (Accesa); $i++) { Start-Sleep -Milliseconds 500 }
 }
 
+# 3b) il cervello che VEDE (lavagna, foto del libro): da 12 GB in su deve esserci.
+# Se manca (es. Fly Aula installata prima della v0.9.19) si scarica da solo, nascosto, una volta sola.
+function ServeIlCervelloCheVede($vram, $nomi, $giaInCorso) {
+  if ([int]$vram -lt 12288 -or $giaInCorso -or @($nomi).Count -eq 0) { return $false }
+  return -not (@($nomi) | Where-Object { $_ -match 'qwen3-vl|qwen2\.5-?vl|llava|llama3\.2-vision|minicpm-v|granite3\.2-vision|gemma3:(4|12|27)b' })
+}
+try {
+  $sc = Invoke-RestMethod 'http://localhost:8780/fa/scuola' -TimeoutSec 3
+  $nomi = @((Invoke-RestMethod 'http://127.0.0.1:11434/api/tags' -TimeoutSec 3).models | ForEach-Object { [string]$_.name })
+  $inCorso = $false; try { $inCorso = [bool](Get-CimInstance Win32_Process -Filter "Name='ollama.exe'" -ErrorAction Stop | Where-Object { $_.CommandLine -match ' pull ' }) } catch {}
+  if ((Test-Path $exe) -and (ServeIlCervelloCheVede $sc.vram $nomi $inCorso)) {
+    $env:OLLAMA_HOST = '127.0.0.1:11434'
+    Start-Process $exe -ArgumentList 'pull', 'qwen3-vl:8b' -WindowStyle Hidden
+  }
+} catch {}
+
 # 4) Fly Aula a tutto schermo (sul server: anche il pannello del tecnico)
 ApriFlyAula 'http://localhost:8780/flyaula/' ''
 if ($ruolo -eq 'server') { Start-Process 'http://localhost:8780/flyaula/tecnico.html' }

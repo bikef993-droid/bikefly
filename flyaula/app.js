@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.19 · il programma
+//  FLY AULA v0.9.20 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
