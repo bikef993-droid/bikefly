@@ -10,6 +10,7 @@ flyaula/esame.js
 flyaula/quiz.js
 flyaula/fatti.js
 flyaula/precisione.js
+flyaula/trappole.js
 flyaula/esercizi.js
 flyaula/orario.js
 flyaula/voce.js

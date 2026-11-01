@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.12 · il programma
+//  FLY AULA v0.9.13 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -441,11 +441,11 @@ async function chiedi(domanda, speciale = {}) {
   if (occupato || inPausa()) return;
   if (!modello) return mostraAiuto();
   if (lezioneOrario && !lezioneOrario.chiave) return;
-  const sic = controllaDomanda(domanda);
+  const sic = controllaDomanda(domanda, $("materia").value);
   aggiungi("io", escape(domanda));
   if (!sic.ok) {
     aggiungi("ai", escape(sic.risposta));
-    annotaErrore("Bloccata dalla sicurezza", sic.motivo, sic.motivo === "aiuto" ? "(domanda personale: non salvata)" : domanda);
+    annotaErrore("Bloccata dalla sicurezza", sic.motivo, sic.motivo === "aiuto" ? "(domanda personale: non salvata)" : sic.motivo === "dati" ? "(dati personali: non salvati)" : domanda);
     return;
   }
   const vietata = Prof.bloccata(domanda);

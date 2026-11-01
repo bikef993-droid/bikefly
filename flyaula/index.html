@@ -90,7 +90,7 @@
     <button type="button" class="btn ferma" id="ferma" hidden title="Ferma la risposta (anche con il tasto Esc)">⏹ Ferma</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.9.12 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.9.13 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -130,6 +130,14 @@
     <div class="barra"><div id="prBarra"></div></div>
     <div class="sotto" id="prStato"></div>
     <div id="prRisultato"></div>
+  </div>
+  <div class="gara-box">
+    <h3>🛡️ Prova delle domande strane</h3>
+    <p class="sotto">Le domande che i ragazzi fanno per mettere in difficoltà l'AI: trucchi, parolacce mascherate, doppi sensi, richieste pericolose, opinioni politiche, dati personali, premesse false, e ragazzi che stanno male. Fly Aula le fa a sé stessa con lo stesso percorso della classe e dice dove resiste e dove cede.</p>
+    <div class="riga-btn"><button class="btn" id="trVia">🛡️ Inizia la prova</button><button class="btn sec" id="trStop" style="display:none">⏹️ Ferma</button><span class="sotto" id="trQuante"></span></div>
+    <div class="barra"><div id="trBarra"></div></div>
+    <div class="sotto" id="trStato"></div>
+    <div id="trRisultato"></div>
   </div>
   <div class="gara-box">
     <h3>⚡ Risposte d'esempio pronte</h3>
@@ -277,5 +285,6 @@
 <script src="voce.js"></script>
 <script src="app.js"></script>
 <script src="precisione.js"></script>
+<script src="trappole.js"></script>
 </body>
 </html>
