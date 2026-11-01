@@ -184,9 +184,15 @@ async function ricontrolloCompleto(cervello, { controllore = null, domanda, test
   const ctx = contesto + (conto ? ` FATTO SICURO (calcolatrice): ${conto.testo} = ${formatta(conto.risultato)}.` : "")
     + (scrittureSbagliate.length ? ` FATTO SICURO (calcolatrice): ${scrittureSbagliate.join("; ")}. Va corretta.` : "");
   // controllo 2: revisore (se non risponde bene, riprova una volta)
+  // ⏱️ in classe c'è un tempo massimo: se finisce ci si ferma qui, e la risposta arriva con un timbro onesto
   ogniPasso(2);
-  let r1 = await revisiona(altro, domanda, esito.testo, ctx);
-  if (r1.ok === null) r1 = await revisiona(altro, domanda, esito.testo, ctx);
+  esito.tempi = [];
+  const fermo = e => { if (e && e.name === "FuoriTempo") { esito.fuoriTempo = true; return; } throw e; };
+  let r1 = { ok: null }, t0 = Date.now();
+  try { r1 = await revisiona(altro, domanda, esito.testo, ctx); if (r1.ok === null) r1 = await revisiona(altro, domanda, esito.testo, ctx); }
+  catch (e) { fermo(e); }
+  esito.tempi.push(Date.now() - t0);
+  if (esito.fuoriTempo) return chiudiEsito(esito, conto, risultatoObbligatorio);
   esito.controlli++;
   if (r1.ok === false) {
     esito.correzioni.push(r1.problema);
@@ -199,7 +205,11 @@ async function ricontrolloCompleto(cervello, { controllore = null, domanda, test
     ogniPasso(3);
     // caso difficile (errore trovato o disaccordo): il terzo revisore ragiona a lungo
     // con la coppia lo fa il cervello che NON ha fatto il controllo 2: ogni controllo è un parere nuovo
-    const r2 = await revisiona(cervello, domanda, esito.testo, ctx, ISTRUZIONI_TERZO, r1.ok !== true || disaccordo);
+    let r2 = null; t0 = Date.now();
+    try { r2 = await revisiona(cervello, domanda, esito.testo, ctx, ISTRUZIONI_TERZO, r1.ok !== true || disaccordo); }
+    catch (e) { fermo(e); }
+    esito.tempi.push(Date.now() - t0);
+    if (esito.fuoriTempo) return chiudiEsito(esito, conto, risultatoObbligatorio);
     esito.controlli++;
     if (r2.ok === false) {
       esito.correzioni.push(r2.problema);
@@ -208,6 +218,10 @@ async function ricontrolloCompleto(cervello, { controllore = null, domanda, test
       if (r1.ok === false) esito.stato = "dubbio";
     } else if (r2.ok === null && r1.ok === null) esito.stato = "dubbio";
   }
+  return chiudiEsito(esito, conto, risultatoObbligatorio);
+}
+// la fine di ogni ricontrollo (anche quando il tempo è finito): partita doppia, risultato della calcolatrice, stato
+function chiudiEsito(esito, conto, risultatoObbligatorio) {
   // la partita doppia deve quadrare anche alla fine: altrimenti è un dubbio
   const restano = controllaScritture(esito.testo);
   if (restano.length) { esito.stato = "dubbio"; esito.correzioni.push(restano[0]); }

@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.21 · il programma
+//  FLY AULA v0.9.22 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -94,6 +94,11 @@ const LIMITI = {
   lavoro: Number(leggi("flyaula_t_lavoro")) || 150000,    // un controllo (risposta intera)
   pensa: Number(leggi("flyaula_t_pensa")) || 300000       // un controllo con il ragionamento lungo
 };
+// ⏱️ LEZIONE SENZA RALLENTAMENTI: in classe i controlli di una risposta hanno un tempo massimo.
+// Se un controllo non finisce in tempo, la risposta arriva lo stesso, con un timbro onesto. In classe niente "ragionamento lungo".
+let scadenzaControlli = 0; let revFuoriTempo = 0;
+const TEMPO_CONTROLLI = Number(leggi("flyaula_t_controlli")) || 25000;
+class FuoriTempo extends Error { constructor() { super("tempo dei controlli finito"); this.name = "FuoriTempo"; } }
 class CervelloLento extends Error { constructor(m) { super(`${m} non risponde in tempo`); this.name = "CervelloLento"; } }
 const altroDellaCoppia = m => secondo ? (m === modello ? secondo : m === secondo ? modello : null) : null;
 const coppieNo = () => { try { return JSON.parse(leggi("flyaula_coppie_no") || "[]"); } catch (e) { return []; } };
@@ -163,13 +168,21 @@ async function unaChiamata(m, corpo, ms) {
 // risposta intera (per revisore, esercizi, esame, riassunti)
 // usa = quale cervello (se non si dice: il principale)
 async function cervello(sistema, utente, { temperature = 0.2, format, pensa = false, usa } = {}) {
+  if (scadenzaControlli) pensa = false;     // in classe niente ragionamento lungo: risposte in tempo
   const m = usa && !tolti.has(usa) ? usa : modello;   // un cervello tolto dalla coppia (perché bloccato) non si usa più
   const corpo = m2 => ({ stream: false, keep_alive: riposo(), ...(format ? { format } : {}), _pensa: pensa,
     options: { temperature, num_ctx: contesto(), num_predict: tetto(m2, pensa, MAX_PAROLE_LAVORO) }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] });
-  const ms = pensa ? LIMITI.pensa : LIMITI.lavoro;
+  let ms = pensa ? LIMITI.pensa : LIMITI.lavoro;
+  const conTempo = scadenzaControlli;
+  if (conTempo) {
+    const resto = conTempo - Date.now();
+    if (resto < 1500) throw new FuoriTempo();
+    ms = Math.min(ms, resto);
+  }
   let j;
   try { j = await unaChiamata(m, corpo(m), ms); }
   catch (e) {
+    if (conTempo && e instanceof CervelloLento) throw new FuoriTempo();   // in classe: lento non vuol dire rotto (resta nella coppia)
     const altro = altroDellaCoppia(m);
     if (!altro) throw e;
     togliDallaCoppia(m, e.message);           // il controllo lo rifà l'altro cervello
@@ -596,13 +609,18 @@ async function chiedi(domanda, speciale = {}) {
     if (modoProf === "spiega") ctx += " SCELTA DEL PROF: la risposta NON deve contenere il risultato finale, deve fermarsi prima dell'ultimo passaggio. Non è un errore.";
     if (modoProf === "guida") ctx += " SCELTA DEL PROF: la risposta deve essere UNA domanda guida con un indizio, senza risultato. Non è un errore.";
     if (Pagine.attive) ctx += "\n" + Pagine.fonte();
+    scadenzaControlli = Date.now() + TEMPO_CONTROLLI;
     const es = await ricontrolloCompleto(cervelloDi(sq.autore), {
       controllore: cervelloDi(sq.controllore),
       domanda, testo, contesto: ctx, conto,
       speciale: !!speciale.esercizio || !MATERIE[materia].calcoli || !!prima.fine,
       risultatoObbligatorio: modoProf === "normale",
       ogniPasso: n => { const l = $("lavoroRev"); if (l) l.textContent = passi[n]; }
-    });
+    }).finally(() => { scadenzaControlli = 0; });
+    // la coppia a turni misura i suoi tempi: se su QUESTO computer il controllo è troppo lento, si spegne da sola
+    if (aTurni() && es.tempi && es.tempi.length) { if (es.tempi[0] > 20000 || es.fuoriTempo) turnoLento(); else scrivi("flyaula_turni_lenti", "0"); }
+    // un controllore che per 3 domande di fila non finisce in tempo è bloccato davvero: esce dalla coppia (le prossime risposte non aspettano)
+    else if (sq.autore !== sq.controllore) { revFuoriTempo = es.fuoriTempo && es.controlli < 2 ? revFuoriTempo + 1 : 0; if (revFuoriTempo >= 3) { revFuoriTempo = 0; togliDallaCoppia(sq.controllore, "non finisce il controllo in tempo (3 volte di fila)"); } }
     testo = es.testo;
     // 📚 i fatti sicuri: una data, una capitale, un autore o un numero della Costituzione sbagliati si correggono qui
     const fc = Fatti.correggi(testo, materia);
@@ -616,13 +634,16 @@ async function chiedi(domanda, speciale = {}) {
       annotaErrore("Dubbio dopo 3 controlli", es.correzioni.join(" · "));
       testo += "\n⚠️ Non sono sicura di questa risposta: controlliamola insieme con il prof.";
       timbri.push(`<span class="timbro rosso">⚠️ Dubbio dopo 3 controlli: controllate con il prof</span>`);
+    } else if (es.fuoriTempo && es.controlli < 2) {
+      timbri.push(`<span class="timbro giallo" title="Il secondo controllo non è finito in tempo: per non far aspettare la classe la risposta arriva lo stesso">⏱️ Controllata dalla calcolatrice: ricontrollo breve per non farvi aspettare</span>`);
     } else if (es.stato === "corretta") {
       timbri.push(`<span class="timbro giallo">🔁 Corretta e ricontrollata ${quante}${es.correzioni[0] ? ": " + escape(es.correzioni[0]).slice(0, 80) : ""}</span>`);
     } else timbri.push(`<span class="timbro">Controllata ${quante}</span>`);
+    if (es.fuoriTempo && es.controlli >= 2) timbri.push(`<span class="timbro giallo" title="Il terzo controllo non è finito in tempo: per non far aspettare la classe la risposta arriva lo stesso">⏱️ Terzo controllo saltato per non farvi aspettare</span>`);
     if (fc.corretti) timbri.push(`<span class="timbro giallo" title="${escape(fc.dettagli.join(" · "))}">📚 ${fc.corretti === 1 ? "1 fatto corretto" : fc.corretti + " fatti corretti"} con i fatti sicuri</span>`);
     if (es.contiCorretti) timbri.push(`<span class="timbro giallo">🧮 ${es.contiCorretti} ${es.contiCorretti === 1 ? "conto corretto" : "conti corretti"} dalla calcolatrice</span>`);
     if (Pagine.attive) timbri.push(`<span class="timbro blu">📷 Usate le pagine del libro</span>`);
-    if (sq.autore !== sq.controllore) timbri.push(`<span class="timbro blu" title="Ha scritto ${escape(sq.autore)}, ha controllato ${escape(sq.controllore)}">🤝 Controllata da un secondo cervello</span>`);
+    if (sq.autore !== sq.controllore && !(es.fuoriTempo && es.controlli < 2)) timbri.push(`<span class="timbro blu" title="Ha scritto ${escape(sq.autore)}, ha controllato ${escape(sq.controllore)}">🤝 Controllata da un secondo cervello</span>`);
     if (fatti.length) timbri.push(`<span class="timbro blu">🧮 ${fatti.length === 1 ? "Conto fatto" : fatti.length + " conti fatti"} dalla calcolatrice</span>`);
     if (intervista) timbri.unshift(`<span class="timbro viola">🎭 Ricostruzione: non sono parole vere di ${escape(intervista.nome)}</span>`);
     if (prima.fine) timbri.push(`<span class="timbro giallo">${prima.fine === "giro" ? "🔁 Si stava ripetendo: ho tolto le ripetizioni" : prima.fine === "lento" ? "🐢 Si è fermato a metà: ho controllato la parte scritta" : "✂️ Era troppo lunga: l'ho accorciata"}</span>`);
@@ -650,7 +671,7 @@ async function chiedi(domanda, speciale = {}) {
     if (sq.autore !== sq.controllore) { controllaMemoria(); if (aTurni()) rimettiChiScrive(); }
     controllaScheda();
     // ⚡ si ricorda solo una risposta pulita: niente dubbi, niente tagli, niente blocchi della sicurezza
-    const daRicordare = chiave && (es.stato === "ok" || es.stato === "corretta") && !prima.fine && timbri.length;
+    const daRicordare = chiave && (es.stato === "ok" || es.stato === "corretta") && !es.fuoriTempo && !prima.fine && timbri.length;
     if (daRicordare) salvaInMemoria(chiave, { testo, controlli: es.controlli, coppia: sq.autore !== sq.controllore, modello: sq.autore });
     // 📘 le parole importanti (in grassetto) vanno nel glossario della classe
     if (!intervista && timbri.length && typeof Attivita !== "undefined") Attivita.raccogli(testo, materia, $("classe").value);
@@ -1128,7 +1149,15 @@ function memoriaCoppia(a, b) {
 function coppiaPossibile(a, b) { return a && b && a !== b && famiglia(a) !== famiglia(b) && !coppieNo().includes(chiaveCoppia(a, b)) && (stannoInsieme(a, b) || turniPossibili(a, b)); }
 // 🔄 COPPIA A TURNI: se i due cervelli NON stanno insieme nella scheda ma ognuno ci sta da solo, si danno il cambio
 // (uno scrive, poi l'altro controlla). Automatica su una LIM sola; spenta sul server con tante classi (farebbe aspettare tutti).
-function turniAccesi() { const t = Scuola.turni; return t === "1" || (t !== "0" && Scuola.ruolo !== "server"); }
+function turniAccesi() { const t = Scuola.turni; return t === "1" || (t !== "0" && Scuola.ruolo !== "server" && leggi("flyaula_turni_no") !== "1"); }
+// la coppia a turni è troppo lenta su QUESTO computer (2 volte di fila oltre 20 secondi)? si spegne da sola e lo annota
+function turnoLento() {
+  const n = (Number(leggi("flyaula_turni_lenti")) || 0) + 1; scrivi("flyaula_turni_lenti", String(n));
+  if (n < 2 || Scuola.turni === "1") return;
+  scrivi("flyaula_turni_no", "1"); scrivi("flyaula_turni_lenti", "0");
+  annotaErrore("Coppia a turni spenta", "su questo computer il controllo supera i 20 secondi: per non rallentare la lezione resta un cervello solo");
+  togliDallaCoppia(secondo, "coppia a turni troppo lenta su questo computer");
+}
 function turniPossibili(a, b) {
   const vram = Scuola.vram * 1024 * 1024;
   const perClasse = Scuola.marca && Scuola.marca !== "nvidia" ? 0.8e9 : 0.4e9, daSolo = m => pesi[m] + 0.8e9 + perClasse;

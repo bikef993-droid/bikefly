@@ -1,5 +1,5 @@
 // Fly Aula: la pagina resta sul computer e si apre anche senza internet
-const CACHE = "flyaula-v9u";
+const CACHE = "flyaula-v9v";
 const FILE = ["./", "./index.html", "./stile.css", "./app.js", "./sicurezza.js", "./materie.js", "./controllo.js", "./disegni.js", "./esame.js", "./quiz.js", "./fatti.js", "./precisione.js", "./trappole.js", "./tratti.js", "./lavagna.js", "./esercizi.js", "./orario.js", "./voce.js", "./scuola.js", "./qr.js", "./prof.js", "./pagine.js", "./classe.js", "./gara.js", "./programmi.js", "./creaverifica.js", "./strumenti.js", "./attivita.js", "./giochi.js", "./guida.js", "./report.js", "./demo.js", "./telefono.html", "./privacy.html", "./manifest.json", "./icona-192.png", "./icona-512.png", "../font/Bricolage.ttf", "../font/Figtree.ttf"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILE))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE && !x.startsWith("transformers")).map(x => caches.delete(x))))); self.clients.claim(); });
