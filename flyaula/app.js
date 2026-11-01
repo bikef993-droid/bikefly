@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.16 · il programma
+//  FLY AULA v0.9.17 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -473,7 +473,10 @@ async function chiedi(domanda, speciale = {}) {
   const attesa = setTimeout(() => { if (bolla.querySelector(".cursore") && bolla.textContent.trim() === "") bolla.innerHTML = `<div class="lavoro">${Scuola.ruolo === "lim" ? "⏳ Fly Aula sta aiutando altre classi, arrivo…" : "☕ Ci penso un attimo…"}</div>`; }, 4000);
   const materia = $("materia").value, livello = $("livello").value;
   let sistema = istruzioniMateria(materia, livello, $("classe").value, leggi(chiaveRiassunto())) + istruzioniProgramma(materia, livello, $("classe").value) + Prof.istruzioni(MATERIE[materia].nome) + Pagine.istruzioni() + DSA.istruzioni();
-  const chiave = chiaveMemoria(domanda, materia, livello, $("classe").value, giaParlato, speciale);
+  // 🎭 durante un'intervista a un personaggio: niente memoria (è un gioco di ruolo, non una risposta da riusare)
+  const intervista = typeof Attivita !== "undefined" ? Attivita.intervista : null;
+  if (intervista) sistema += Attivita.istruzioniIntervista();
+  const chiave = intervista ? null : chiaveMemoria(domanda, materia, livello, $("classe").value, giaParlato, speciale);
   let esciDallaFila = null;
   try { fatto: {
     // ⚡ questa domanda ha già una risposta controllata (da un'altra lezione o un'altra aula)? arriva subito
@@ -485,6 +488,7 @@ async function chiedi(domanda, speciale = {}) {
       timbri.push(`<span class="timbro blu">⚡ Già controllata in un'altra lezione: risposta immediata</span>`);
       bolla.innerHTML = impagina(ricordo.testo, true, tipo => { if (tipo === "ok") conta("contiOk"); }) + `<div class="timbri">${timbri.join("")}</div>`;
       conta("risposte"); conta("dallaMemoria"); contaGiorno(materia);
+      if (typeof Attivita !== "undefined") Attivita.raccogli(ricordo.testo, materia, $("classe").value);   // 📘 glossario anche dalle risposte già pronte
       aggiungiAzioni(bolla, domanda, ricordo.testo, chiave, { memoria: true, controlli: ricordo.controlli, coppia: ricordo.coppia, cervello: ricordo.modello });
       storia.push({ role: "assistant", content: ricordo.testo });
       if (leggiAuto) leggiRisposta(bolla, ricordo.testo);
@@ -576,6 +580,7 @@ async function chiedi(domanda, speciale = {}) {
     if (Pagine.attive) timbri.push(`<span class="timbro blu">📷 Usate le pagine del libro</span>`);
     if (sq.autore !== sq.controllore) timbri.push(`<span class="timbro blu" title="Ha scritto ${escape(sq.autore)}, ha controllato ${escape(sq.controllore)}">🤝 Controllata da un secondo cervello</span>`);
     if (fatti.length) timbri.push(`<span class="timbro blu">🧮 ${fatti.length === 1 ? "Conto fatto" : fatti.length + " conti fatti"} dalla calcolatrice</span>`);
+    if (intervista) timbri.unshift(`<span class="timbro viola">🎭 Ricostruzione: non sono parole vere di ${escape(intervista.nome)}</span>`);
     if (prima.fine) timbri.push(`<span class="timbro giallo">${prima.fine === "giro" ? "🔁 Si stava ripetendo: ho tolto le ripetizioni" : prima.fine === "lento" ? "🐢 Si è fermato a metà: ho controllato la parte scritta" : "✂️ Era troppo lunga: l'ho accorciata"}</span>`);
     // disegno automatico del conto, se il cervello non l'ha messo
     if (conto && MATERIE[materia].calcoli && !/\[DISEGNO:/i.test(testo)) {
@@ -603,6 +608,8 @@ async function chiedi(domanda, speciale = {}) {
     // ⚡ si ricorda solo una risposta pulita: niente dubbi, niente tagli, niente blocchi della sicurezza
     const daRicordare = chiave && (es.stato === "ok" || es.stato === "corretta") && !prima.fine && timbri.length;
     if (daRicordare) salvaInMemoria(chiave, { testo, controlli: es.controlli, coppia: sq.autore !== sq.controllore, modello: sq.autore });
+    // 📘 le parole importanti (in grassetto) vanno nel glossario della classe
+    if (!intervista && timbri.length && typeof Attivita !== "undefined") Attivita.raccogli(testo, materia, $("classe").value);
     // 🔎 "Perché lo dici?": da dove arriva ogni pezzo della risposta
     const origine = { cervello: sq.autore, controllore: sq.controllore !== sq.autore ? sq.controllore : null, controlli: es.controlli, stato: es.stato,
       contiPrima: fatti.length, contiVisti, contiCorretti: es.contiCorretti || 0, fattiUsati: fattiSicuri ? fattiSicuri.replace(/^[^:]*:\s*/, "").split(/(?<=\.)\s+(?=[A-ZÀ-Ý])/).length : 0,
@@ -646,7 +653,12 @@ function fontiRisposta(o) {
 }
 function aggiungiAzioni(bolla, domanda, testo, chiave = null, origine = null) {
   const d = document.createElement("div"); d.className = "azioni";
-  d.innerHTML = `<button class="b-leggi">🔊 Leggi</button>${origine && !origine.bloccata ? `<button class="b-perche">🔎 Perché lo dici?</button>` : ""}<button class="b-segnala">👎 Segnala un errore</button>`;
+  d.innerHTML = `<button class="b-leggi">🔊 Leggi</button>${origine && !origine.bloccata ? `<button class="b-perche">🔎 Perché lo dici?</button>` : ""}<button class="b-segnala">👎 Segnala un errore</button>${origine && !origine.bloccata ? `<span class="modi"><button data-modo="semplice" title="Rispiegalo con parole più facili">🙂 Più semplice</button><button data-modo="esempio" title="Con un esempio della vita di tutti i giorni">🌍 Con un esempio</button><button data-modo="fondo" title="Più approfondito">🎓 Più a fondo</button></span>` : ""}`;
+  // 🔁 SPIEGAMELO IN 3 MODI: la stessa cosa, detta in un altro modo (passa da tutti i controlli come una domanda normale)
+  d.querySelectorAll("[data-modo]").forEach(b => b.onclick = () => {
+    if (occupato) return;
+    chiedi({ semplice: "Rispiegamelo in modo più semplice, con parole facili e frasi corte.", esempio: "Rispiegamelo con un esempio concreto della vita di tutti i giorni.", fondo: "Spiegamelo in modo più approfondito, come per chi vuole sapere di più." }[b.dataset.modo]);
+  });
   bolla.parentElement.appendChild(d);
   const perche = d.querySelector(".b-perche");
   if (perche) perche.onclick = () => {

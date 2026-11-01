@@ -67,6 +67,7 @@
       <button id="nuova">🧹 Nuova lezione</button>
       <button id="apriRipasso">🔁 Ripasso veloce</button>
       <button id="apriRiassunto">📒 Riassunto per gli assenti</button>
+      <button id="apriAttivita" onclick="document.getElementById('menu').classList.remove('aperto');Attivita.apri()">🎲 Attività per la classe</button>
       <button id="apriGara">🏆 Gara a squadre</button>
       <div class="sez">Per il prof</div>
       <button id="apriProf">👩‍🏫 Pannello del prof</button>
@@ -76,7 +77,7 @@
       <button id="apriReport">📈 Report per la scuola</button>
       <button id="apriDemo">🎬 Presentazione per la preside</button>
       <button id="apriEsame">📝 Esame delle domande (tecnico)</button>
-      <button id="apriPrivacy" onclick="window.open('privacy.html','_blank')">🔒 Privacy e dati</button>
+      <button id="apriPrivacy" onclick="document.getElementById('menu').classList.remove('aperto');window.open('privacy.html','_blank')">🔒 Privacy e dati</button>
       <button id="apriInstallaPc">💻 Installa sul PC della classe</button>
       <button id="installa" style="display:none">🌐 Aggiungi come app del browser</button>
     </div>
@@ -92,7 +93,7 @@
     <button type="button" class="btn ferma" id="ferma" hidden title="Ferma la risposta (anche con il tasto Esc)">⏹ Ferma</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.9.16 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.9.17 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -298,6 +299,7 @@
 <script src="esercizi.js"></script>
 <script src="creaverifica.js"></script>
 <script src="strumenti.js"></script>
+<script src="attivita.js"></script>
 <script src="report.js"></script>
 <script src="demo.js"></script>
 <script src="orario.js"></script>

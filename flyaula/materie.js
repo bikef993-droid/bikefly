@@ -177,6 +177,7 @@ Object.assign(MATERIE, {
   informatica: materiaDiTeoria({ nome: "Informatica", emoji: "💻", calcoli: true,
     cosa: "hardware e software, sistema binario, algoritmi e diagrammi di flusso, programmazione, fogli di calcolo, database e SQL, reti e Internet, pagine web, sicurezza informatica, tecnologie della comunicazione",
     extra: `- Il codice scrivilo corto, una istruzione per riga, e spiega ogni riga con parole semplici.
+- Se lo studente incolla un suo codice che NON funziona: prima indica la riga sbagliata e spiega PERCHÉ è sbagliata (con parole semplici), poi mostra solo la riga corretta.
 - Per le conversioni binarie scrivi le divisioni per 2 passo passo.
 - NON spiegare MAI come entrare nei computer o negli account degli altri, come rubare password o come creare virus: parla solo di come PROTEGGERSI.`,
     esempi: { elementari: ["Cos'è un computer? 💻", "Come si crea una password sicura? 🔐"],

@@ -475,3 +475,35 @@ body.con-guida main#chat,body.con-guida footer{margin-right:min(430px,36vw);tran
 .st-punti{white-space:nowrap}.st-punti input{width:72px;background:var(--notte2);border:2px solid rgba(255,255,255,.2);color:var(--latte);border-radius:10px;padding:6px 8px;font:800 17px Figtree}
 .st-avviso{background:rgba(255,90,95,.12);border:1px solid rgba(255,90,95,.4);border-radius:12px;padding:8px 12px}
 .cv-dsa{align-items:center;flex-wrap:wrap}.cv-dsa .btn{padding:8px 16px;font-size:16px}
+/* 🎲 attività per la classe */
+.timbro.viola{background:rgba(124,92,255,.18);color:#C9B8FF}
+.info-pill.intervista{background:rgba(124,92,255,.22);border-color:rgba(124,92,255,.5)}.info-pill.intervista button{background:none;border:0;color:var(--latte);cursor:pointer;font-size:15px;margin-left:4px}
+.azioni .modi{display:inline-flex;gap:6px;flex-wrap:wrap}
+.at-griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin:8px 0 14px}
+.at-tile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px;color:var(--latte);cursor:pointer;font:600 15px/1.35 Figtree}
+.at-tile:hover{border-color:var(--cielo);background:rgba(59,139,255,.1)}.at-tile b{font:900 19px Figtree}.at-tile span:last-child{color:var(--nebbia)}.at-i{font-size:30px}
+.at-testa{display:flex;align-items:center;gap:14px;margin-bottom:6px}.at-testa h3{font:900 24px Figtree;margin:0}.at-indietro{padding:8px 14px!important;font-size:15px!important}
+.at-area,.at-input{width:100%;background:var(--notte2);border:2px solid rgba(255,255,255,.16);color:var(--latte);border-radius:14px;padding:12px 14px;font:700 20px Figtree}
+.at-input{flex:1;min-width:260px;font-size:17px}
+.at-passi{font:700 21px/1.6 Figtree;padding-left:28px}.at-passi li{padding:2px 8px;border-radius:10px}
+.at-passi li.sbagliato{background:rgba(255,159,67,.18);color:#FFC48A}.at-passi li.ok{color:var(--menta)}
+.at-scelta li{cursor:pointer;border:1px solid transparent;margin:4px 0}.at-scelta li:hover{border-color:rgba(255,255,255,.25)}
+.at-msg{font:700 19px Figtree;background:rgba(255,255,255,.05);border-radius:14px;padding:10px 14px}.at-msg.ok{color:var(--menta)}
+.at-pers{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.at-pers button{text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px 12px;color:var(--latte);cursor:pointer;font:600 14px Figtree;display:flex;flex-direction:column;gap:2px}
+.at-pers button.su{border-color:rgba(124,92,255,.5)}.at-pers button b{font-size:17px}.at-pers button span{color:var(--nebbia)}
+.at-gloss td{font-size:16px}.at-gloss button{background:none;border:0;color:var(--nebbia);cursor:pointer}
+.at-fattura{background:#FBFBF7;color:#14213D;border-radius:16px;padding:14px 18px;margin:8px 0}.at-fattura .cv-tab td,.at-fattura .cv-tab th{color:#14213D;border-color:#ddd}
+.at-f-testa{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.at-campi{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}.at-campi label{font:800 16px Figtree;display:flex;align-items:center;gap:8px}
+.at-campi input,.at-viaggio input,.at-viaggio select{background:var(--notte2);border:2px solid rgba(255,255,255,.18);color:var(--latte);border-radius:10px;padding:8px 10px;font:700 17px Figtree;width:130px}
+.at-viaggio input.v-n{width:220px}.at-viaggio .v-q{width:80px}.at-viaggio td{padding:4px}.at-viaggio .v-via{background:none;border:0;color:var(--nebbia);cursor:pointer;font-size:17px}
+.at-campi input.giusto{border-color:var(--menta)}.at-campi input.sbagliato{border-color:#FF9F43}
+.at-totali{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}.at-totali div{background:rgba(255,255,255,.05);border-radius:16px;padding:12px 16px;display:flex;flex-direction:column}.at-totali b{font:900 26px Figtree}.at-totali .ok b{color:var(--menta)}.at-totali .ko b{color:var(--corallo)}.at-totali span{color:var(--nebbia);font:700 14px Figtree}
+.at-dom{font:800 24px/1.4 Figtree}.at-opz{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.at-opz button{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.14);border-radius:16px;padding:14px;color:var(--latte);font:700 20px Figtree;text-align:left;cursor:pointer}
+.at-opz button.giusto{border-color:var(--menta);background:rgba(0,210,160,.14)}.at-opz button.sbagliato{border-color:#FF9F43;background:rgba(255,159,67,.14)}.at-opz button.spento{opacity:.5}
+.at-lati{display:grid;grid-template-columns:1fr 1fr;gap:14px}.at-lato{border-radius:18px;padding:12px 16px;font-size:17px}.at-lato.a{background:rgba(59,139,255,.1);border:1px solid rgba(59,139,255,.35)}.at-lato.b{background:rgba(0,210,160,.08);border:1px solid rgba(0,210,160,.3)}.at-lato h4{font:900 19px Figtree;margin:4px 0}
+.at-turni{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.at-turni .btn{padding:10px 16px;font-size:16px}
+.at-timer{display:flex;align-items:baseline;gap:16px}.at-timer span{font:800 20px Figtree;color:var(--nebbia)}.at-timer b{font:900 72px Figtree;font-variant-numeric:tabular-nums}.at-timer b.fine{color:var(--corallo)}
+@media (max-width:800px){.at-lati,.at-opz{grid-template-columns:1fr}}
