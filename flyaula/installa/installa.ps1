@@ -277,7 +277,9 @@ if (Amministratore $cmd) { Ok 'Permesso dato' } else { Ko 'Permesso non dato: se
 $vecchio = $null
 try { $vecchio = [IO.File]::ReadAllText((Join-Path $DIR 'config.json'), $UTF8) | ConvertFrom-Json } catch {}
 $cfg = @{ ruolo = $ruolo; nome = ''; riserva = '' }
-foreach ($k in 'riserva', 'cervello', 'cervello2') { if ($vecchio -and $vecchio.$k) { $cfg[$k] = [string]$vecchio.$k } }
+# reinstallando si tiene TUTTO quello che c'era (codice delle LIM, PIN degli avvisi, parole d'allarme, cervelli per materia...):
+# cambiano solo il ruolo e, sul server, il nome della scuola
+if ($vecchio) { foreach ($x in $vecchio.PSObject.Properties) { if ($x.Name -ne 'ruolo' -and $null -ne $x.Value -and [string]$x.Value -ne '') { $cfg[$x.Name] = [string]$x.Value } } }
 if ($ruolo -eq 'server') {
   $prima = if ($vecchio -and $vecchio.nome) { [string]$vecchio.nome } else { '' }
   $n = (Read-Host "   Nome della scuola (es. Romagnosi Piacenza)$(if ($prima) { ' - Invio per tenere: ' + $prima })").Trim()
