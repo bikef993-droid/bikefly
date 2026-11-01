@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.8 · il programma
+//  FLY AULA v0.9.9 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -579,6 +579,7 @@ async function chiedi(domanda, speciale = {}) {
     bolla.innerHTML = html + `<div class="timbri">${timbri.join("")}</div>`;
     conta("risposte"); risposta = true;
     if (sq.autore !== sq.controllore) controllaMemoria();
+    controllaScheda();
     // ⚡ si ricorda solo una risposta pulita: niente dubbi, niente tagli, niente blocchi della sicurezza
     const daRicordare = chiave && (es.stato === "ok" || es.stato === "corretta") && !prima.fine && timbri.length;
     if (daRicordare) salvaInMemoria(chiave, { testo, controlli: es.controlli, coppia: sq.autore !== sq.controllore, modello: sq.autore });
@@ -1014,7 +1015,9 @@ function stannoInsieme(a, b) {
 }
 function memoriaCoppia(a, b) {
   const classi = Math.max(1, Number(Scuola.parallelo) || 1);
-  const serve = m => pesi[m] + 0.8e9 + classi * 0.4e9;
+  // NVIDIA: la memoria delle classi è compressa (0,4 GB l'una); AMD, Intel e le altre: normale (0,8 GB l'una)
+  const perClasse = Scuola.marca && Scuola.marca !== "nvidia" ? 0.8e9 : 0.4e9;
+  const serve = m => pesi[m] + 0.8e9 + classi * perClasse;
   return serve(a) + serve(b);
 }
 function coppiaPossibile(a, b) { return a && b && a !== b && famiglia(a) !== famiglia(b) && !coppieNo().includes(chiaveCoppia(a, b)) && stannoInsieme(a, b); }
@@ -1036,6 +1039,26 @@ async function controllaMemoria() {
       if (!a || !b) togliDallaCoppia(secondo, "i due cervelli non stanno insieme nella scheda video (uno caccia l'altro)");
       else togliDallaCoppia(secondo, "nella scheda video non c'è posto per tutti e due (una parte finisce sul processore, lentissimo)");
     }
+  } catch (e) {}
+}
+// la prova della scheda video: dopo la prima risposta, Ollama dice se il cervello sta DAVVERO nella scheda.
+// Se è finito sul processore (scheda non supportata, troppo piccola, o nessuna scheda) Fly Aula passa da sola
+// al cervello più leggero che c'è, così risponde lo stesso in fretta, e lo scrive per il tecnico.
+let schedaControllata = false;
+async function controllaScheda() {
+  if (schedaControllata || !modello) return;
+  schedaControllata = true;
+  try {
+    const r = await Scuola.chiama("/api/ps", { cache: "no-store" });
+    const qui = ((await r.json()).models || []).find(x => x.name === modello || x.model === modello);
+    if (!qui || !qui.size || qui.size_vram >= qui.size * 0.5) return;            // sta (quasi tutto) nella scheda: bene così
+    const motivo = Scuola.vram > 0 ? `la scheda video ${Scuola.scheda || ""} non viene usata da Ollama: il cervello lavora sul processore` : "non c'è una scheda video adatta: il cervello lavora sul processore";
+    if (secondo) togliDallaCoppia(secondo, motivo);
+    const leggero = Object.keys(pesi).filter(m => pesi[m] > 0 && !tolti.has(m) && !/vl[:\-]|vision|llava|embed|ocr|whisper/.test(m)).sort((a, b) => pesi[a] - pesi[b])[0];
+    if (leggero && leggero !== modello && pesi[leggero] < pesi[modello] * 0.85) {
+      const prima = modello; modello = leggero; aggiornaEtichettaStato();
+      annotaErrore("Cervello più leggero", `${motivo}. Fly Aula passa da ${prima} a ${leggero}, più veloce.`, "(automatico)");
+    } else annotaErrore("Scheda video non usata", motivo + ". Le risposte saranno più lente.", "(automatico)");
   } catch (e) {}
 }
 function scegliSecondo(presenti, forte) {

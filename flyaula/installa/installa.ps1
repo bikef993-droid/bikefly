@@ -121,35 +121,88 @@ else {
   else { Ko 'Ollama non si e installato. Scaricalo da ollama.com, installalo e rilancia questo programma.'; Fine 1 }
 }
 
+# ---- la scheda video vera: NVIDIA, AMD o Intel (marca, nome, memoria in MB) ----
+# La scheda integrata (es. Intel UHD, meno di 3 GB) non conta: con quella le AI vanno sul processore.
+function TrovaScheda {
+  $best = @{ marca = ''; nome = ''; mb = 0 }
+  try {
+    foreach ($r in @(& nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits 2>$null)) {
+      $p = ([string]$r).Split(','); if ($p.Count -lt 2) { continue }
+      $m = 0; [void][int]::TryParse($p[1].Trim(), [ref]$m)
+      if ($m -gt $best.mb) { $best = @{ marca = 'nvidia'; nome = $p[0].Trim(); mb = $m } }
+    }
+  } catch {}
+  if ($best.mb -gt 0) { return $best }
+  # AMD, Intel Arc e le altre: Windows scrive la memoria vera nel registro (WMI si ferma a 4 GB)
+  try {
+    $cls = 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}'
+    foreach ($k in @(Get-ChildItem $cls -ErrorAction SilentlyContinue)) {
+      if ($k.PSChildName -notmatch '^\d{4}$') { continue }
+      $p = Get-ItemProperty $k.PSPath -ErrorAction SilentlyContinue; if (-not $p) { continue }
+      $nome = [string]$p.DriverDesc; if (-not $nome) { continue }
+      $byte = [uint64]0
+      $q = $p.'HardwareInformation.qwMemorySize'
+      if ($q -is [byte[]] -and $q.Length -ge 8) { $byte = [BitConverter]::ToUInt64($q, 0) } elseif ($q) { try { $byte = [uint64]$q } catch {} }
+      if (-not $byte) {
+        $d = $p.'HardwareInformation.MemorySize'
+        if ($d -is [byte[]] -and $d.Length -ge 4) { $byte = [BitConverter]::ToUInt32($d, 0) } elseif ($d) { try { $byte = [uint64]([uint32]$d) } catch {} }
+      }
+      $m = [int]($byte / 1MB)
+      $marca = if ($nome -match 'NVIDIA|GeForce|Quadro|Tesla') { 'nvidia' } elseif ($nome -match 'AMD|Radeon') { 'amd' } elseif ($nome -match 'Intel') { 'intel' } else { 'altro' }
+      if ($m -ge 3000 -and $m -gt $best.mb) { $best = @{ marca = $marca; nome = $nome; mb = $m } }
+    }
+  } catch {}
+  return $best
+}
+
+# ---- che cervelli mettere e quante classi insieme, CALCOLATO sulla scheda vera ----
+# Per ogni cervello: il suo peso + 0,8 GB fissi + per ogni classe insieme 0,4 GB (NVIDIA: memoria compressa)
+# o 0,8 GB (AMD, Intel: memoria normale, piu sicura). Si lascia 0,6 GB a Windows e allo schermo.
+# Si prova dal piano piu forte al piu leggero: il primo che ci sta vince. Mai piu di 8 classi insieme.
+function PianoPer($marca, $mb, $ruolo) {
+  $pesi = @{ 'gemma4:12b' = 8.0; 'qwen3.5:9b' = 6.6; 'qwen2.5:7b' = 4.7 }
+  $piani = @(@('forte', @('gemma4:12b', 'qwen3.5:9b')), @('coppia', @('gemma4:12b', 'qwen2.5:7b')), @('uno', @('gemma4:12b')), @('leggero', @('qwen2.5:7b')))
+  $gb = [double]$mb * 1.048576 / 1000 - 0.6
+  $kv = if ($marca -eq 'nvidia') { 0.4 } else { 0.8 }
+  $max = if ($ruolo -eq 'server') { if ($mb -ge 30000) { 8 } elseif ($mb -ge 22000) { 6 } else { 3 } } else { 1 }
+  if ($mb -gt 0) {
+    foreach ($pi in $piani) {
+      $fisso = 0.0; foreach ($c in $pi[1]) { $fisso += $pesi[$c] + 0.8 }
+      $classi = [Math]::Floor(($gb - $fisso) / ($kv * $pi[1].Count))
+      if ($classi -ge 1) { return @{ piano = $pi[0]; cervelli = $pi[1]; classi = [int][Math]::Min($classi, $max) } }
+    }
+  }
+  # niente scheda video (o troppo piccola): il cervello leggero, una domanda alla volta, sul processore
+  return @{ piano = 'leggero'; cervelli = @('qwen2.5:7b'); classi = 1 }
+}
+
 Passo 3 $TOT 'Collego il cervello'
 [Environment]::SetEnvironmentVariable('OLLAMA_ORIGINS', '*', 'User'); $env:OLLAMA_ORIGINS = '*'
-# quanta memoria ha la scheda video (MB)
-$mb = 0
-try { $mb = [int]((& nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>$null | Select-Object -First 1).Trim()) } catch {}
-# che cervelli mettere, a seconda della memoria della scheda video (ogni classe che chiede insieme occupa altro posto):
-#  22 GB o piu : coppia forte  gemma4:12b + qwen3.5:9b
-#  15-22 GB    : coppia        gemma4:12b + qwen2.5:7b (sul server: 2 classi insieme, cosi la coppia ci sta)
-#  11-15 GB    : un cervello   gemma4:12b
-#  meno        : un cervello   qwen2.5:7b
-$piano = if ($mb -ge 22000) { 'forte' } elseif ($mb -ge 15000) { 'coppia' } elseif ($mb -ge 11000) { 'uno' } else { 'leggero' }
-$cervelli = @{ forte = @('gemma4:12b', 'qwen3.5:9b'); coppia = @('gemma4:12b', 'qwen2.5:7b'); uno = @('gemma4:12b'); leggero = @('qwen2.5:7b') }[$piano]
-if ($mb -gt 0) {
-  # memoria usata in modo piu furbo: piu posto per le classi (e per la coppia)
-  foreach ($v in @(@('OLLAMA_FLASH_ATTENTION', '1'), @('OLLAMA_KV_CACHE_TYPE', 'q8_0'), @('OLLAMA_MAX_LOADED_MODELS', '3'))) {
-    [Environment]::SetEnvironmentVariable($v[0], $v[1], 'User'); Set-Item -Path "env:$($v[0])" -Value $v[1]
-  }
+# la scheda video vera (NVIDIA, AMD o Intel) e il piano calcolato su di lei
+$sch = TrovaScheda
+$mb = $sch.mb; $marca = $sch.marca
+$pp = PianoPer $marca $mb $ruolo
+$piano = $pp.piano; $cervelli = $pp.cervelli
+# impostazioni del motore per ogni marca (quelle che non vanno bene per questa scheda si tolgono)
+$imp = @{ OLLAMA_MAX_LOADED_MODELS = '3'; OLLAMA_FLASH_ATTENTION = $null; OLLAMA_KV_CACHE_TYPE = $null; OLLAMA_VULKAN = $null }
+if ($marca -eq 'nvidia') { $imp.OLLAMA_FLASH_ATTENTION = '1'; $imp.OLLAMA_KV_CACHE_TYPE = 'q8_0' }   # memoria compressa: piu posto per le classi
+if ($marca -eq 'intel' -or $marca -eq 'altro') { $imp.OLLAMA_VULKAN = '1' }                          # Intel Arc: si prova la via Vulkan (se non va, Fly Aula se ne accorge)
+foreach ($k in $imp.Keys) {
+  [Environment]::SetEnvironmentVariable($k, $imp[$k], 'User')
+  if ($imp[$k]) { Set-Item -Path "env:$k" -Value $imp[$k] } else { Remove-Item -Path "env:$k" -ErrorAction SilentlyContinue }
 }
+$nomeScheda = if ($mb) { "$($sch.nome) ($([Math]::Round($mb / 1024)) GB)" } else { 'nessuna scheda video adatta' }
 if ($ruolo -eq 'server') {
   # il cervello ascolta tutta la rete della scuola e risponde a piu classi insieme
-  $par = switch ($piano) { 'forte' { if ($mb -ge 30000) { 8 } else { 6 } } 'coppia' { 2 } 'uno' { 3 } default { 2 } }
+  $par = $pp.classi
   foreach ($v in @(@('OLLAMA_HOST', '0.0.0.0:11434'), @('OLLAMA_NUM_PARALLEL', "$par"), @('OLLAMA_KEEP_ALIVE', '24h'))) {
     [Environment]::SetEnvironmentVariable($v[0], $v[1], 'User'); Set-Item -Path "env:$($v[0])" -Value $v[1]
   }
-  if ($mb) { Ok "Scheda video con $([Math]::Round($mb / 1024)) GB: $par classi insieme, cervelli: $($cervelli -join ' + ')" } else { Ko "Scheda video NVIDIA non trovata: $par domande insieme (sara lento)" }
+  if ($mb) { Ok "Scheda video $nomeScheda`: $par classi insieme, cervelli: $($cervelli -join ' + ')" } else { Ko "Scheda video non trovata: una domanda alla volta, sul processore (sara lento)" }
 } else {
   # PC singolo: una domanda alla volta (cosi c e piu posto per la coppia)
   [Environment]::SetEnvironmentVariable('OLLAMA_NUM_PARALLEL', '1', 'User'); $env:OLLAMA_NUM_PARALLEL = '1'
-  if ($mb) { Ok "Scheda video con $([Math]::Round($mb / 1024)) GB: cervelli $($cervelli -join ' + ')" }
+  if ($mb) { Ok "Scheda video $nomeScheda`: cervelli $($cervelli -join ' + ')" } else { Ko 'Scheda video non trovata: Fly Aula usera il processore (piu lenta)' }
 }
 Get-Process 'ollama app', 'ollama' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep 2

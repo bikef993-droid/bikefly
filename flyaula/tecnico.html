@@ -76,7 +76,8 @@ async function stato() {
   try { cfg = await json("/fa/config"); } catch (e) { cfg = {}; }
   let modelli = [], caricati = [];
   try { modelli = (await json(OLL + "/api/tags")).models.map(m => m.name); } catch (e) {}
-  try { caricati = (await json(OLL + "/api/ps")).models.map(m => m.name); } catch (e) {}
+  let ps = [];
+  try { ps = (await json(OLL + "/api/ps")).models || []; caricati = ps.map(m => m.name); } catch (e) {}
   // lo stesso ordine di Fly Aula: prima quello scelto con la gara, poi il più forte scaricato
   const ordine = [cfg.cervello, "gemma4:26b-a4b", "gemma4:12b", "qwen3.5:9b", "qwen3:14b", "gpt-oss:20b", "qwen2.5:14b", "gemma3:12b", "qwen3:8b", "qwen2.5:7b", "llama3.1:8b"];
   modello = ordine.find(m => m && modelli.includes(m)) || modelli.find(m => !/vl[:\-]|vision|embed|ocr/.test(m)) || null;
@@ -85,7 +86,14 @@ async function stato() {
     + carta("Indirizzo per le LIM", esc(info.ip || "?"))
     + carta("Cervello", modelli.length ? "🟢 acceso" : "🔴 spento", modelli.length ? "ok" : "ko")
     + carta("Cervello", esc(modello || "nessuno") + (cfg.cervello2 && cfg.cervello2 !== "nessuno" && modelli.includes(cfg.cervello2) ? " + " + esc(cfg.cervello2) + " 🤝" : ""))
+    + carta("Scheda video", info.vram ? `${esc(info.scheda || "scheda")} · ${Math.round(info.vram / 1024)} GB${info.marca ? " · " + esc(String(info.marca).toUpperCase()) : ""}` : "⚠️ non trovata: si usa il processore", info.vram ? "" : "ko")
     + carta("In memoria adesso", esc(caricati.join(", ") || "—"))
+    + (() => {   // il cervello sta davvero nella scheda video? (se no, è lentissimo)
+      const tot = ps.reduce((a, m) => a + (m.size || 0), 0), sch = ps.reduce((a, m) => a + Math.min(m.size || 0, m.size_vram || 0), 0);
+      if (!tot) return "";
+      const p = Math.round(100 * sch / tot);
+      return carta("Dove lavora il cervello", p >= 97 ? "🟢 tutto nella scheda video" : p >= 50 ? `🟡 ${p}% nella scheda, il resto sul processore` : "🔴 sul processore (lento)", p >= 97 ? "ok" : "ko");
+    })()
     + carta("Domande insieme (parallelo)", esc(info.parallelo || "predefinito"));
   $("tNome").value = cfg.nome || ""; $("tRiserva").value = cfg.riserva || "";
   if (info.ip) {

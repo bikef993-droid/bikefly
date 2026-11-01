@@ -31,8 +31,41 @@ $SERVER = ($CFG.ruolo -eq 'server')
 # il codice delle LIM: solo chi lo conosce (le LIM della scuola) puo scrivere nella memoria delle risposte
 if (-not $CFG.codicelim) { $CFG.codicelim = -join (1..6 | ForEach-Object { Get-Random -Minimum 0 -Maximum 10 }); SalvaConfig $CFG }
 # memoria della scheda video (MB): serve a Fly Aula per sapere se ci stanno DUE cervelli insieme
-$VRAM = 0
-try { $VRAM = [int]((& nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>$null | Select-Object -First 1).Trim()) } catch {}
+# ---- la scheda video vera: NVIDIA, AMD o Intel (marca, nome, memoria in MB) ----
+# La scheda integrata (es. Intel UHD, meno di 3 GB) non conta: con quella le AI vanno sul processore.
+function TrovaScheda {
+  $best = @{ marca = ''; nome = ''; mb = 0 }
+  try {
+    foreach ($r in @(& nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits 2>$null)) {
+      $p = ([string]$r).Split(','); if ($p.Count -lt 2) { continue }
+      $m = 0; [void][int]::TryParse($p[1].Trim(), [ref]$m)
+      if ($m -gt $best.mb) { $best = @{ marca = 'nvidia'; nome = $p[0].Trim(); mb = $m } }
+    }
+  } catch {}
+  if ($best.mb -gt 0) { return $best }
+  # AMD, Intel Arc e le altre: Windows scrive la memoria vera nel registro (WMI si ferma a 4 GB)
+  try {
+    $cls = 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}'
+    foreach ($k in @(Get-ChildItem $cls -ErrorAction SilentlyContinue)) {
+      if ($k.PSChildName -notmatch '^\d{4}$') { continue }
+      $p = Get-ItemProperty $k.PSPath -ErrorAction SilentlyContinue; if (-not $p) { continue }
+      $nome = [string]$p.DriverDesc; if (-not $nome) { continue }
+      $byte = [uint64]0
+      $q = $p.'HardwareInformation.qwMemorySize'
+      if ($q -is [byte[]] -and $q.Length -ge 8) { $byte = [BitConverter]::ToUInt64($q, 0) } elseif ($q) { try { $byte = [uint64]$q } catch {} }
+      if (-not $byte) {
+        $d = $p.'HardwareInformation.MemorySize'
+        if ($d -is [byte[]] -and $d.Length -ge 4) { $byte = [BitConverter]::ToUInt32($d, 0) } elseif ($d) { try { $byte = [uint64]([uint32]$d) } catch {} }
+      }
+      $m = [int]($byte / 1MB)
+      $marca = if ($nome -match 'NVIDIA|GeForce|Quadro|Tesla') { 'nvidia' } elseif ($nome -match 'AMD|Radeon') { 'amd' } elseif ($nome -match 'Intel') { 'intel' } else { 'altro' }
+      if ($m -ge 3000 -and $m -gt $best.mb) { $best = @{ marca = $marca; nome = $nome; mb = $m } }
+    }
+  } catch {}
+  return $best
+}
+$SCHEDA = TrovaScheda
+$VRAM = [int]$SCHEDA.mb
 
 # un codice segreto per ogni aula (serve al telefono per mandare le foto)
 $CODICI = @{}
@@ -101,7 +134,7 @@ while ($ascolta.IsListening) {
 
     if ($p -eq '/fa/scuola' -and $daRete) {
       $par = [Environment]::GetEnvironmentVariable('OLLAMA_NUM_PARALLEL', 'User')
-      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; vram = $VRAM; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
+      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; vram = $VRAM; marca = $SCHEDA.marca; scheda = $SCHEDA.nome; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
     }
     elseif ($p -eq '/fa/config' -and $locale) {
       if ($q.HttpMethod -eq 'POST') {
