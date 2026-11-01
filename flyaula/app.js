@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.11 · il programma
+//  FLY AULA v0.9.12 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -393,8 +393,11 @@ function domandaDifficile(domanda, materia, speciale = {}) {
   if (calcoli && /\d/.test(domanda)) return true;                   // problema con i numeri
   return domanda.length > 140 || /problem|sistem|equazion|disequaz|dimostr|risolv|partita doppia|scrittur|bilanci|perch[eé]|confront|differenz|analizz/i.test(domanda);
 }
-function squadra(difficile) {
+function squadra(difficile, materia = "") {
   if (!secondo) return { autore: modello, controllore: modello };
+  // 🧠 se la prova di precisione ha scelto il cervello migliore per questa materia, scrive lui (l'altro controlla)
+  const meglio = typeof Precisione !== "undefined" && materia ? Precisione.autorePer(materia, modello, secondo) : null;
+  if (meglio) return { autore: meglio, controllore: meglio === modello ? secondo : modello };
   return difficile ? { autore: modello, controllore: secondo } : { autore: secondo, controllore: modello };
 }
 
@@ -492,7 +495,7 @@ async function chiedi(domanda, speciale = {}) {
     let sq, prima;
     // se il cervello che scrive non risponde (o dà errore) e c'è la coppia, si riprova subito con l'altro
     for (let tentativo = 0; tentativo < 2; tentativo++) {
-      sq = squadra(difficile);
+      sq = squadra(difficile, materia);
       let errore = null;
       try { prima = await cervelloInDiretta([{ role: "system", content: sistema }, ...storia.slice(Pagine.attive ? -6 : -16)], t => { clearTimeout(attesa); bolla.dataset.scrive = "1"; bolla.innerHTML = impagina(t, false); chat.scrollTop = chat.scrollHeight; }, sq.autore); }
       catch (e) { errore = e; prima = { testo: "", fine: "lento" }; }
@@ -628,7 +631,7 @@ function aggiungiAzioni(bolla, domanda, testo, chiave = null) {
   };
 }
 
-function leggiRisposta(bolla, testo) { if (DSA.attiva) leggiEvidenziando(bolla, testo); else Voce.leggiAdAltaVoce(testo); }
+function leggiRisposta(bolla, testo) { const m = $("materia").value; if (DSA.attiva) leggiEvidenziando(bolla, testo, "it", m); else Voce.leggiAdAltaVoce(testo, m); }
 
 // ---------------- 🔁 ripasso e 📒 riassunto ----------------
 async function ripasso() {

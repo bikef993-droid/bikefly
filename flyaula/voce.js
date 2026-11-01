@@ -59,17 +59,48 @@ const Voce = {
   },
 
   // ---- parlare (voce di Windows, offline) ----
-  leggiAdAltaVoce(testo) {
+  // Nelle lingue straniere le parole in **grassetto** (quelle in francese, inglese…) si leggono con la voce di QUELLA lingua,
+  // il resto con la voce italiana. Se sul computer la voce straniera non c'è, si legge tutto in italiano.
+  LINGUE: { inglese: "en-GB", francese: "fr-FR", spagnolo: "es-ES", tedesco: "de-DE", cinese: "zh-CN" },
+  voce(lang) {
+    const tutte = speechSynthesis.getVoices(), base = lang.slice(0, 2).toLowerCase();
+    const giuste = tutte.filter(v => v.lang && v.lang.toLowerCase().replace("_", "-") === lang.toLowerCase());
+    const simili = tutte.filter(v => v.lang && v.lang.toLowerCase().startsWith(base));
+    const l = giuste.length ? giuste : simili;
+    return l.find(v => v.localService) || l[0] || null;   // prima quelle sul computer (offline)
+  },
+  pulisci(t) {
+    return t.replace(/\[DISEGNO:[^\]]*\]/gi, "").replace(/<[^>]+>/g, "")
+      .replace(/×/g, " per ").replace(/(\d)\s*:\s*(\d)/g, "$1 diviso $2").replace(/−/g, " meno ").replace(/=/g, " uguale ")
+      .replace(/(\d)\/(\d)/g, "$1 su $2").replace(/[*#_]/g, "").replace(/\n\s*(\d+)[.)]\s+/g, ". ").replace(/✓ calcolatrice|✎ corretto dalla calcolatrice/g, "");
+  },
+  // il testo in pezzi: [{ t, lang }]. "**bonjour** (buongiorno)" → bonjour in francese, (buongiorno) in italiano
+  pezzi(testo, materia = "") {
+    const straniera = this.LINGUE[materia];
+    if (!straniera || !this.voce(straniera)) return [{ t: this.pulisci(testo), lang: "it-IT" }];
+    const out = [];
+    String(testo).split(/(\*\*[^*]+\*\*|<b>[^<]+<\/b>)/).forEach(x => {
+      if (!x.trim()) return;
+      const g = x.match(/^(?:\*\*([^*]+)\*\*|<b>([^<]+)<\/b>)$/);
+      const t = this.pulisci(g ? (g[1] || g[2]) : x);
+      if (t.trim()) out.push({ t, lang: g ? straniera : "it-IT" });
+    });
+    return out;
+  },
+  parla(pezzi, fine = () => {}, piano = false) {
+    if (!pezzi.length) return fine();
+    pezzi.forEach((p, i) => {
+      const u = new SpeechSynthesisUtterance(p.t);
+      u.lang = p.lang; u.rate = piano ? 0.88 : (p.lang === "it-IT" ? 0.97 : 0.9);   // la lingua straniera un po' più lenta
+      const v = this.voce(p.lang) || this.voce("it-IT"); if (v) u.voice = v;
+      if (i === pezzi.length - 1) { u.onend = fine; u.onerror = fine; }
+      speechSynthesis.speak(u);
+    });
+  },
+  leggiAdAltaVoce(testo, materia = "") {
     if (!("speechSynthesis" in window)) return;
     speechSynthesis.cancel();
-    const pulito = testo.replace(/\[DISEGNO:[^\]]*\]/gi, "").replace(/<[^>]+>/g, "")
-      .replace(/×/g, " per ").replace(/(\d)\s*:\s*(\d)/g, "$1 diviso $2").replace(/−/g, " meno ").replace(/=/g, " uguale ")
-      .replace(/(\d)\/(\d)/g, "$1 su $2").replace(/[*#_]/g, "").replace(/\n\s*(\d+)[.)]\s+/g, ". ");
-    const u = new SpeechSynthesisUtterance(pulito);
-    u.lang = "it-IT"; u.rate = 0.97;
-    const voci = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith("it"));
-    u.voice = voci.find(v => v.localService) || voci[0] || null;   // prima quelle sul computer (offline)
-    speechSynthesis.speak(u);
+    this.parla(this.pezzi(testo, materia));
   },
   zitto() { if ("speechSynthesis" in window) speechSynthesis.cancel(); }
 };

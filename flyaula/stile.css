@@ -409,3 +409,9 @@ body.con-guida main#chat,body.con-guida footer{margin-right:min(430px,36vw);tran
 .ar-tab .cv-az button{min-width:46px}
 .cv-archivio{margin:10px 0 0;font-size:16px}
 .cv-archivio .btn{padding:8px 14px;font-size:15px;margin-left:8px}
+
+/* prova di precisione */
+.pr-tab td{vertical-align:middle}.pr-tab small{color:var(--nebbia)}
+.pr-si b{color:var(--menta)}.pr-quasi b{color:#FFD23F}.pr-no b{color:var(--corallo)}
+.pr-totale{font-size:22px;margin:12px 0;padding:12px 16px;border-radius:16px;background:rgba(255,255,255,.05)}
+.pr-totale.pr-si b{color:var(--menta)}.pr-totale.pr-no b{color:var(--corallo)}

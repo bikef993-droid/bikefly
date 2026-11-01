@@ -136,7 +136,7 @@ const Fatti = (() => {
       }
       carica();
       // capitali: "la capitale della Francia è Lione" / "Lione è la capitale della Francia"
-      for (const c of CAP) {
+      if (/capital/i.test(f)) for (const c of CAP) {
         const paese = esc(c.paese);
         f = f.replace(new RegExp(`(\\bcapitale ${esc(c.prep)}\\s?${paese}(?![\\wÀ-ÿ])(?:,)?\\s+(?:è|e'|resta|rimane)\\s+(?:la città di\\s+)?)(${CITTA})`, "g"), (tutto, a, citta) => {
           if (c.giuste.some(g => norm(g) === norm(citta)) || norm(citta).length < 3) return tutto;
@@ -149,14 +149,14 @@ const Fatti = (() => {
         });
       }
       // simboli chimici: "il simbolo del ferro è F" / "simbolo chimico dell'oro: Ag"
-      for (const s of SIM) {
+      if (/simbol/i.test(f)) for (const s of SIM) {
         f = f.replace(new RegExp(`(\\b[Ss]imbolo(?: chimico)? (?:del|dello|della|dell['’]|di)\\s?${esc(s.el)}\\b\\s*(?:è|e'|:)\\s*(?:\\*\\*)?)([A-Z][a-z]?)\\b(?![a-zà-ÿ])`, "g"), (tutto, a, sim) => {
           if (sim === s.sim) return tutto;
           n++; dettagli.push(`simbolo di ${s.el}: ${sim} → ${s.sim}`); return a + s.sim;
         });
       }
       // autori: "la Divina Commedia è stata scritta da Petrarca" / "Petrarca scrisse la Divina Commedia"
-      for (const a of AUT) {
+      if (/scritt|scriss|ha scritto/i.test(f)) for (const a of AUT) {
         const op = esc(a.opera).replace(/^(il|la|lo|i|gli|le|l\['’\]) /i, "");
         f = f.replace(new RegExp(`(${op}(?:\\*\\*)?\\s*(?:,\\s*)?(?:è stat[oa]|fu|venne)?\\s*scritt[oaie]\\s+da\\s+)([A-ZÀ-Ý][\\wÀ-ÿ']+(?:\\s+[A-ZÀ-Ý][\\wÀ-ÿ']+)?)`, "gi"), (tutto, x, nome, pos, tutta) => {
           // "Il Piccolo principe" non è "Il principe": se prima del titolo c'è un'altra parola con la maiuscola, non si tocca

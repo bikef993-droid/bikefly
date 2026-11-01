@@ -20,10 +20,10 @@ Remove-Item $PAG -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $PAG, $ORARI, $MEMO, $PROFD | Out-Null
 
 function LeggiConfig {
-  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = '' }
+  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = ''; materie = '' }
   try {
     $j = [IO.File]::ReadAllText($CFGF, $UTF8) | ConvertFrom-Json
-    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2', 'codicelim') { if ($j.$k) { $c[$k] = [string]$j.$k } }
+    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2', 'codicelim', 'materie') { if ($j.$k) { $c[$k] = [string]$j.$k } }
   } catch {}
   return $c
 }
@@ -158,7 +158,7 @@ while ($ascolta.IsListening) {
 
     if ($p -eq '/fa/scuola' -and $daRete) {
       $par = [Environment]::GetEnvironmentVariable('OLLAMA_NUM_PARALLEL', 'User')
-      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; vram = $VRAM; marca = $SCHEDA.marca; scheda = $SCHEDA.nome; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
+      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; materie = $CFG.materie; vram = $VRAM; marca = $SCHEDA.marca; scheda = $SCHEDA.nome; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
     }
     elseif ($p -eq '/fa/config' -and $locale) {
       if ($q.HttpMethod -eq 'POST') {
@@ -169,6 +169,7 @@ while ($ascolta.IsListening) {
           if ($null -ne $j.riserva) { $CFG.riserva = ([string]$j.riserva) -replace '[^\w\.\-:/]', '' }
           if ($null -ne $j.cervello) { $CFG.cervello = (([string]$j.cervello) -replace '[^\w\.\-:]', '') }
           if ($null -ne $j.cervello2) { $CFG.cervello2 = (([string]$j.cervello2) -replace '[^\w\.\-:]', '') }
+          if ($null -ne $j.materie) { $m = [string]$j.materie; if ($m.Length -le 3000 -and $m -match '^[\w\.\-:{}",]*$') { $CFG.materie = $m } }
           SalvaConfig $CFG
           Testo $ctx 200 '{"ok":true}'
         } catch { Testo $ctx 400 '{"errore":"json"}' }

@@ -90,7 +90,7 @@
     <button type="button" class="btn ferma" id="ferma" hidden title="Ferma la risposta (anche con il tasto Esc)">⏹ Ferma</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.9.11 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.9.12 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -119,6 +119,17 @@
     <div id="esModelli"></div>
     <label class="giudice-sce"><input type="checkbox" id="esGiudice" checked> ⭐ Un giudice vota anche come spiegano (un po' più lento)</label>
     <div class="riga-btn"><label>Domande per cervello <select class="pill" id="esNGara"><option>10</option><option selected>20</option><option>50</option></select></label><button class="btn" id="esGara">🏁 Fai la gara</button></div>
+  </div>
+  <div class="gara-box">
+    <h3>🎯 Prova di precisione</h3>
+    <p class="sotto">Domande con la risposta già sicura (liste controllate a mano e conti della calcolatrice), materia per materia, con tutti i controlli accesi come in classe. Alla fine: quante risposte arrivano giuste sulla lavagna. Obiettivo: almeno il 96% in ogni materia.</p>
+    <div class="riga-btn"><label>Domande per materia <select class="pill" id="prN"><option>10</option><option selected>25</option><option>50</option></select></label>
+      <select class="pill" id="prMateria"></select>
+      <label id="prConfrontaBox" title="Ogni domanda la scrive prima un cervello e poi l'altro: per ogni materia si scopre chi va meglio"><input type="checkbox" id="prConfronta"> 🧠 Prova tutti e due i cervelli</label>
+      <button class="btn" id="prVia">🎯 Inizia la prova</button><button class="btn sec" id="prStop" style="display:none">⏹️ Ferma</button><span class="sotto" id="prQuante"></span></div>
+    <div class="barra"><div id="prBarra"></div></div>
+    <div class="sotto" id="prStato"></div>
+    <div id="prRisultato"></div>
   </div>
   <div class="gara-box">
     <h3>⚡ Risposte d'esempio pronte</h3>
@@ -265,5 +276,6 @@
 <script src="orario.js"></script>
 <script src="voce.js"></script>
 <script src="app.js"></script>
+<script src="precisione.js"></script>
 </body>
 </html>

@@ -53,24 +53,21 @@ const DSA = {
 };
 
 // lettura ad alta voce riga per riga, con la riga evidenziata (utile per DSA)
-function leggiEvidenziando(bolla, testo, lingua = "it") {
+function leggiEvidenziando(bolla, testo, lingua = "it", materia = "") {
   if (!("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
   const righe = [...bolla.querySelectorAll(":scope > .passo, :scope > div:not(.timbri):not(.disegno)")].filter(r => r.textContent.trim());
-  const voci = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith(lingua));
-  const voce = voci.find(v => v.localService) || voci[0] || null;
-  const pulisci = t => t.replace(/✓ calcolatrice|✎ corretto dalla calcolatrice/g, "").replace(/×/g, " per ").replace(/(\d)\s*:\s*(\d)/g, "$1 diviso $2").replace(/−/g, " meno ").replace(/=/g, " uguale ").replace(/(\d)\/(\d)/g, "$1 su $2");
-  if (!righe.length) return Voce.leggiAdAltaVoce(testo);
+  if (!righe.length) return Voce.leggiAdAltaVoce(testo, materia);
   let i = 0;
   const prossima = () => {
     righe.forEach(r => r.classList.remove("leggendo"));
     if (i >= righe.length) return;
     const r = righe[i++];
     r.classList.add("leggendo");
-    const u = new SpeechSynthesisUtterance(pulisci(r.textContent));
-    u.lang = lingua === "it" ? "it-IT" : lingua; u.rate = DSA.attiva ? 0.88 : 0.97; if (voce) u.voice = voce;
-    u.onend = prossima; u.onerror = () => righe.forEach(x => x.classList.remove("leggendo"));
-    speechSynthesis.speak(u);
+    // traduzione per gli alunni stranieri: tutta nella loro lingua; altrimenti italiano + parole straniere con la loro voce
+    const html = ((r.classList.contains("passo") && r.querySelector(":scope > span:last-child")) || r).innerHTML.replace(/<span class="(verificato|corretto)">[^<]*<\/span>/g, "");
+    const pezzi = lingua !== "it" ? [{ t: Voce.pulisci(r.textContent), lang: lingua }] : Voce.pezzi(html, materia);
+    Voce.parla(pezzi, prossima, DSA.attiva);
   };
   prossima();
 }
