@@ -20,10 +20,10 @@ Remove-Item $PAG -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $PAG, $ORARI, $MEMO, $PROFD | Out-Null
 
 function LeggiConfig {
-  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = ''; materie = ''; parole = ''; avvisi = ''; pinavvisi = '' }
+  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = ''; materie = ''; parole = ''; avvisi = ''; pinavvisi = ''; riposo = '' }
   try {
     $j = [IO.File]::ReadAllText($CFGF, $UTF8) | ConvertFrom-Json
-    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2', 'codicelim', 'materie', 'parole', 'avvisi', 'pinavvisi') { if ($j.$k) { $c[$k] = [string]$j.$k } }
+    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2', 'codicelim', 'materie', 'parole', 'avvisi', 'pinavvisi', 'riposo') { if ($j.$k) { $c[$k] = [string]$j.$k } }
   } catch {}
   return $c
 }
@@ -112,6 +112,18 @@ function CodiceDi($aula) {
 $AVVF = Join-Path $DIR 'avvisi.json'
 $ERRF = Join-Path $DIR 'errori.jsonl'
 $TENTAV = @{ n = 0; fino = [DateTime]::MinValue }
+$SFIDAF = Join-Path $DIR 'sfida.json'
+# la settimana della sfida tra classi: il lunedi della settimana (uguale in ogni versione di PowerShell)
+function Settimana { $o = (Get-Date).Date; return $o.AddDays(-(([int]$o.DayOfWeek + 6) % 7)).ToString('yyyy-MM-dd') }
+# un programma esterno con un tempo massimo (nvidia-smi non deve mai bloccare il server)
+function Esegui([string]$exe, [string]$argomenti, [int]$ms) {
+  try {
+    $pi = New-Object Diagnostics.ProcessStartInfo $exe, $argomenti; $pi.RedirectStandardOutput = $true; $pi.UseShellExecute = $false; $pi.CreateNoWindow = $true
+    $pr = [Diagnostics.Process]::Start($pi); $out = $pr.StandardOutput.ReadToEndAsync()
+    if (-not $pr.WaitForExit($ms)) { try { $pr.Kill() } catch {}; return $null }
+    return $out.Result
+  } catch { return $null }
+}
 function LeggiLista($f) { try { $j = [IO.File]::ReadAllText($f, $UTF8) | ConvertFrom-Json; return @($j | ForEach-Object { $_ }) } catch { return @() } }
 function SalvaLista($f, $l, [int]$max) { $a = @($l); if ($a.Count -gt $max) { $a = $a[0..($max - 1)] }; [IO.File]::WriteAllText($f, (ConvertTo-Json -InputObject $a -Depth 4 -Compress), $UTF8) }
 function Corto($x, [int]$n) { $s = ''; if ($null -ne $x) { $s = [string]$x }; $s = $s -replace '[\x00-\x1f]', ' '; if ($s.Length -gt $n) { $s = $s.Substring(0, $n) }; return $s }
@@ -194,7 +206,7 @@ while ($ascolta.IsListening) {
 
     if ($p -eq '/fa/scuola' -and $daRete) {
       $par = [Environment]::GetEnvironmentVariable('OLLAMA_NUM_PARALLEL', 'User')
-      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; materie = $CFG.materie; parole = $CFG.parole; avvisi = $CFG.avvisi; vram = $VRAM; marca = $SCHEDA.marca; scheda = $SCHEDA.nome; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
+      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; materie = $CFG.materie; parole = $CFG.parole; avvisi = $CFG.avvisi; riposo = $CFG.riposo; vram = $VRAM; marca = $SCHEDA.marca; scheda = $SCHEDA.nome; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
     }
     elseif ($p -eq '/fa/config' -and $locale) {
       if ($q.HttpMethod -eq 'POST') {
@@ -206,6 +218,7 @@ while ($ascolta.IsListening) {
           if ($null -ne $j.cervello) { $CFG.cervello = (([string]$j.cervello) -replace '[^\w\.\-:]', '') }
           if ($null -ne $j.cervello2) { $CFG.cervello2 = (([string]$j.cervello2) -replace '[^\w\.\-:]', '') }
           if ($null -ne $j.materie) { $m = [string]$j.materie; if ($m.Length -le 3000 -and $m -match '^[\w\.\-:{}",]*$') { $CFG.materie = $m } }
+          if ($null -ne $j.riposo) { $r = [string]$j.riposo; if ($r -eq '' -or ($r -match '^\d{1,3}$' -and [int]$r -ge 10 -and [int]$r -le 480)) { $CFG.riposo = $r } }
           $parOk = $true
           if ($null -ne $j.parole) { $pl = ParoleOk $j.parole; if ($null -eq $pl) { $parOk = $false } else { $CFG.parole = $pl } }
           if ($parOk) { SalvaConfig $CFG; Testo $ctx 200 '{"ok":true}' } else { Testo $ctx 400 '{"errore":"parole"}' }
@@ -232,6 +245,36 @@ while ($ascolta.IsListening) {
           }
         }
       }
+    }
+    elseif ($p -eq '/fa/sfida' -and $daRete) {
+      # la sfida tra classi: punti della settimana per classe (niente nomi di alunni)
+      $sett = Settimana; $d = $null
+      try { $d = [IO.File]::ReadAllText($SFIDAF, $UTF8) | ConvertFrom-Json } catch {}
+      $punti = @{}; if ($d -and [string]$d.settimana -eq $sett -and $d.classi) { foreach ($x in $d.classi.PSObject.Properties) { $punti[$x.Name] = [int]$x.Value } }
+      if ($q.HttpMethod -eq 'POST') {
+        if (-not ($locale -or ([string]$q.Headers['X-FlyAula-Codice'] -eq $CFG.codicelim))) { Testo $ctx 403 '{"errore":"codice"}' }
+        else {
+          $j = $null; try { $j = (Corpo $q 1000) | ConvertFrom-Json } catch {}
+          $cl = ''; $n = 0; if ($j -is [Management.Automation.PSCustomObject]) { $cl = (Corto $j.classe 12).Trim(); try { $n = [int]$j.punti } catch { $n = 0 } }
+          if (([string]$j.classe).Trim().Length -gt 12 -or $cl -notmatch '^[\p{L}\p{N}\s\-]{1,12}$' -or $n -lt 1 -or $n -gt 20 -or (-not $punti.ContainsKey($cl) -and $punti.Count -ge 200)) { Testo $ctx 400 '{"errore":"dati"}' }
+          else { $punti[$cl] = [int]$punti[$cl] + $n; [IO.File]::WriteAllText($SFIDAF, (@{ settimana = $sett; classi = $punti } | ConvertTo-Json -Compress), $UTF8); Testo $ctx 200 '{"ok":true}' }
+        }
+      } else {
+        $l = @($punti.GetEnumerator() | Sort-Object -Property @{ Expression = { $_.Value }; Descending = $true }, @{ Expression = { $_.Key }; Descending = $false } | ForEach-Object { @{ classe = $_.Key; punti = $_.Value } })
+        Testo $ctx 200 (@{ settimana = $sett; classifica = $l } | ConvertTo-Json -Depth 4 -Compress)
+      }
+    }
+    elseif ($p -eq '/fa/salute' -and $locale) {
+      # salute del server: scheda video, disco, dati
+      $gpu = $null
+      if ($SCHEDA.marca -eq 'nvidia') {
+        $o = Esegui 'nvidia-smi' '--query-gpu=temperature.gpu,utilization.gpu,power.draw,memory.used,memory.total --format=csv,noheader,nounits' 4000
+        if ($o) { $v = ($o -split "`n")[0] -split ','; if ($v.Count -ge 5) { $num = { param($x) $y = 0.0; if ([double]::TryParse(($x.Trim()), [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$y)) { $y } else { $null } }; $gpu = @{ temp = (& $num $v[0]); uso = (& $num $v[1]); watt = (& $num $v[2]); mem = (& $num $v[3]); memTot = (& $num $v[4]) } } }
+      }
+      $disco = $null; try { $dr = New-Object IO.DriveInfo ([IO.Path]::GetPathRoot($DIR)); $disco = @{ libero = [long]$dr.AvailableFreeSpace; totale = [long]$dr.TotalSize } } catch {}
+      $nArch = 0; try { $nArch = @(Get-ChildItem $PROFD -Recurse -Filter '*.json' -File).Count } catch {}
+      $nErr = 0; try { if (Test-Path $ERRF) { $nErr = @([IO.File]::ReadAllLines($ERRF, $UTF8) | Where-Object { $_.Trim() }).Count } } catch {}
+      Testo $ctx 200 (@{ gpu = $gpu; scheda = $SCHEDA.nome; disco = $disco; memo = @(Get-ChildItem $MEMO -File).Count; archivio = $nArch; errori = $nErr } | ConvertTo-Json -Depth 4 -Compress)
     }
     elseif ($p -eq '/fa/avvisi-nuovi' -and $locale) {
       $n = @(LeggiLista $AVVF | Where-Object { -not $_.visto }).Count

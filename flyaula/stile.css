@@ -507,3 +507,12 @@ body.con-guida main#chat,body.con-guida footer{margin-right:min(430px,36vw);tran
 .at-turni{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.at-turni .btn{padding:10px 16px;font-size:16px}
 .at-timer{display:flex;align-items:baseline;gap:16px}.at-timer span{font:800 20px Figtree;color:var(--nebbia)}.at-timer b{font:900 72px Figtree;font-variant-numeric:tabular-nums}.at-timer b.fine{color:var(--corallo)}
 @media (max-width:800px){.at-lati,.at-opz{grid-template-columns:1fr}}
+/* 🎮 giochi · 🫧 respiro */
+.gi-lista{font:600 18px/1.6 Figtree}.gi-lista b.si{color:var(--menta)}.gi-lista b.no{color:var(--corallo)}
+.gi-luc{display:flex;gap:10px;font-size:46px;margin:6px 0}.gi-luc span{opacity:.45}.gi-luc span.aperto{opacity:1}.gi-luc span.ora{opacity:1;filter:drop-shadow(0 0 10px rgba(255,210,63,.6))}
+.gi-class td{font:700 19px Figtree}.gi-class tr.mia td{background:rgba(59,139,255,.15)}
+#respiro{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px;background:radial-gradient(circle at 50% 45%,#0E2A4A,#050B18 70%)}
+#respiro.on{display:flex}
+.re-cerchio{width:min(34vw,320px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(0,210,160,.9),rgba(59,139,255,.55));box-shadow:0 0 80px rgba(0,210,160,.35);transform:scale(1)}
+.re-testo{font:900 clamp(30px,4vw,56px) Figtree;color:var(--latte);min-height:1.3em}.re-tempo{font:800 22px Figtree;color:var(--nebbia)}
+.spunta{display:flex!important;gap:8px;align-items:center;font-size:15px}

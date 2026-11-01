@@ -50,6 +50,11 @@ code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
 .er-tipo{display:inline-block;border-radius:10px;padding:3px 9px;font:800 13px Figtree;background:rgba(255,255,255,.08);white-space:nowrap}
 .er-tipo.prof{background:rgba(255,107,107,.2);color:#ffb3b3}.er-tipo.auto{background:rgba(46,213,150,.14);color:var(--menta)}.er-tipo.tec{background:rgba(255,184,77,.16);color:#ffd59a}
 .er-scorri{max-height:560px;overflow:auto;border-radius:14px}
+.c-lingue{display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0;font:700 16px Figtree}.c-lingue label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.c-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px 18px;margin:12px 0}
+.c-card h4{font:900 18px Figtree;margin:0 0 6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.c-card .c-t{white-space:pre-wrap;font-size:16px;line-height:1.55}
+.c-avviso{font:800 13px Figtree;border-radius:99px;padding:3px 10px;background:rgba(255,184,77,.16);color:#ffd59a}.c-avviso.ko{background:rgba(255,90,95,.18);color:#ffb3b3}.c-avviso.ok{background:rgba(46,213,150,.16);color:var(--menta)}
+.c-card button{background:none;border:1px solid rgba(255,255,255,.2);color:var(--latte);border-radius:99px;padding:4px 12px;font:700 13px Figtree;cursor:pointer}
 </style>
 </head>
 <body>
@@ -61,6 +66,16 @@ code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
 
   <h2>📡 Stato</h2>
   <div class="t-griglia" id="tStato"></div>
+
+  <h2>🩺 Salute del server</h2>
+  <div class="t-griglia" id="tSalute"></div>
+  <p class="nota-s">Verde = tutto bene · giallo = da tenere d'occhio · rosso = da sistemare. Si aggiorna ogni 30 secondi.</p>
+
+  <h2>🌙 Energia</h2>
+  <div class="t-riga"><label class="nota-s" style="font-size:16px">Dopo quanto tempo senza domande i cervelli lasciano la scheda video:</label>
+    <select id="tRiposo"><option value="">2 ore (normale)</option><option value="60">1 ora</option><option value="30">30 minuti</option><option value="15">15 minuti (consuma meno)</option></select>
+    <button class="btn sec" id="tLibera">🌙 Libera la scheda video adesso</button><span id="tRiposoOk" class="nota-s"></span></div>
+  <p class="nota-s">Con meno tempo la scheda video consuma meno quando nessuno usa Fly Aula; la prima domanda dopo una pausa arriva qualche secondo più lenta. Per spegnere il computer di notte: impostazioni di Windows (Sistema → Alimentazione).</p>
 
   <div class="t-sez" id="sezAvvisi">
   <h2>🔔 Avvisi: un alunno sta male</h2>
@@ -92,6 +107,15 @@ code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
   <div class="t-riga"><select id="erTipo"><option value="">Tutti gli errori</option><option value="prof">👎 Segnalati dai prof</option><option value="auto">✅ Corretti da Fly Aula</option><option value="tec">⚙️ Tecnici (cervello, scheda video)</option></select><select id="erAula"><option value="">Tutte le aule</option></select>
   <button class="btn sec" id="erCsv">⬇️ Scarica (Excel)</button><button class="btn sec" id="erVia">🧹 Svuota</button></div>
   <div class="er-scorri" id="erBox"></div>
+  </div>
+
+  <div class="t-sez" id="sezCircolari">
+  <h2>📢 Circolari semplici e tradotte</h2>
+  <p class="spiega">Incollate una circolare: Fly Aula ne fa una versione in <b>italiano semplice</b> e la traduce per le famiglie. Poi Fly Aula controlla che <b>date, orari e numeri</b> siano rimasti tutti: se ne manca uno, lo dice.</p>
+  <textarea id="cTesto" rows="7" maxlength="6000" placeholder="Incollate qui il testo della circolare…" style="width:100%;background:var(--notte2);border:2px solid rgba(255,255,255,.16);color:var(--latte);border-radius:14px;padding:12px 14px;font:600 16px/1.5 Figtree"></textarea>
+  <div class="c-lingue" id="cLingue"></div>
+  <div class="t-riga"><button class="btn" id="cVia">📢 Prepara</button><button class="btn sec" id="cStampa" style="display:none">🖨️ Stampa tutto</button><span id="cStato" class="nota-s"></span></div>
+  <div id="cRisultati"></div>
   </div>
 
   <h2>🏫 Scuola e server di riserva</h2>
@@ -420,7 +444,67 @@ $("erVia").onclick = async e => {
   await fetch("/fa/errori", { method: "DELETE" }); erCarica();
 };
 
-stato(); avControlla(); erCarica();
+// ======================= 🩺 SALUTE · 🌙 ENERGIA =======================
+async function salute() {
+  let s = null; try { s = await json("/fa/salute"); } catch (e) { $("tSalute").innerHTML = ""; return; }
+  const carta = (t, v, cl = "") => `<div class="t-carta ${cl}"><span>${t}</span><b>${v}</b></div>`, GB = b => (b / 1073741824).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + " GB";
+  let h = "";
+  if (s.gpu && s.gpu.temp !== null) {
+    const t = s.gpu.temp; h += carta("Temperatura scheda video", `${t >= 85 ? "🔴" : t >= 75 ? "🟡" : "🟢"} ${Math.round(t)} °C`, t >= 85 ? "ko" : t >= 75 ? "" : "ok");
+    if (s.gpu.uso !== null) h += carta("Scheda video al lavoro", `${Math.round(s.gpu.uso)}%`);
+    if (s.gpu.watt !== null) h += carta("Consumo adesso", `${Math.round(s.gpu.watt)} W`);
+    if (s.gpu.mem !== null && s.gpu.memTot) h += carta("Memoria della scheda usata", `${(s.gpu.mem / 1024).toLocaleString("it-IT", { maximumFractionDigits: 1 })} / ${Math.round(s.gpu.memTot / 1024)} GB`);
+  } else h += carta("Scheda video", s.scheda ? "temperatura non disponibile (si legge solo sulle NVIDIA)" : "non trovata");
+  if (s.disco) { const l = s.disco.libero; h += carta("Spazio libero sul disco", `${l < 5 * 1073741824 ? "🔴" : l < 20 * 1073741824 ? "🟡" : "🟢"} ${GB(l)}`, l < 5 * 1073741824 ? "ko" : l < 20 * 1073741824 ? "" : "ok"); }
+  h += carta("Risposte in memoria", s.memo) + carta("Fogli negli archivi dei prof", s.archivio) + carta("Errori registrati", s.errori);
+  $("tSalute").innerHTML = h;
+}
+$("tRiposo").onchange = async () => {
+  const r = await fetch("/fa/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ riposo: $("tRiposo").value }) });
+  $("tRiposoOk").textContent = r.ok ? "✓ Salvato: vale per tutte le LIM entro pochi minuti" : "⚠️ Non salvato";
+};
+$("tLibera").onclick = async () => {
+  let ps = []; try { ps = (await json(OLL + "/api/ps")).models || []; } catch (e) {}
+  for (const m of ps) await fetch(OLL + "/api/generate", { method: "POST", body: JSON.stringify({ model: m.name, keep_alive: 0 }) }).catch(() => {});
+  $("tRiposoOk").textContent = ps.length ? `✓ ${ps.length === 1 ? "1 cervello tolto" : ps.length + " cervelli tolti"} dalla scheda video: si riaccendono alla prima domanda` : "La scheda video era già libera";
+  stato();
+};
+(async () => { try { const c = await json("/fa/config"); $("tRiposo").value = c.riposo || ""; } catch (e) {} })();
+
+// ======================= 📢 CIRCOLARI =======================
+const LINGUE_C = [["semplice", "🇮🇹 Italiano semplice", ""], ["inglese", "🇬🇧 Inglese", "English"], ["francese", "🇫🇷 Francese", "French"], ["spagnolo", "🇪🇸 Spagnolo", "Spanish"], ["rumeno", "🇷🇴 Rumeno", "Romanian"], ["albanese", "🇦🇱 Albanese", "Albanian"], ["arabo", "🇸🇦 Arabo", "Arabic"], ["ucraino", "🇺🇦 Ucraino", "Ukrainian"], ["cinese", "🇨🇳 Cinese", "Simplified Chinese"], ["urdu", "🇵🇰 Urdu", "Urdu"]];
+$("cLingue").innerHTML = LINGUE_C.map(([k, n], i) => `<label><input type="checkbox" value="${k}" ${i < 2 ? "checked" : ""}> ${n}</label>`).join("");
+// i numeri che devono restare: date, orari, prezzi, numeri di classe…
+const numeriDi = t => [...new Set((String(t).match(/\d+(?:[.,:\/]\d+)*/g) || []).map(x => x.replace(/[.,]$/, "")))];
+let circolari = [];
+$("cVia").onclick = async () => {
+  const testo = $("cTesto").value.trim(); if (!testo) return $("cTesto").focus();
+  if (!modello) { $("cStato").textContent = "⚠️ Il cervello è spento."; return; }
+  const scelte = [...document.querySelectorAll("#cLingue input:checked")].map(i => LINGUE_C.find(l => l[0] === i.value));
+  if (!scelte.length) { $("cStato").textContent = "Scegliete almeno una lingua."; return; }
+  $("cVia").disabled = true; circolari = []; $("cRisultati").innerHTML = ""; const servono = numeriDi(testo);
+  for (const [k, nome, en] of scelte) {
+    $("cStato").textContent = `✍️ ${nome}…`;
+    const sis = k === "semplice"
+      ? "Riscrivi questa circolare scolastica in ITALIANO SEMPLICE per le famiglie: frasi corte, parole di tutti i giorni, un elenco puntato per le cose da fare. Mantieni ESATTAMENTE tutte le date, gli orari, i numeri, i nomi e le scadenze. Scrivi solo il testo."
+      : `Translate this Italian school notice into ${en} for families. Use simple words. Keep EXACTLY all dates, times, numbers, names and deadlines, writing every number with the digits 0-9. Write only the translation.`;
+    let out = "";
+    try { const r = await fetch(OLL + "/api/chat", { method: "POST", body: JSON.stringify({ model: modello, stream: false, keep_alive: "10m", options: { temperature: 0.2, num_ctx: 8192 }, messages: [{ role: "system", content: sis }, { role: "user", content: testo }] }) }); out = String(((await r.json()).message || {}).content || "").trim(); } catch (e) {}
+    const mancano = out ? servono.filter(n => !out.includes(n) && !out.includes(n.replace(/\./g, "/")) && !out.includes(n.replace(/,/g, ".")) && !out.includes(n.replace(/\./g, ":"))) : [];
+    circolari.push({ k, nome, out, mancano });
+    $("cRisultati").innerHTML = circolari.map((c, i) => `<div class="c-card"><h4>${c.nome}${c.out ? (c.mancano.length ? `<span class="c-avviso ko">⚠️ mancano: ${esc(c.mancano.join(", "))}</span>` : `<span class="c-avviso ok">✓ date e numeri tutti presenti</span>`) : `<span class="c-avviso ko">⚠️ non riuscita</span>`}${c.k !== "semplice" ? `<span class="c-avviso">traduzione automatica: fatela controllare</span>` : ""}<button data-copia="${i}">📋 Copia</button></h4><div class="c-t" ${c.k === "arabo" || c.k === "urdu" ? 'dir="rtl"' : ""}>${esc(c.out)}</div></div>`).join("");
+    $("cRisultati").querySelectorAll("[data-copia]").forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(circolari[+b.dataset.copia].out); b.textContent = "✓ Copiato"; } catch (e) {} });
+  }
+  $("cVia").disabled = false; $("cStato").textContent = "✓ Pronto. Rileggete prima di mandare."; $("cStampa").style.display = "";
+};
+$("cStampa").onclick = () => {
+  const w = window.open("", "_blank"); if (!w) return;
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>Circolare</title><body style="font:15px/1.6 Arial;max-width:760px;margin:30px auto">${circolari.map(c => `<h3>${esc(c.nome)}</h3><div ${c.k === "arabo" || c.k === "urdu" ? 'dir="rtl"' : ""} style="white-space:pre-wrap">${esc(c.out)}</div><hr>`).join("")}</body>`);
+  w.document.close(); w.print();
+};
+
+stato(); avControlla(); erCarica(); salute();
+setInterval(salute, 30000);
 setInterval(stato, 30000);
 setInterval(avControlla, 15000);
 setInterval(erCarica, 60000);

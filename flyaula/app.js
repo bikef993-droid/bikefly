@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.17 · il programma
+//  FLY AULA v0.9.18 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -98,6 +98,10 @@ class CervelloLento extends Error { constructor(m) { super(`${m} non risponde in
 const altroDellaCoppia = m => secondo ? (m === modello ? secondo : m === secondo ? modello : null) : null;
 const coppieNo = () => { try { return JSON.parse(leggi("flyaula_coppie_no") || "[]"); } catch (e) { return []; } };
 const chiaveCoppia = (a, b) => [a, b].sort().join(" + ");
+// 🌙 RIPOSO: dopo quanti minuti senza domande il cervello lascia la scheda video (lo sceglie la scuola nella pagina del server)
+function riposo() { const m = typeof Scuola !== "undefined" ? Scuola.riposo : 0; return m >= 10 && m <= 480 ? m + "m" : "2h"; }
+// 🌍 ALUNNO APPENA ARRIVATO: italiano semplice + le parole importanti tradotte tra parentesi
+function soloParoleChiave() { const l = $("lingua").value; return l && $("linguaChiave") && $("linguaChiave").checked ? l : ""; }
 function scaricaDallaScheda(m) { Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: m, keep_alive: 0 }) }).catch(() => {}); }
 // un cervello della coppia non va: si toglie dalla coppia (e non si riprova più questa coppia su questo computer)
 const tolti = new Set();        // cervelli tolti dalla coppia in questa sessione
@@ -125,7 +129,7 @@ async function unaChiamata(m, corpo, ms) {
 // usa = quale cervello (se non si dice: il principale)
 async function cervello(sistema, utente, { temperature = 0.2, format, pensa = false, usa } = {}) {
   const m = usa && !tolti.has(usa) ? usa : modello;   // un cervello tolto dalla coppia (perché bloccato) non si usa più
-  const corpo = m2 => ({ stream: false, keep_alive: "2h", ...(format ? { format } : {}), _pensa: pensa,
+  const corpo = m2 => ({ stream: false, keep_alive: riposo(), ...(format ? { format } : {}), _pensa: pensa,
     options: { temperature, num_ctx: contesto(), num_predict: tetto(m2, pensa, MAX_PAROLE_LAVORO) }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] });
   const ms = pensa ? LIMITI.pensa : LIMITI.lavoro;
   let j;
@@ -159,7 +163,7 @@ async function cervelloInDiretta(messaggi, ogniPezzo, m = modello) {
   try {
     const r = await Scuola.chiama("/api/chat", {
       method: "POST", signal: ctrl.signal,
-      body: JSON.stringify({ model: m, stream: true, keep_alive: "2h", ...pensiero(m, false), options: { temperature: 0.2, num_ctx: contesto(), num_predict: tetto(m, false, MAX_PAROLE_LAVAGNA) }, messages: messaggi })
+      body: JSON.stringify({ model: m, stream: true, keep_alive: riposo(), ...pensiero(m, false), options: { temperature: 0.2, num_ctx: contesto(), num_predict: tetto(m, false, MAX_PAROLE_LAVAGNA) }, messages: messaggi })
     });
     if (!r.ok) throw new Error(`Ollama ha risposto ${r.status}: ${(await r.text()).slice(0, 160)}`);
     const lettore = r.body.getReader(), dec = new TextDecoder();
@@ -476,7 +480,9 @@ async function chiedi(domanda, speciale = {}) {
   // 🎭 durante un'intervista a un personaggio: niente memoria (è un gioco di ruolo, non una risposta da riusare)
   const intervista = typeof Attivita !== "undefined" ? Attivita.intervista : null;
   if (intervista) sistema += Attivita.istruzioniIntervista();
-  const chiave = intervista ? null : chiaveMemoria(domanda, materia, livello, $("classe").value, giaParlato, speciale);
+  const paroleChiave = soloParoleChiave();
+  if (paroleChiave) sistema += `\n\n🌍 IN CLASSE C'È UN ALUNNO APPENA ARRIVATO CHE PARLA ${(NOMI_ITA[paroleChiave] || LINGUE[paroleChiave].nome).toUpperCase()}: scrivi in italiano MOLTO semplice (frasi corte, parole comuni, livello A2). Dopo le 4-6 parole più importanti della spiegazione metti tra parentesi la traduzione in ${NOMI_ITA[paroleChiave] || LINGUE[paroleChiave].nome} (con la sua scrittura), per esempio: la frazione (traduzione). Non tradurre tutto il resto.`;
+  const chiave = intervista || paroleChiave ? null : chiaveMemoria(domanda, materia, livello, $("classe").value, giaParlato, speciale);
   let esciDallaFila = null;
   try { fatto: {
     // ⚡ questa domanda ha già una risposta controllata (da un'altra lezione o un'altra aula)? arriva subito
@@ -492,7 +498,7 @@ async function chiedi(domanda, speciale = {}) {
       aggiungiAzioni(bolla, domanda, ricordo.testo, chiave, { memoria: true, controlli: ricordo.controlli, coppia: ricordo.coppia, cervello: ricordo.modello });
       storia.push({ role: "assistant", content: ricordo.testo });
       if (leggiAuto) leggiRisposta(bolla, ricordo.testo);
-      const lingua = $("lingua").value;
+      const lingua = soloParoleChiave() ? "" : $("lingua").value;
       if (lingua) { chat.scrollTop = chat.scrollHeight; await aggiungiTraduzione(bolla, ricordo.testo, lingua); }
       daMemoria = risposta = true;
       break fatto;
@@ -617,7 +623,7 @@ async function chiedi(domanda, speciale = {}) {
     aggiungiAzioni(bolla, domanda, testo, daRicordare ? chiave : null, origine);
     storia.push({ role: "assistant", content: testo });
     if (leggiAuto) leggiRisposta(bolla, testo);
-    const lingua = $("lingua").value;
+    const lingua = soloParoleChiave() ? "" : $("lingua").value;
     if (lingua) { chat.scrollTop = chat.scrollHeight; await aggiungiTraduzione(bolla, testo, lingua); }
     if (storia.length > 14) riassumi();
   } } catch (e) {

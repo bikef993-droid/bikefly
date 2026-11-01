@@ -95,6 +95,7 @@ Rispondi SOLO con JSON: {"riga": numero del primo passaggio sbagliato (0 se sono
       el("atEsito").dataset.fatto = "1";
       const giusto = +li.dataset.i === gioco.sbagliato;
       el("atCorpo").querySelectorAll(".at-scelta li").forEach(x => x.classList.add(+x.dataset.i === gioco.sbagliato ? "sbagliato" : "ok"));
+      if (giusto && typeof puntiClasse === "function") puntiClasse(1);
       el("atEsito").innerHTML = `<p class="at-msg ${giusto ? "ok" : ""}">${giusto ? "🎉 Trovato!" : "Non era quello."} L'errore era al passaggio <b>${gioco.sbagliato + 1}</b>: ${esc(gioco.spiega)}</p>`;
       conta("trovaErrore");
     });
@@ -297,7 +298,7 @@ Questa è una ricostruzione: non dire mai di essere davvero ${intervista.nome} f
       el("atQ").innerHTML = `<p class="nota-s">Domanda ${i + 1} di ${q.length} · giuste finora: ${giuste}</p><p class="at-dom">${esc(d.testo)}</p><div class="at-opz">${d.opz.map((o, k) => `<button data-k="${k}"><b>${"ABCD"[k]}</b> ${esc(o)}</button>`).join("")}</div><div id="atPerche"></div>`;
       el("atQ").querySelectorAll("[data-k]").forEach(b => b.onclick = () => {
         if (el("atPerche").innerHTML) return;
-        const ok = +b.dataset.k === d.giusta; if (ok) giuste++;
+        const ok = +b.dataset.k === d.giusta; if (ok) { giuste++; if (typeof puntiClasse === "function") puntiClasse(1); }
         el("atQ").querySelectorAll("[data-k]").forEach(x => x.classList.add(+x.dataset.k === d.giusta ? "giusto" : x === b ? "sbagliato" : "spento"));
         el("atPerche").innerHTML = `<p class="at-msg ${ok ? "ok" : ""}">${ok ? "✓ Giusto!" : "✗ Era la " + "ABCD"[d.giusta] + "."} ${esc(d.perche)}</p><div class="riga-btn"><button class="btn" id="atAvanti">Avanti →</button></div>`;
         el("atAvanti").onclick = () => { i++; una(); };

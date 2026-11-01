@@ -67,6 +67,8 @@
       <button id="nuova">🧹 Nuova lezione</button>
       <button id="apriRipasso">🔁 Ripasso veloce</button>
       <button id="apriRiassunto">📒 Riassunto per gli assenti</button>
+      <button id="apriRespiro" onclick="document.getElementById('menu').classList.remove('aperto');Giochi.respiro()">🫧 Un minuto di respiro</button>
+      <button id="apriGiochi" onclick="document.getElementById('menu').classList.remove('aperto');Giochi.apri()">🎮 Giochi (escape room, indovina, sfida)</button>
       <button id="apriAttivita" onclick="document.getElementById('menu').classList.remove('aperto');Attivita.apri()">🎲 Attività per la classe</button>
       <button id="apriGara">🏆 Gara a squadre</button>
       <div class="sez">Per il prof</div>
@@ -93,7 +95,7 @@
     <button type="button" class="btn ferma" id="ferma" hidden title="Ferma la risposta (anche con il tasto Esc)">⏹ Ferma</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.9.17 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.9.18 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -260,6 +262,7 @@
     <label>Classe<input id="classe" value="1ªA" maxlength="8"></label>
     <label>Durata<select id="durata"><option value="60">1 ora</option><option value="120">2 ore</option></select></label>
     <label class="largo">Alunni stranieri: spiega anche in<select id="lingua"></select></label>
+    <label class="largo spunta"><input type="checkbox" id="linguaChiave"> 🌍 appena arrivato: italiano semplice e solo le parole importanti tradotte</label>
   </div>
   <div class="interruttori">
     <button id="dsa" class="interr"><span>🧩</span><b>Modalità DSA</b><small>frasi brevi, mappe, lettura riga per riga</small></button>
@@ -300,6 +303,7 @@
 <script src="creaverifica.js"></script>
 <script src="strumenti.js"></script>
 <script src="attivita.js"></script>
+<script src="giochi.js"></script>
 <script src="report.js"></script>
 <script src="demo.js"></script>
 <script src="orario.js"></script>

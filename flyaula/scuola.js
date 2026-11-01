@@ -91,7 +91,7 @@ const Scuola = (() => {
   return {
     avvia, chiama, caricaOrario,
     get ruolo() { return st.ruolo; }, get aula() { return st.aula; }, get nome() { return st.nome; },
-    get suRiserva() { return st.riserva; }, get paroleAllarme() { try { const x = st.info && st.info.parole; return x ? JSON.parse(x) : []; } catch (e) { return []; } }, get cervelloScelto() { return (st.info && st.info.cervello) || ""; },
+    get suRiserva() { return st.riserva; }, get riposo() { return Number(st.info && st.info.riposo) || 0; }, get paroleAllarme() { try { const x = st.info && st.info.parole; return x ? JSON.parse(x) : []; } catch (e) { return []; } }, get cervelloScelto() { return (st.info && st.info.cervello) || ""; },
     get secondoScelto() { return (st.info && st.info.cervello2) || ""; }, get vram() { return Number(st.info && st.info.vram) || 0; }, get cervelliMateria() { if (st.cm !== undefined) return st.cm; try { const x = st.info && st.info.materie; return x ? JSON.parse(x) : null; } catch (e) { return null; } }, impostaCervelliMateria(p) { st.cm = p; }, get marca() { return (st.info && st.info.marca) || ""; }, get scheda() { return (st.info && st.info.scheda) || ""; }, get codiceLim() { return ricorda("flyaula_codice_lim") || ""; }, get parallelo() { return Number(st.info && st.info.parallelo) || 0; }, get base() { return st.cervelli[st.attivo]; },
     parAula: () => st.aula ? "aula=" + encodeURIComponent(st.aula) : ""
   };
