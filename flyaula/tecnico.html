@@ -26,15 +26,72 @@ body{display:block;overflow:auto}
 .stima{font:900 30px Figtree;color:var(--menta);margin:14px 0 4px}
 .qr-lim{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
 code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
+/* 🔔 avvisi, 🧩 parole d'allarme, 👎 errori */
+.t-sez{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:6px 22px 18px;margin-top:22px}
+.t-sez h2{margin-top:18px}
+.t-sez .spiega{font-size:17px;line-height:1.5;max-width:900px;color:var(--latte);opacity:.9}
+.av-allarme{display:none;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(90deg,rgba(255,107,107,.28),rgba(255,184,77,.18));border:2px solid var(--corallo);border-radius:20px;padding:16px 20px;margin:16px 0 4px;font:800 20px Figtree}
+.av-allarme.on{display:flex;animation:avPulsa 1.6s ease-in-out infinite}
+@keyframes avPulsa{50%{box-shadow:0 0 0 8px rgba(255,107,107,.18)}}
+.av-stato{display:inline-block;border-radius:99px;padding:6px 14px;font:900 16px Figtree;background:rgba(255,255,255,.08)}
+.av-stato.acceso{background:rgba(46,213,150,.18);color:var(--menta)}
+.av-tab,.er-tab{width:100%;border-collapse:collapse;margin-top:10px}
+.av-tab td,.av-tab th,.er-tab td,.er-tab th{text-align:left;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.09);font-size:16px;vertical-align:top}
+.av-tab th,.er-tab th{color:var(--nebbia);font:800 13px Figtree;text-transform:uppercase;letter-spacing:.04em}
+.av-tab tr.nuovo td{background:rgba(255,107,107,.1)}.av-tab tr.nuovo td:first-child{border-left:4px solid var(--corallo)}
+.av-tab .btn,.er-riga .btn{padding:8px 14px;font-size:15px}
+.av-msg{font:800 16px Figtree;margin:8px 0}.av-msg.ko{color:var(--corallo)}.av-msg.ok{color:var(--menta)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:7px 13px;margin:0 6px 8px 0;font:700 15px Figtree;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)}
+.chip.mia{background:rgba(124,92,255,.2);border-color:rgba(124,92,255,.5)}
+.chip button{background:none;border:0;color:var(--latte);font-size:16px;cursor:pointer;padding:0 2px;opacity:.75}.chip button:hover{opacity:1;color:var(--corallo)}
+.pr-esito{font:800 17px Figtree;margin-top:6px}
+.er-carte{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}.er-carte .t-carta{min-width:180px;flex:0 1 auto}
+.er-tab td.d{max-width:360px;word-break:break-word;color:var(--nebbia);font-size:15px}
+.er-tipo{display:inline-block;border-radius:10px;padding:3px 9px;font:800 13px Figtree;background:rgba(255,255,255,.08);white-space:nowrap}
+.er-tipo.prof{background:rgba(255,107,107,.2);color:#ffb3b3}.er-tipo.auto{background:rgba(46,213,150,.14);color:var(--menta)}.er-tipo.tec{background:rgba(255,184,77,.16);color:#ffd59a}
+.er-scorri{max-height:560px;overflow:auto;border-radius:14px}
 </style>
 </head>
 <body>
 <div class="t-box">
   <h1>🛠️ Fly<b>Aula</b> · pannello del tecnico</h1>
   <p class="sotto" id="tSotto">Questa pagina si apre solo sul computer che fa da server: le LIM non possono vederla.</p>
+  <div class="av-allarme" id="avAllarme"><span id="avAllarmeTesto"></span><button class="btn" id="avVai">🔔 Apri gli avvisi</button></div>
 
   <h2>📡 Stato</h2>
   <div class="t-griglia" id="tStato"></div>
+
+  <div class="t-sez" id="sezAvvisi">
+  <h2>🔔 Avvisi: un alunno sta male</h2>
+  <p class="spiega">Se un alunno scrive sulla LIM una frase come <i>«voglio morire»</i> o <i>«mi picchiano»</i>, Fly Aula non risponde come a una domanda: gli dice con gentilezza di parlarne con il prof o con un adulto di cui si fida, e gli dà Telefono Azzurro (19696) e il 112.
+  Se la scuola accende gli avvisi, qui arrivano <b>solo l'aula, la classe, la materia e l'ora</b>: <b>mai la frase e mai il nome</b>. Sulla LIM la classe non vede niente di diverso.</p>
+  <p class="nota-s">Cosa fare quando arriva: avvisare subito il prof di quella classe o il referente del benessere. Può essere anche uno scherzo: come verificarlo lo decide la scuola. Per vedere gli avvisi serve un PIN, perché da questo computer passano tante persone.</p>
+  <div class="t-riga"><span class="av-stato" id="avStato">…</span></div>
+  <div id="avBox"></div>
+  <div class="av-msg" id="avMsg"></div>
+  </div>
+
+  <div class="t-sez" id="sezParole">
+  <h2>🧩 Parole d'allarme</h2>
+  <p class="spiega">Fly Aula riconosce già da sola tante frasi di chi sta male. Qui potete aggiungerne altre, per esempio i modi di dire dei vostri ragazzi. Valgono su tutte le LIM entro 10 minuti.</p>
+  <p class="nota-s">Attenzione alle frasi troppo comuni: «non ce la faccio più» scatta anche per «non ce la faccio più con questo esercizio». Provatele prima nella casella qui sotto.</p>
+  <p class="nota-s" style="margin-bottom:6px">Già comprese (esempi):</p>
+  <div id="prGia"></div>
+  <p class="nota-s" style="margin:12px 0 6px">Aggiunte dalla scuola:</p>
+  <div id="prMie"></div>
+  <div class="t-riga"><input id="prNuova" placeholder="Nuova frase (es. non ce la faccio più)" maxlength="60"><button class="btn" id="prAggiungi">➕ Aggiungi</button><span id="prSalvato" class="nota-s"></span></div>
+  <div class="t-riga"><input id="prProva" placeholder="Prova una frase: scrivila come la scriverebbe un ragazzo" maxlength="200" style="flex:1;min-width:300px"><button class="btn sec" id="prProvaVia">🔎 Prova</button></div>
+  <div class="pr-esito" id="prEsito"></div>
+  </div>
+
+  <div class="t-sez" id="sezErrori">
+  <h2>👎 Errori di Fly Aula</h2>
+  <p class="spiega">Gli errori di <b>tutte le LIM</b>: quelli che Fly Aula ha trovato e corretto da sola prima di mostrare la risposta (conti, fatti, ricontrollo) e quelli che un prof ha segnalato con 👎. Servono a capire dove migliorarla. Le frasi personali degli alunni qui non arrivano mai.</p>
+  <div class="er-carte" id="erCarte"></div>
+  <div class="t-riga"><select id="erTipo"><option value="">Tutti gli errori</option><option value="prof">👎 Segnalati dai prof</option><option value="auto">✅ Corretti da Fly Aula</option><option value="tec">⚙️ Tecnici (cervello, scheda video)</option></select><select id="erAula"><option value="">Tutte le aule</option></select>
+  <button class="btn sec" id="erCsv">⬇️ Scarica (Excel)</button><button class="btn sec" id="erVia">🧹 Svuota</button></div>
+  <div class="er-scorri" id="erBox"></div>
+  </div>
 
   <h2>🏫 Scuola e server di riserva</h2>
   <div class="t-riga"><input id="tNome" placeholder="Nome della scuola" maxlength="60"><input id="tRiserva" placeholder="Indirizzo del server di riserva (es. 192.168.1.21)"><button class="btn" id="tSalva">💾 Salva</button><span id="tSalvato" class="nota-s"></span></div>
@@ -71,6 +128,7 @@ code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
 </div>
 <script src="qr.js"></script>
 <script src="orario.js"></script>
+<script src="sicurezza.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -220,8 +278,151 @@ $("tProva").onclick = async () => {
   disegna(stima);
   $("tProva").style.display = ""; $("tStop").style.display = "none";
 };
-stato();
+// ======================= 🔔 AVVISI =======================
+// il PIN resta solo in questa pagina (mai salvato) e si richiude da solo dopo 10 minuti senza toccare niente
+let avPin = "", avAperti = false, avUltimoTocco = 0, avNuovi = -1, avInfo = { nuovi: 0, attivi: false, pin: false };
+const avMsg = (t, cl = "") => { $("avMsg").className = "av-msg " + cl; $("avMsg").textContent = t; };
+const avPost = (u, corpo) => fetch(u, { method: "POST", headers: { "Content-Type": "application/json", ...(avPin ? { "X-FlyAula-Pin": avPin } : {}) }, body: JSON.stringify(corpo) });
+const avErrore = async r => { let j = {}; try { j = await r.json(); } catch (e) {} return j.errore === "bloccato" ? `⛔ Troppi PIN sbagliati: riprova tra ${Math.ceil((j.secondi || 300) / 60)} minuti.` : j.errore === "pin" ? (j.resta ? `PIN sbagliato (ancora ${j.resta} tentativi).` : "PIN sbagliato.") : "Non riuscito."; };
+function suona() {   // tre note brevi, gentili ma che si sentono
+  try { const a = new (window.AudioContext || window.webkitAudioContext)(); [0, .22, .44].forEach((t, i) => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = [660, 880, 660][i]; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.0001, a.currentTime + t); g.gain.exponentialRampToValueAtTime(.25, a.currentTime + t + .03); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t + .2); o.start(a.currentTime + t); o.stop(a.currentTime + t + .22); }); } catch (e) {}
+}
+async function avControlla() {
+  try { avInfo = await json("/fa/avvisi-nuovi"); } catch (e) { return; }
+  const n = avInfo.nuovi;
+  if (n > avNuovi && avNuovi >= 0) suona();
+  avNuovi = n;
+  $("avAllarme").classList.toggle("on", n > 0);
+  $("avAllarmeTesto").textContent = n === 1 ? "🔔 C'è 1 avviso nuovo: un alunno potrebbe stare male." : `🔔 Ci sono ${n} avvisi nuovi: alcuni alunni potrebbero stare male.`;
+  document.title = (n ? `🔔 (${n}) ` : "") + "Fly Aula · Tecnico";
+  $("avStato").className = "av-stato" + (avInfo.attivi ? " acceso" : "");
+  $("avStato").textContent = avInfo.attivi ? "🟢 Avvisi accesi" : "⚪ Avvisi spenti";
+  if (avAperti) { if (Date.now() - avUltimoTocco > 10 * 60000) avChiudi(); else if (!(document.activeElement && document.activeElement.id === "avCambia")) avElenco(); }
+  else avDisegna();
+}
+function avDisegna() {
+  if (!avInfo.pin) {
+    $("avBox").innerHTML = `<p class="nota-s">Per accenderli scegliete un PIN di 4-6 cifre: servirà per leggerli, spegnerli o cambiarlo.</p>
+      <div class="t-riga"><input id="avNuovo" type="password" inputmode="numeric" maxlength="6" placeholder="Nuovo PIN (4-6 cifre)"><input id="avNuovo2" type="password" inputmode="numeric" maxlength="6" placeholder="Ripeti il PIN"><button class="btn" id="avAccendi">🔒 Imposta il PIN e accendi</button></div>`;
+    $("avAccendi").onclick = async () => {
+      const a = $("avNuovo").value.trim(), b = $("avNuovo2").value.trim();
+      if (!/^\d{4,6}$/.test(a)) return avMsg("Il PIN deve avere da 4 a 6 cifre.", "ko");
+      if (a !== b) return avMsg("I due PIN non sono uguali.", "ko");
+      const r = await avPost("/fa/avvisi-imposta", { nuovo: a, attivi: true });
+      if (!r.ok) return avMsg(await avErrore(r), "ko");
+      avPin = a; avAperti = true; avUltimoTocco = Date.now(); avMsg("✓ PIN salvato, avvisi accesi. Scrivetelo in un posto sicuro: non si può rivedere.", "ok"); avControlla();
+    };
+    return;
+  }
+  if (!avAperti) {
+    $("avBox").innerHTML = `<div class="t-riga"><input id="avPinIn" type="password" inputmode="numeric" maxlength="6" placeholder="PIN degli avvisi"><button class="btn" id="avApri">🔓 Apri gli avvisi</button></div>`;
+    const apri = async () => {
+      const pin = $("avPinIn").value.trim(); if (!pin) return $("avPinIn").focus();
+      const r = await fetch("/fa/avvisi", { cache: "no-store", headers: { "X-FlyAula-Pin": pin } });
+      if (!r.ok) { $("avPinIn").value = ""; return avMsg(await avErrore(r), "ko"); }
+      avPin = pin; avAperti = true; avUltimoTocco = Date.now(); avMsg(""); avTabella(await r.json());
+    };
+    $("avApri").onclick = apri; $("avPinIn").onkeydown = e => { if (e.key === "Enter") apri(); };
+  }
+}
+function avChiudi() { avPin = ""; avAperti = false; avMsg(""); avDisegna(); }
+async function avElenco() {
+  const r = await fetch("/fa/avvisi", { cache: "no-store", headers: { "X-FlyAula-Pin": avPin } });
+  if (!r.ok) { avChiudi(); return; }
+  avTabella(await r.json());
+}
+function avTabella(l) {
+  const nuovi = l.filter(x => !x.visto).length;
+  $("avBox").innerHTML = (l.length ? `<table class="av-tab" id="avTab"><thead><tr><th>Quando</th><th>Aula</th><th>Classe</th><th>Materia</th><th>Volte</th><th></th></tr></thead><tbody>${l.map(x => `<tr class="${x.visto ? "" : "nuovo"}"><td><b>${esc(x.quando)}</b></td><td>${esc(x.aula || "—")}</td><td>${esc(x.classe || "—")}</td><td>${esc(x.materia || "—")}</td><td>${x.volte > 1 ? x.volte + " volte" : "1"}</td>
+      <td>${x.visto ? `<span class="nota-s">✓ visto</span>` : `<button class="btn" data-visto="${esc(x.id)}">✓ Visto, ho avvisato</button>`}</td></tr>`).join("")}</tbody></table>`
+      : `<p class="nota-s">Nessun avviso. 🙂</p>`)
+    + `<div class="t-riga" style="margin-top:14px">${nuovi > 1 ? `<button class="btn sec" id="avTutti">✓ Tutti visti</button>` : ""}${l.length ? `<button class="btn sec" id="avSvuota">🧹 Svuota l'elenco</button>` : ""}
+      <button class="btn sec" id="avOnOff">${avInfo.attivi ? "⏸️ Spegni gli avvisi" : "▶️ Accendi gli avvisi"}</button>
+      <input id="avCambia" type="password" inputmode="numeric" maxlength="6" placeholder="Nuovo PIN" style="min-width:150px"><button class="btn sec" id="avCambiaVia">🔑 Cambia PIN</button>
+      <button class="btn sec" id="avChiudi">🔒 Chiudi</button></div>`;
+  const tocca = () => { avUltimoTocco = Date.now(); };
+  const fai = async corpo => { tocca(); const r = await avPost("/fa/avvisi", corpo); if (r.ok) { avTabella(await r.json()); avControlla(); } else avMsg(await avErrore(r), "ko"); };
+  $("avBox").querySelectorAll("[data-visto]").forEach(b => b.onclick = () => fai({ azione: "visto", id: b.dataset.visto }));
+  if ($("avTutti")) $("avTutti").onclick = () => fai({ azione: "tutti" });
+  if ($("avSvuota")) $("avSvuota").onclick = e => { if (e.target.dataset.sicuro !== "1") { e.target.dataset.sicuro = "1"; e.target.textContent = "Sicuro? Clicca di nuovo"; return; } fai({ azione: "svuota" }); };
+  $("avOnOff").onclick = async () => { tocca(); const r = await avPost("/fa/avvisi-imposta", { vecchio: avPin, attivi: !avInfo.attivi }); if (r.ok) { avMsg(avInfo.attivi ? "Avvisi spenti: le LIM non li mandano più." : "✓ Avvisi accesi.", "ok"); avControlla(); } else avMsg(await avErrore(r), "ko"); };
+  $("avCambiaVia").onclick = async () => {
+    tocca(); const n = $("avCambia").value.trim();
+    if (!/^\d{4,6}$/.test(n)) return avMsg("Il nuovo PIN deve avere da 4 a 6 cifre.", "ko");
+    const r = await avPost("/fa/avvisi-imposta", { vecchio: avPin, nuovo: n });
+    if (r.ok) { avPin = n; $("avCambia").value = ""; avMsg("✓ PIN cambiato.", "ok"); } else avMsg(await avErrore(r), "ko");
+  };
+  $("avChiudi").onclick = avChiudi;
+}
+$("avVai").onclick = () => { $("sezAvvisi").scrollIntoView({ behavior: "smooth" }); setTimeout(() => $("avPinIn") && $("avPinIn").focus(), 400); };
+document.addEventListener("click", () => { if (avAperti) avUltimoTocco = Date.now(); });
+
+// ======================= 🧩 PAROLE D'ALLARME =======================
+const GIA = ["voglio morire", "farla finita", "farmi del male", "mi voglio uccidere", "non voglio più vivere", "mi picchiano", "mi fanno del male", "bullismo", "mi prendono in giro", "nessuno mi vuole", "mi odio", "mi sento solo", "sono triste", "sono depresso", "mi minacciano", "mi ricattano", "ho paura di tornare a casa"];
+let parole = [], prTimer = 0;
+const prNota = (t, sparisce) => { clearTimeout(prTimer); $("prSalvato").textContent = t; if (sparisce) prTimer = setTimeout(() => $("prSalvato").textContent = "", 2500); };
+$("prGia").innerHTML = GIA.map(x => `<span class="chip">${esc(x)}</span>`).join("");
+function prDisegna() {
+  impostaParoleAllarme(parole);
+  $("prMie").innerHTML = parole.length ? parole.map((x, i) => `<span class="chip mia">${esc(x)}<button title="Togli" data-i="${i}">✕</button></span>`).join("") : `<span class="nota-s">Nessuna per ora.</span>`;
+  $("prMie").querySelectorAll("[data-i]").forEach(b => b.onclick = () => prSalva(parole.filter((_, i) => i !== +b.dataset.i)));
+}
+async function prSalva(nuove) {
+  const r = await fetch("/fa/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ parole: nuove }) });
+  if (!r.ok) { prNota("⚠️ Non salvata: da 3 a 60 lettere, senza simboli strani (massimo 50 frasi)."); return false; }
+  try { const x = (await json("/fa/scuola")).parole; parole = x ? JSON.parse(x) : []; } catch (e) { parole = nuove; }
+  prDisegna(); prNota("✓ Salvato", true);
+  return true;
+}
+$("prAggiungi").onclick = async () => {
+  const t = $("prNuova").value.replace(/\s+/g, " ").trim().toLowerCase(); if (!t) return $("prNuova").focus();
+  if (parole.includes(t)) return prNota("C'è già.", true);
+  if (await prSalva([...parole, t])) $("prNuova").value = "";
+};
+$("prNuova").onkeydown = e => { if (e.key === "Enter") $("prAggiungi").click(); };
+const prova = () => {
+  const t = $("prProva").value.trim(); if (!t) return;
+  const r = controllaDomanda(t, "");
+  $("prEsito").innerHTML = r.motivo === "aiuto" ? `🟡 <b>Sì</b>: Fly Aula risponde con il messaggio di aiuto${avInfo.attivi ? " e qui arriva l'avviso" : " (avvisi spenti: qui non arriva niente)"}.`
+    : r.ok ? `⚪ <b>No</b>: per Fly Aula è una domanda normale. Se dovrebbe essere un allarme, aggiungetela qui sopra.`
+    : `🛡️ Non è un allarme, ma Fly Aula la ferma lo stesso (${esc(r.motivo)}): «${esc(r.risposta)}»`;
+};
+$("prProvaVia").onclick = prova; $("prProva").onkeydown = e => { if (e.key === "Enter") prova(); };
+(async () => { try { const x = (await json("/fa/scuola")).parole; parole = x ? JSON.parse(x) : []; } catch (e) {} prDisegna(); })();
+
+// ======================= 👎 ERRORI DI FLY AULA =======================
+let errori = [];
+const genere = t => /Segnalato dal prof/.test(t) ? "prof" : /Cervello|Scheda video|lento/i.test(t) ? "tec" : "auto";
+async function erCarica() {
+  try { errori = await json("/fa/errori"); } catch (e) { errori = []; }
+  const aule = [...new Set(errori.map(x => x.aula).filter(Boolean))].sort(), sel = $("erAula").value;
+  $("erAula").innerHTML = `<option value="">Tutte le aule</option>` + aule.map(a => `<option ${a === sel ? "selected" : ""}>${esc(a)}</option>`).join("");
+  erDisegna();
+}
+function erFiltrati() { const t = $("erTipo").value, a = $("erAula").value; return errori.filter(x => (!t || genere(x.tipo) === t) && (!a || x.aula === a)); }
+function erDisegna() {
+  const c = g => errori.filter(x => genere(x.tipo) === g).length, carta = (t, v, cl = "") => `<div class="t-carta ${cl}"><span>${t}</span><b>${v}</b></div>`;
+  $("erCarte").innerHTML = carta("👎 Segnalati dai prof", c("prof"), c("prof") ? "ko" : "ok") + carta("✅ Corretti da Fly Aula", c("auto"), "ok") + carta("⚙️ Tecnici", c("tec"), c("tec") ? "ko" : "") + carta("LIM coinvolte", new Set(errori.map(x => x.aula)).size);
+  const l = erFiltrati(), etich = { prof: "prof", auto: "auto", tec: "tec" };
+  $("erBox").innerHTML = l.length ? `<table class="er-tab" id="erTab"><thead><tr><th>Quando</th><th>Aula · classe</th><th>Materia</th><th>Tipo</th><th>Domanda</th><th>Cosa è successo</th></tr></thead><tbody>${l.slice(0, 300).map(x => `<tr><td>${esc(x.quando)}</td><td><b>${esc(x.aula || "—")}</b>${x.classe ? " · " + esc(x.classe) : ""}</td><td>${esc(x.materia)}</td><td><span class="er-tipo ${etich[genere(x.tipo)]}">${esc(x.tipo)}</span></td><td class="d">${esc(x.domanda)}</td><td class="d">${esc(x.dettaglio)}</td></tr>`).join("")}</tbody></table>${l.length > 300 ? `<p class="nota-s">Qui i 300 più recenti: tutti gli altri sono nel file da scaricare.</p>` : ""}`
+    : `<p class="nota-s">${errori.length ? "Nessun errore con questi filtri." : "Ancora nessun errore arrivato dalle LIM. 🙂"}</p>`;
+}
+$("erTipo").onchange = erDisegna; $("erAula").onchange = erDisegna;
+$("erCsv").onclick = () => {
+  const cella = v => `"${String(v ?? "").replace(/"/g, '""')}"`, campi = ["quando", "aula", "classe", "livello", "materia", "modello", "tipo", "domanda", "dettaglio"];
+  const csv = "\ufeff" + [campi.join(";"), ...erFiltrati().map(x => campi.map(k => cella(x[k])).join(";"))].join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = "flyaula-errori.csv"; a.click();
+};
+$("erVia").onclick = async e => {
+  if (e.target.dataset.sicuro !== "1") { e.target.dataset.sicuro = "1"; e.target.textContent = "Sicuro? Clicca di nuovo"; return; }
+  e.target.dataset.sicuro = ""; e.target.textContent = "🧹 Svuota";
+  await fetch("/fa/errori", { method: "DELETE" }); erCarica();
+};
+
+stato(); avControlla(); erCarica();
 setInterval(stato, 30000);
+setInterval(avControlla, 15000);
+setInterval(erCarica, 60000);
 </script>
 </body>
 </html>

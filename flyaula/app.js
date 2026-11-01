@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.13 · il programma
+//  FLY AULA v0.9.14 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -198,11 +198,20 @@ let domandaCorrente = "";
 function registro() { try { return JSON.parse(leggi("flyaula_errori") || "[]"); } catch (e) { return []; } }
 function statistiche() { try { return JSON.parse(leggi("flyaula_stat") || "{}"); } catch (e) { return {}; } }
 function conta(campo, n = 1) { const s = statistiche(); s[campo] = (s[campo] || 0) + n; scrivi("flyaula_stat", JSON.stringify(s)); }
-function annotaErrore(tipo, dettaglio, domanda = domandaCorrente) {
+function annotaErrore(tipo, dettaglio, domanda = domandaCorrente, alServer = true) {
   const r = registro();
-  r.unshift({ quando: new Date().toLocaleString("it-IT"), classe: $("classe").value, livello: $("livello").value, materia: MATERIE[$("materia").value].nome, modello, tipo, domanda: String(domanda).slice(0, 200), dettaglio: String(dettaglio).slice(0, 400) });
+  const e = { quando: new Date().toLocaleString("it-IT"), classe: $("classe").value, livello: $("livello").value, materia: MATERIE[$("materia").value].nome, modello, tipo, domanda: String(domanda).slice(0, 200), dettaglio: String(dettaglio).slice(0, 400) };
+  r.unshift(e);
   scrivi("flyaula_errori", JSON.stringify(r.slice(0, 500)));
   $("nErrori").textContent = r.length;
+  // 👎 anche al server (pagina del server → "Errori di Fly Aula"), così si vedono quelli di TUTTE le LIM. Durante le prove no.
+  if (alServer && !inProva()) fetch("/fa/errore?" + Scuola.parAula(), { method: "POST", headers: { "Content-Type": "application/json", ...intestazioniMemoria() }, body: JSON.stringify(e) }).catch(() => {});
+}
+function inProva() { try { return esameAttivo || (typeof Precisione !== "undefined" && Precisione.attiva) || (typeof Trappole !== "undefined" && Trappole.attiva); } catch (e) { return false; } }
+// 🔔 un alunno ha scritto che sta male: al server arrivano SOLO classe, materia e ora (mai la frase), se la scuola ha acceso gli avvisi
+function mandaAvviso() {
+  if (inProva()) return;
+  fetch("/fa/avviso?" + Scuola.parAula(), { method: "POST", headers: { "Content-Type": "application/json", ...intestazioniMemoria() }, body: JSON.stringify({ classe: $("classe").value, materia: MATERIE[$("materia").value].nome }) }).catch(() => {});
 }
 function disegnaRegistro() {
   const r = registro(), s = statistiche();
@@ -445,13 +454,14 @@ async function chiedi(domanda, speciale = {}) {
   aggiungi("io", escape(domanda));
   if (!sic.ok) {
     aggiungi("ai", escape(sic.risposta));
-    annotaErrore("Bloccata dalla sicurezza", sic.motivo, sic.motivo === "aiuto" ? "(domanda personale: non salvata)" : sic.motivo === "dati" ? "(dati personali: non salvati)" : domanda);
+    annotaErrore("Bloccata dalla sicurezza", sic.motivo, sic.motivo === "aiuto" ? "(domanda personale: non salvata)" : sic.motivo === "dati" ? "(dati personali: non salvati)" : domanda, false);
+    if (sic.motivo === "aiuto") mandaAvviso();
     return;
   }
   const vietata = Prof.bloccata(domanda);
   if (vietata) {
     aggiungi("ai", "Oggi il prof ha chiesto di non parlare di questo 🙂 Torniamo alla lezione!");
-    annotaErrore("Bloccata dal prof", `parola vietata oggi: "${vietata}"`, domanda);
+    annotaErrore("Bloccata dal prof", `parola vietata oggi: "${vietata}"`, domanda, false);
     return;
   }
   occupato = true; $("invia").disabled = true; Voce.zitto();
@@ -1270,6 +1280,7 @@ function benvenuto() {
 
 schermataIniziale();
 Scuola.avvia().then(() => {
+  impostaParoleAllarme(Scuola.paroleAllarme);
   if (Scuola.aula && Scuola.ruolo !== "singolo") { $("classe").value = Scuola.aula.slice(0, 8); $("classeNota").textContent = `Aula ${Scuola.aula} · collegata al server della scuola. Classe e materia arrivano dall'orario.`; }
   aggiornaOrario();
   return controlla();

@@ -20,10 +20,10 @@ Remove-Item $PAG -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $PAG, $ORARI, $MEMO, $PROFD | Out-Null
 
 function LeggiConfig {
-  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = ''; materie = '' }
+  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = ''; materie = ''; parole = ''; avvisi = ''; pinavvisi = '' }
   try {
     $j = [IO.File]::ReadAllText($CFGF, $UTF8) | ConvertFrom-Json
-    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2', 'codicelim', 'materie') { if ($j.$k) { $c[$k] = [string]$j.$k } }
+    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2', 'codicelim', 'materie', 'parole', 'avvisi', 'pinavvisi') { if ($j.$k) { $c[$k] = [string]$j.$k } }
   } catch {}
   return $c
 }
@@ -107,6 +107,41 @@ function CodiceDi($aula) {
   if (-not $CODICI.ContainsKey($aula)) { $CODICI[$aula] = -join (1..6 | ForEach-Object { Get-Random -Minimum 0 -Maximum 10 }) }
   return $CODICI[$aula]
 }
+# ---- avvisi "un alunno sta male" (solo classe e ora, MAI la frase) ed errori di Fly Aula da tutte le LIM ----
+$AVVF = Join-Path $DIR 'avvisi.json'
+$ERRF = Join-Path $DIR 'errori.jsonl'
+$TENTAV = @{ n = 0; fino = [DateTime]::MinValue }
+function LeggiLista($f) { try { $j = [IO.File]::ReadAllText($f, $UTF8) | ConvertFrom-Json; return @($j | ForEach-Object { $_ }) } catch { return @() } }
+function SalvaLista($f, $l, [int]$max) { $a = @($l); if ($a.Count -gt $max) { $a = $a[0..($max - 1)] }; [IO.File]::WriteAllText($f, (ConvertTo-Json -InputObject $a -Depth 4 -Compress), $UTF8) }
+function Corto($x, [int]$n) { $s = ''; if ($null -ne $x) { $s = [string]$x }; $s = $s -replace '[\x00-\x1f]', ' '; if ($s.Length -gt $n) { $s = $s.Substring(0, $n) }; return $s }
+function Adesso { return (Get-Date).ToString('dd\/MM\/yyyy HH:mm') }
+function Ms { return [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() }
+function SiNo($x) { if ($x) { return 'true' } else { return 'false' } }
+# PIN della pagina avvisi: $null = giusto, altrimenti @(stato, risposta). 5 errori = 5 minuti di blocco
+function PinAvvisi([string]$pin) {
+  $ora = [DateTime]::UtcNow
+  if (-not $CFG.pinavvisi) { return @(403, '{"errore":"nopin"}') }
+  if ($TENTAV.fino -gt $ora) { return @(429, ('{"errore":"bloccato","secondi":' + [int](($TENTAV.fino - $ora).TotalSeconds + 1) + '}')) }
+  if (-not $pin) { return @(403, '{"errore":"pin"}') }
+  $pz = $CFG.pinavvisi.Split(':')
+  if ((PinValido $pin) -and ((HashPin $pin $pz[0]) -eq $pz[1])) { $TENTAV.n = 0; return $null }
+  $TENTAV.n++
+  if ($TENTAV.n -ge 5) { $TENTAV.n = 0; $TENTAV.fino = $ora.AddMinutes(5); return @(429, '{"errore":"bloccato","secondi":300}') }
+  return @(403, ('{"errore":"pin","resta":' + (5 - $TENTAV.n) + '}'))
+}
+# le parole d'allarme aggiunte dalla scuola: '' = nessuna, $null = non valide
+function ParoleOk($l) {
+  $a = @($l)
+  if ($a.Count -gt 50) { return $null }
+  $out = New-Object Collections.Generic.List[string]
+  foreach ($x in $a) {
+    $s = (([string]$x) -replace '\s+', ' ').Trim().ToLowerInvariant()
+    if ($s.Length -lt 3 -or $s.Length -gt 60 -or $s -match '[<>{}\\\[\]]') { return $null }
+    if (-not $out.Contains($s)) { $out.Add($s) }
+  }
+  if ($out.Count -eq 0) { return '' }
+  return (ConvertTo-Json -InputObject $out.ToArray() -Compress)
+}
 function CartellaPagine($aula) { $p = Join-Path $PAG $aula; New-Item -ItemType Directory -Force -Path $p | Out-Null; return $p }
 
 $ascolta = New-Object Net.HttpListener
@@ -158,7 +193,7 @@ while ($ascolta.IsListening) {
 
     if ($p -eq '/fa/scuola' -and $daRete) {
       $par = [Environment]::GetEnvironmentVariable('OLLAMA_NUM_PARALLEL', 'User')
-      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; materie = $CFG.materie; vram = $VRAM; marca = $SCHEDA.marca; scheda = $SCHEDA.nome; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
+      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; materie = $CFG.materie; parole = $CFG.parole; avvisi = $CFG.avvisi; vram = $VRAM; marca = $SCHEDA.marca; scheda = $SCHEDA.nome; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
     }
     elseif ($p -eq '/fa/config' -and $locale) {
       if ($q.HttpMethod -eq 'POST') {
@@ -170,10 +205,97 @@ while ($ascolta.IsListening) {
           if ($null -ne $j.cervello) { $CFG.cervello = (([string]$j.cervello) -replace '[^\w\.\-:]', '') }
           if ($null -ne $j.cervello2) { $CFG.cervello2 = (([string]$j.cervello2) -replace '[^\w\.\-:]', '') }
           if ($null -ne $j.materie) { $m = [string]$j.materie; if ($m.Length -le 3000 -and $m -match '^[\w\.\-:{}",]*$') { $CFG.materie = $m } }
-          SalvaConfig $CFG
-          Testo $ctx 200 '{"ok":true}'
+          $parOk = $true
+          if ($null -ne $j.parole) { $pl = ParoleOk $j.parole; if ($null -eq $pl) { $parOk = $false } else { $CFG.parole = $pl } }
+          if ($parOk) { SalvaConfig $CFG; Testo $ctx 200 '{"ok":true}' } else { Testo $ctx 400 '{"errore":"parole"}' }
         } catch { Testo $ctx 400 '{"errore":"json"}' }
-      } else { Testo $ctx 200 ($CFG | ConvertTo-Json -Compress) }
+      } else { $c2 = $CFG.Clone(); $c2.Remove('pinavvisi'); Testo $ctx 200 ($c2 | ConvertTo-Json -Compress) }
+    }
+    elseif ($p -eq '/fa/avviso' -and $daRete -and $q.HttpMethod -eq 'POST') {
+      # una LIM ha visto una frase di disagio: arriva solo classe, aula e ora (se la scuola ha acceso gli avvisi)
+      if (-not ($locale -or ([string]$q.Headers['X-FlyAula-Codice'] -eq $CFG.codicelim))) { Testo $ctx 403 '{"errore":"codice"}' }
+      elseif ($CFG.avvisi -ne '1' -or -not $CFG.pinavvisi) { Testo $ctx 200 '{"ok":false,"spenti":true}' }
+      else {
+        $b = Corpo $q 2000
+        if ($null -eq $b) { Testo $ctx 413 '{}' }
+        else {
+          if (-not $b) { $b = '{}' }
+          $j = $null; try { $j = $b | ConvertFrom-Json } catch {}
+          if ($j -isnot [Management.Automation.PSCustomObject]) { Testo $ctx 400 '{"errore":"json"}' }
+          else {
+            $l = @(LeggiLista $AVVF); $ora = Ms; $nome = Corto $q.QueryString['aula'] 20; $classe = Corto $j.classe 20
+            if ($l.Count -and $l[0].aula -eq $nome -and $l[0].classe -eq $classe -and -not $l[0].visto -and ($ora - [long]$l[0].t) -lt 600000) { $l[0].volte = [int]$l[0].volte + 1; $l[0].t = $ora; $l[0].quando = Adesso }
+            else { $l = @([pscustomobject]@{ id = (Casuale 4); t = $ora; quando = (Adesso); aula = $nome; classe = $classe; materia = (Corto $j.materia 30); volte = 1; visto = $false }) + $l }
+            SalvaLista $AVVF $l 300
+            Testo $ctx 200 '{"ok":true}'
+          }
+        }
+      }
+    }
+    elseif ($p -eq '/fa/avvisi-nuovi' -and $locale) {
+      $n = @(LeggiLista $AVVF | Where-Object { -not $_.visto }).Count
+      Testo $ctx 200 ('{"nuovi":' + $n + ',"attivi":' + (SiNo ($CFG.avvisi -eq '1')) + ',"pin":' + (SiNo $CFG.pinavvisi) + '}')
+    }
+    elseif ($p -eq '/fa/avvisi' -and $locale) {
+      $e = PinAvvisi ([string]$q.Headers['X-FlyAula-Pin'])
+      if ($e) { Testo $ctx $e[0] $e[1] }
+      else {
+        $l = @(LeggiLista $AVVF); $ok = $true
+        if ($q.HttpMethod -eq 'POST') {
+          $j = $null; try { $j = (Corpo $q 2000) | ConvertFrom-Json } catch {}
+          $a = ''; $idv = ''; if ($null -ne $j) { $a = [string]$j.azione; $idv = [string]$j.id }
+          if ($a -eq 'visto') { foreach ($x in $l) { if ($x.id -eq $idv) { $x.visto = $true } } }
+          elseif ($a -eq 'tutti') { foreach ($x in $l) { $x.visto = $true } }
+          elseif ($a -eq 'svuota') { $l = @() }
+          else { $ok = $false }
+          if ($ok) { SalvaLista $AVVF $l 300 }
+        }
+        if ($ok) { Testo $ctx 200 (ConvertTo-Json -InputObject @($l) -Depth 4 -Compress) } else { Testo $ctx 400 '{"errore":"azione"}' }
+      }
+    }
+    elseif ($p -eq '/fa/avvisi-imposta' -and $locale -and $q.HttpMethod -eq 'POST') {
+      $j = $null; try { $j = (Corpo $q 2000) | ConvertFrom-Json } catch {}
+      if ($j -isnot [Management.Automation.PSCustomObject]) { $j = [pscustomobject]@{ vuoto = 1 } }
+      $e = $null; if ($CFG.pinavvisi) { $e = PinAvvisi ([string]$j.vecchio) }
+      if ($e) { Testo $ctx $e[0] $e[1] }
+      elseif ($null -ne $j.nuovo -and -not (PinValido ([string]$j.nuovo))) { Testo $ctx 400 '{"errore":"pin"}' }
+      elseif ($j.attivi -eq $true -and -not $CFG.pinavvisi -and $null -eq $j.nuovo) { Testo $ctx 400 '{"errore":"nopin"}' }
+      else {
+        if ($null -ne $j.nuovo) { $sale = Casuale 16; $CFG.pinavvisi = $sale + ':' + (HashPin ([string]$j.nuovo) $sale) }
+        if ($null -ne $j.attivi) { if ($j.attivi -eq $true) { $CFG.avvisi = '1' } else { $CFG.avvisi = '' } }
+        SalvaConfig $CFG
+        Testo $ctx 200 ('{"ok":true,"attivi":' + (SiNo ($CFG.avvisi -eq '1')) + ',"pin":' + (SiNo $CFG.pinavvisi) + '}')
+      }
+    }
+    elseif ($p -eq '/fa/errore' -and $daRete -and $q.HttpMethod -eq 'POST') {
+      # gli errori che Fly Aula ha fatto (e corretto) o che un prof ha segnalato, da tutte le LIM
+      if (-not ($locale -or ([string]$q.Headers['X-FlyAula-Codice'] -eq $CFG.codicelim))) { Testo $ctx 403 '{"errore":"codice"}' }
+      else {
+        $b = Corpo $q 4000
+        if ($null -eq $b) { Testo $ctx 413 '{}' }
+        else {
+          if (-not $b) { $b = '{}' }
+          $j = $null; try { $j = $b | ConvertFrom-Json } catch {}
+          if ($j -isnot [Management.Automation.PSCustomObject]) { Testo $ctx 400 '{"errore":"json"}' }
+          else {
+            $er = [ordered]@{}
+            foreach ($k in @(@('quando', 40), @('classe', 20), @('livello', 20), @('materia', 30), @('modello', 40), @('tipo', 60), @('domanda', 200), @('dettaglio', 400))) { $er[$k[0]] = Corto $j.($k[0]) $k[1] }
+            $er.aula = Corto $q.QueryString['aula'] 20; $er.t = Ms
+            # una riga per errore (veloce anche con tante LIM); oltre 800 KB si tengono gli ultimi 1000
+            [IO.File]::AppendAllText($ERRF, (ConvertTo-Json -InputObject $er -Compress) + "`n", $UTF8)
+            if ((Get-Item $ERRF).Length -gt 800000) { $r = @([IO.File]::ReadAllLines($ERRF, $UTF8) | Where-Object { $_.Trim() }); if ($r.Count -gt 1000) { $r = $r[($r.Count - 1000)..($r.Count - 1)] }; [IO.File]::WriteAllText($ERRF, (($r -join "`n") + "`n"), $UTF8) }
+            Testo $ctx 200 '{"ok":true}'
+          }
+        }
+      }
+    }
+    elseif ($p -eq '/fa/errori' -and $locale) {
+      if ($q.HttpMethod -eq 'DELETE') { [IO.File]::WriteAllText($ERRF, '', $UTF8); Testo $ctx 200 '{"ok":true}' }
+      else {
+        $r = @(); if (Test-Path $ERRF) { $r = @([IO.File]::ReadAllLines($ERRF, $UTF8) | Where-Object { $_.Trim() }) }
+        [array]::Reverse($r)
+        Testo $ctx 200 ('[' + ($r -join ',') + ']')
+      }
     }
     elseif ($p -eq '/fa/orari' -and $locale) {
       $nomi = @(Get-ChildItem $ORARI -Filter '*.json' | ForEach-Object { $_.BaseName })

@@ -76,8 +76,14 @@ const TRUCCHI = [/ignora (le|tutte le|i|ogni|qualsiasi) (tue )?(istruzion|regol)
 const AIUTO_PERSONALE = /\b(suicid|uccidermi|ammazzarmi|farmi del male|farla finita|tagliarmi|autolesion|mi picchia|mi picchiano|mi fanno del male|bullismo|bullizz|voglio morire|vorrei morire|non voglio (più )?vivere|mi voglio uccidere|mi odio|nessuno mi vuole|mi prendono (sempre )?in giro|ho paura di tornare a casa|mi sento (sempre )?(solo|sola|inutile)|sono (molto |così |sempre )?(triste|depress\w*)|mi minaccia\w*|mi ricatta\w*)/i;
 const RISPOSTA_AIUTO = "💛 Grazie per averlo scritto. Questa è una cosa importante: parlane subito con il prof o con un adulto di cui ti fidi. Non sei da solo. Puoi chiamare anche Telefono Azzurro al 19696 (gratis); se c'è un pericolo adesso, il 112.";
 
+// 🧩 frasi d'allarme aggiunte dalla scuola (pagina del server): valgono come quelle qui sopra
+let PAROLE_ALLARME = [];
+const normaFrase = t => " " + String(t).toLowerCase().replace(/[^\p{L}\p{N}']+/gu, " ").trim() + " ";
+function impostaParoleAllarme(l) { PAROLE_ALLARME = (Array.isArray(l) ? l : []).map(normaFrase).filter(x => x.trim().length >= 3); }
+function haParoleAllarme(testo) { const t = normaFrase(testo); return PAROLE_ALLARME.some(p => t.includes(p)); }
+
 function controllaDomanda(testo, materia = "") {
-  if (AIUTO_PERSONALE.test(testo)) return { ok: false, motivo: "aiuto", risposta: RISPOSTA_AIUTO };
+  if (AIUTO_PERSONALE.test(testo) || haParoleAllarme(testo)) return { ok: false, motivo: "aiuto", risposta: RISPOSTA_AIUTO };
   if (TRUCCHI.some(r => r.test(testo))) return { ok: false, motivo: "trucco", risposta: "Sono l'assistente della lezione: torniamo alla materia 😊" };
   if (haVietate(testo, materia)) return { ok: false, motivo: "vietato", risposta: "Questa domanda non è adatta alla lezione. Torniamo alla materia 😊" };
   for (const r of RICHIESTE_NO) if (r.re.test(testo)) return { ok: false, motivo: r.motivo, risposta: r.risposta };
