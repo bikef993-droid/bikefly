@@ -287,7 +287,7 @@ const Lavagna = (() => {
   }
 
   // ---------- 📖 LEGGI (parole e frasi) con il cervello che vede ----------
-  const cervelloCheVede = () => (window.modelliPresenti || []).find(m => VISIONE.test(m)) || null;
+  const cervelloCheVede = () => typeof window.cervelloCheVede === "function" ? window.cervelloCheVede() : (window.modelliPresenti || []).find(m => VISIONE.test(m)) || null;
   function immagine() {   // la pagina in nero su bianco, ritagliata intorno alla scrittura (si legge meglio)
     const pag = pagine[pg], tr = pag.tratti.filter(t => t.tipo === "penna" && t.punti.length);
     if (!tr.length) return null;
@@ -304,14 +304,15 @@ const Lavagna = (() => {
     if (!vede) { fumetto(`<p>Per leggere <b>parole e frasi</b> serve un <b>cervello che vede</b> (consigliato: <code>qwen3-vl:8b</code>). I conti invece li correggo già: tocca <b>✅ Correggi i conti</b>.</p>`); return; }
     const img = immagine();
     if (!img) { fumetto(`<p>La pagina è vuota: scrivi qualcosa e poi tocca <b>📖 Leggi</b>.</p>`); return; }
-    // se Fly Aula sta rispondendo in chat, si aspetta: così la scheda video non si riempie
-    for (let i = 0; i < 120 && typeof occupato !== "undefined" && occupato; i++) { fumetto(`<p class="lv-lavoro">⏳ Aspetto che Fly Aula finisca la risposta…</p>`); await new Promise(r => setTimeout(r, 500)); }
-    fumetto(`<p class="lv-lavoro">📖 Leggo con ${esc(vede)}…</p>`);
+    // il vigile della scheda video: aspetta la risposta in corso, fa posto solo se serve, poi rimette tutto com'era
     let testo = "";
     try {
-      const r = await Scuola.chiama("/api/chat", { method: "POST", body: JSON.stringify({ model: vede, stream: false, keep_alive: 0, options: { temperature: 0, num_ctx: 4096 },
-        messages: [{ role: "user", content: "Trascrivi ESATTAMENTE quello che è scritto a mano in questa immagine, riga per riga. NON correggere niente: se un conto è sbagliato, copialo sbagliato. Scrivi solo il testo, senza commenti.", images: [img] }] }) });
-      testo = String(((await r.json()).message || {}).content || "").replace(/```[a-z]*|```/g, "").trim();
+      testo = await usaCervelloCheVede(async m => {
+        fumetto(`<p class="lv-lavoro">📖 Leggo con ${esc(m)}…</p>`);
+        const r = await Scuola.chiama("/api/chat", { method: "POST", body: JSON.stringify({ model: m, stream: false, keep_alive: 0, options: { temperature: 0, num_ctx: 4096 },
+          messages: [{ role: "user", content: "Trascrivi ESATTAMENTE quello che è scritto a mano in questa immagine, riga per riga. NON correggere niente: se un conto è sbagliato, copialo sbagliato. Scrivi solo il testo, senza commenti.", images: [img] }] }) });
+        return String(((await r.json()).message || {}).content || "").replace(/```[a-z]*|```/g, "").trim();
+      }, t => fumetto(`<p class="lv-lavoro">${esc(t)}</p>`)) || "";
     } catch (e) { testo = ""; }
     if (!testo) { fumetto(`<p>Non sono riuscito a leggere. Riprova scrivendo un po' più grande.</p>`); return; }
     const c = el("lvConferma");

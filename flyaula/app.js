@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.18 · il programma
+//  FLY AULA v0.9.19 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -102,6 +102,41 @@ const chiaveCoppia = (a, b) => [a, b].sort().join(" + ");
 function riposo() { const m = typeof Scuola !== "undefined" ? Scuola.riposo : 0; return m >= 10 && m <= 480 ? m + "m" : "2h"; }
 // 🌍 ALUNNO APPENA ARRIVATO: italiano semplice + le parole importanti tradotte tra parentesi
 function soloParoleChiave() { const l = $("lingua").value; return l && $("linguaChiave") && $("linguaChiave").checked ? l : ""; }
+// 👁️ IL CERVELLO CHE VEDE (lavagna, foto del libro, verifiche fotografate): il migliore che c'è
+const VISIONE_RE = /qwen2\.5vl|qwen2\.5-vl|qwen3-vl|llava|llama3\.2-vision|gemma3:(4|12|27)b|minicpm-v|granite3\.2-vision/;
+function cervelloCheVede() {
+  const l = (window.modelliPresenti || []).filter(m => VISIONE_RE.test(m));
+  for (const r of [/^qwen3-vl:8b/, /^qwen3-vl/, /^qwen2\.5-?vl/, /^gemma3:(12|27)b/, /./]) { const m = l.find(x => r.test(x)); if (m) return m; }
+  return null;
+}
+// 🚦 IL VIGILE DELLA SCHEDA VIDEO: prima di usare il cervello che vede guarda se c'è posto.
+// Se non c'è, mette da parte SOLO il cervello che controlla (quello che scrive resta: la classe può continuare),
+// legge, toglie subito il cervello che vede e rimette al suo posto quello che controlla, in sottofondo.
+async function usaCervelloCheVede(lavoro, avvisa = () => {}) {
+  const vede = cervelloCheVede(); if (!vede) return null;
+  for (let i = 0; i < 120 && occupato; i++) { avvisa("⏳ Aspetto che Fly Aula finisca la risposta…"); await new Promise(r => setTimeout(r, 500)); }
+  let tolto = null, caricati = [];
+  const inScheda = async () => ((await (await Scuola.chiama("/api/ps", {})).json()).models || []);
+  try {
+    const tot = Scuola.vram;   // MB della scheda
+    const ps = await inScheda(); caricati = ps.map(m => m.name).filter(n => n !== vede);
+    if (tot > 0 && secondo && secondo !== modello && pesi[vede] > 0) {
+      const usata = ps.reduce((a, m) => a + (m.size_vram || 0), 0) / 1048576, serve = pesi[vede] * 1.2 / 1048576 + 500;
+      if (!ps.some(m => m.name === vede) && tot - usata < serve && ps.some(m => m.name === secondo)) {
+        await Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: secondo, keep_alive: 0 }) });
+        tolto = secondo;
+      }
+    }
+  } catch (e) {}
+  try { return await lavoro(vede); }
+  finally {
+    // tutti i cervelli che c'erano prima tornano al loro posto (anche quelli che Ollama ha tolto da solo per fare spazio)
+    (async () => {
+      let ora = []; try { ora = (await inScheda()).map(m => m.name); } catch (e) {}
+      for (const m of new Set([...(tolto ? [tolto] : []), ...caricati])) if (!ora.includes(m)) await Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: m, prompt: "", keep_alive: riposo() }) }).catch(() => {});
+    })();
+  }
+}
 function scaricaDallaScheda(m) { Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: m, keep_alive: 0 }) }).catch(() => {}); }
 // un cervello della coppia non va: si toglie dalla coppia (e non si riprova più questa coppia su questo computer)
 const tolti = new Set();        // cervelli tolti dalla coppia in questa sessione

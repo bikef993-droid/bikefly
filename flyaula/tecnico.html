@@ -184,7 +184,12 @@ async function stato() {
       const p = Math.round(100 * sch / tot);
       return carta("Dove lavora il cervello", p >= 97 ? "🟢 tutto nella scheda video" : p >= 50 ? `🟡 ${p}% nella scheda, il resto sul processore` : "🔴 sul processore (lento)", p >= 97 ? "ok" : "ko");
     })()
-    + carta("Domande insieme (parallelo)", esc(info.parallelo || "predefinito"));
+    + carta("Domande insieme (parallelo)", esc(info.parallelo || "predefinito"))
+    + (() => {   // 👁️ il cervello che vede (lavagna, foto): obbligatorio da 12 GB in su
+      const v = modelli.find(m => /qwen2\.5-?vl|qwen3-vl|llava|llama3\.2-vision|gemma3:(4|12|27)b|minicpm-v|granite3\.2-vision/.test(m));
+      if (v) return carta("Cervello della lavagna (vede)", "🟢 " + esc(v), "ok");
+      return info.vram >= 12288 ? carta("Cervello della lavagna (vede)", "🔴 manca: <code>ollama pull qwen3-vl:8b</code>", "ko") : carta("Cervello della lavagna (vede)", "scheda piccola: la lavagna corregge solo i conti");
+    })();
   $("tNome").value = cfg.nome || ""; $("tRiserva").value = cfg.riserva || "";
   if (info.ip) {
     const prova = `http://${info.ip}:8780/flyaula/?aula=prova`;

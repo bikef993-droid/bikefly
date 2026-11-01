@@ -178,7 +178,7 @@ Fasi 4-6. Criteri di valutazione 3-4, con i 4 livelli descritti in una frase. It
   // =================== ✍️ AIUTO A CORREGGERE ===================
   const GRIGLIA = [["Correttezza dei contenuti", 4], ["Completezza", 3], ["Uso del linguaggio specifico", 2], ["Ordine e chiarezza", 1]];
   function formCorreggi() {
-    const vede = (window.modelliPresenti || []).find(m => VISIONE.test(m));
+    const vede = typeof cervelloCheVede === "function" ? cervelloCheVede() : (window.modelliPresenti || []).find(m => VISIONE.test(m));
     el("stCorpo").innerHTML = `<p class="sotto">Per le risposte aperte: Fly Aula legge la risposta (dalla foto o scritta qui), la confronta con la tua griglia e <b>propone</b> i punti, criterio per criterio, spiegando perché. <b>Il voto lo decidi tu.</b> Niente nomi: la foto e il testo non vengono salvati.</p>
       <div class="prof-griglia"><section><h3>❓ La domanda della verifica</h3><textarea id="stTraccia" rows="3" maxlength="600" placeholder="es. Spiega le cause della Prima guerra mondiale"></textarea></section>
         <section><h3>📊 La griglia</h3><div id="stGriglia">${GRIGLIA.map(([c, p]) => rigaGriglia(c, p)).join("")}</div><button class="btn sec st-piccolo" id="stRiga">➕ Criterio</button></section></div>
@@ -196,13 +196,14 @@ Fasi 4-6. Criteri di valutazione 3-4, con i 4 livelli descritti in una frase. It
     if (!file) return;
     if (!vede) return stato("Per leggere le foto serve un cervello che vede (consigliato: qwen3-vl:8b). Scrivi la risposta nella casella.", "ko");
     if (file.size > 12e6) return stato("La foto è troppo grande (massimo 12 MB).", "ko");
-    for (let i = 0; i < 120 && typeof occupato !== "undefined" && occupato; i++) { stato("⏳ Aspetto che Fly Aula finisca la risposta in classe…"); await new Promise(r => setTimeout(r, 500)); }
-    stato("📷 Leggo la foto…");
     try {
       const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = no; r.readAsDataURL(file); });
-      const r = await Scuola.chiama("/api/chat", { method: "POST", body: JSON.stringify({ model: vede, stream: false, keep_alive: 0, options: { temperature: 0, num_ctx: 8192 },
-        messages: [{ role: "user", content: "Trascrivi ESATTAMENTE il testo scritto a mano in questa foto (è la risposta di uno studente). NON correggere gli errori, NON aggiungere niente, NON commentare. Se c'è un nome o un cognome, NON scriverlo.", images: [b64] }] }) });
-      const t = String(((await r.json()).message || {}).content || "").trim();
+      const t = (await usaCervelloCheVede(async m => {
+        stato("📷 Leggo la foto…");
+        const r = await Scuola.chiama("/api/chat", { method: "POST", body: JSON.stringify({ model: m, stream: false, keep_alive: 0, options: { temperature: 0, num_ctx: 8192 },
+          messages: [{ role: "user", content: "Trascrivi ESATTAMENTE il testo scritto a mano in questa foto (è la risposta di uno studente). NON correggere gli errori, NON aggiungere niente, NON commentare. Se c'è un nome o un cognome, NON scriverlo.", images: [b64] }] }) });
+        return String(((await r.json()).message || {}).content || "").trim();
+      }, x => stato(x))) || "";
       el("stRisposta").value = t; el("stFoto").value = "";
       stato(t ? "✓ Letta: controlla il testo e correggi se ho letto male." : "Non sono riuscito a leggerla: scrivi la risposta nella casella.", t ? "ok" : "ko");
     } catch (e) { stato("Non sono riuscito a leggerla: scrivi la risposta nella casella.", "ko"); }

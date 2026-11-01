@@ -25,12 +25,14 @@ const Pagine = (() => {
     return await new Promise(ok => { const f = new FileReader(); f.onload = () => ok(String(f.result).split(",")[1]); f.readAsDataURL(b); });
   }
   async function leggiFoto(src) {
-    const visione = (window.modelliPresenti || []).find(m => VISIONE.test(m));
+    const visione = typeof cervelloCheVede === "function" ? cervelloCheVede() : (window.modelliPresenti || []).find(m => VISIONE.test(m));
     if (visione) {
-      const r = await Scuola.chiama("/api/chat", { method: "POST", body: JSON.stringify({ model: visione, stream: false, keep_alive: "60s", options: { temperature: 0, num_ctx: 8192 },
-        messages: [{ role: "user", content: "Trascrivi ESATTAMENTE tutto il testo stampato in questa pagina di un libro scolastico, nell'ordine in cui si legge. Mantieni i titoli, i numeri e le formule. Non aggiungere niente, non riassumere, non commentare.", images: [await inBase64(src)] }] }) });
-      const j = await r.json();
-      const t = (j.message?.content || "").trim();
+      const img = await inBase64(src);
+      // il vigile della scheda video (vedi app.js): fa posto solo se serve e poi rimette tutto com'era
+      const leggi1 = async m => { const r = await Scuola.chiama("/api/chat", { method: "POST", body: JSON.stringify({ model: m, stream: false, keep_alive: "60s", options: { temperature: 0, num_ctx: 8192 },
+        messages: [{ role: "user", content: "Trascrivi ESATTAMENTE tutto il testo stampato in questa pagina di un libro scolastico, nell'ordine in cui si legge. Mantieni i titoli, i numeri e le formule. Non aggiungere niente, non riassumere, non commentare.", images: [img] }] }) });
+        return ((await r.json()).message?.content || "").trim(); };
+      const t = typeof usaCervelloCheVede === "function" ? await usaCervelloCheVede(leggi1) : await leggi1(visione);
       if (t) return t;
     }
     // senza modello che vede: lettore di testo nel browser. Prima la copia DENTRO Fly Aula (lib/, la scarica il server

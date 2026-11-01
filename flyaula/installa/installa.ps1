@@ -255,11 +255,18 @@ if ($pronti -eq 0 -and $cervelli -notcontains 'qwen2.5:7b') {
   if (Scarica 'qwen2.5:7b') { $pronti++; Ok 'Cervello di riserva pronto' }
 }
 if ($pronti -eq 0) { Ko 'Download non riuscito: rilancia l installazione con internet stabile.' }
-Write-Host ''
-$vis = Read-Host '   Vuoi che Fly Aula legga anche le FOTO delle pagine del libro? Scarica altri 6 GB. (S/N)'
-if ($vis -match '^[sSyY]') {
-  & $exe pull qwen2.5vl:7b
-  if ($LASTEXITCODE -eq 0) { Ok 'Lettore di foto pronto' } else { Ko 'Lettore di foto non scaricato: Fly Aula funziona lo stesso.' }
+# il cervello che VEDE (lavagna, foto del libro, verifiche fotografate):
+# da 12 GB in su si scarica SEMPRE; sulle schede piu piccole si chiede (rallenterebbe le risposte in classe)
+if ($pronti -gt 0 -and $mb -ge 12288) {
+  Write-Host ''; Write-Host '   Scarico il cervello che VEDE per la lavagna e le foto (circa 6 GB)...'
+  if (Scarica 'qwen3-vl:8b') { Ok 'Cervello che vede pronto: qwen3-vl:8b' }
+  elseif (Scarica 'qwen2.5vl:7b') { Ok 'Cervello che vede pronto: qwen2.5vl:7b' }
+  else { Ko 'Cervello che vede non scaricato: la lavagna corregge solo i conti. Rilancia l installazione con internet stabile.' }
+}
+elseif ($pronti -gt 0 -and $mb -ge 6144) {
+  Write-Host ''
+  $vis = Read-Host '   La scheda video e piccola. Vuoi lo stesso il cervello che VEDE (parole sulla lavagna, foto)? 3 GB, le risposte possono rallentare. (S/N)'
+  if ($vis -match '^[sSyY]') { if (Scarica 'qwen3-vl:4b') { Ok 'Cervello che vede pronto: qwen3-vl:4b' } else { Ko 'Non scaricato: Fly Aula funziona lo stesso.' } }
 }
 
 Passo 5 $TOT 'Permessi di rete (Windows chiede di confermare: tocca Si)'
