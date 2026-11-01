@@ -5,8 +5,15 @@
 // ===================================================================
 const GIORNI = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
 const ORE_STANDARD = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00"];   // inizio di ogni ora (si possono cambiare)
-const MATERIE_ORARIO = ["", "Matematica", "Economia aziendale", "Italiano", "Storia", "Inglese", "Seconda lingua", "Diritto", "Economia politica", "Informatica", "Scienze motorie", "Religione", "Geografia", "Scienze", "Fisica", "Chimica", "Altro"];
-const MATERIA_ATTIVA = { "Matematica": "matematica", "Economia aziendale": "economia", "Inglese": "inglese" };   // le materie che Fly Aula sa già
+const MATERIE_ORARIO = ["", "Matematica", "Economia aziendale", "Italiano", "Storia", "Inglese", "Francese", "Spagnolo", "Tedesco", "Cinese", "Seconda lingua", "Diritto", "Diritto ed economia",
+  "Economia politica", "Relazioni internazionali", "Informatica", "Tecnologie della comunicazione", "Scienze motorie", "Religione", "Geografia", "Geografia turistica", "Scienze",
+  "Scienze della Terra e Biologia", "Fisica", "Chimica", "Discipline turistiche e aziendali", "Arte e territorio", "Altro"];
+// le materie che Fly Aula sa (nome nell'orario → pacchetto). "Seconda lingua", "Religione" e "Altro": Fly Aula resta in pausa.
+const MATERIA_ATTIVA = { "Matematica": "matematica", "Economia aziendale": "economia", "Inglese": "inglese", "Italiano": "italiano", "Storia": "storia",
+  "Francese": "francese", "Spagnolo": "spagnolo", "Tedesco": "tedesco", "Cinese": "cinese", "Diritto": "diritto", "Diritto ed economia": "diritto",
+  "Economia politica": "economiapolitica", "Relazioni internazionali": "relazioni", "Informatica": "informatica", "Tecnologie della comunicazione": "informatica",
+  "Scienze motorie": "motorie", "Geografia": "geografia", "Geografia turistica": "geografia", "Scienze": "scienze", "Scienze della Terra e Biologia": "scienze",
+  "Fisica": "fisica", "Chimica": "chimica", "Discipline turistiche e aziendali": "turismo", "Arte e territorio": "arte" };
 
 const Orario = {
   dati() { try { return JSON.parse(localStorage.getItem("flyaula_orario") || "null"); } catch (e) { return null; } },

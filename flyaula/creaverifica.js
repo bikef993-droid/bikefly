@@ -61,7 +61,7 @@ const CreaVerifica = (() => {
   }
 
   function rigaEs(e) {
-    return `<div class="cv-es"><div>${escC(e.testo)}</div><div class="cv-sol">→ <b>${escC(soluzioneDi(e))}</b> <span class="cv-ok">${e.riserva ? "✓ calcolato da Fly Aula" : "✓✓✓ controllato 3 volte"}</span></div></div>`;
+    return `<div class="cv-es"><div>${escC(e.testo)}</div><div class="cv-sol">→ <b>${escC(soluzioneDi(e))}</b> <span class="cv-ok">${e.riserva ? (e.tipo === "parola" ? "✓ dalla lista controllata" : "✓ calcolato da Fly Aula") : "✓✓✓ controllato 3 volte"}</span></div></div>`;
   }
   function disegna() {
     if (!lav) return;

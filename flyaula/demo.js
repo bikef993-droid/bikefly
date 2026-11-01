@@ -18,10 +18,10 @@ const Demo = (() => {
       <div class="msg io demo-msg"><div class="bolla" id="demoDomanda"></div></div>
       <div class="msg ai demo-msg"><div class="chi">🧠 Fly Aula</div><div class="bolla" id="demoRisposta"></div></div>${ETICHETTA}`,
     () => `<h2>Ogni risposta controllata 2 volte, 3 nei casi difficili</h2><div class="demo-passi">
-        <div style="animation-delay:.1s"><span>✍️</span><b>Scrive</b><p>La risposta compare subito, passo passo.</p></div><i>→</i>
-        <div style="animation-delay:.4s"><span>🧮</span><b>Controllo 1</b><p>Una calcolatrice vera rifà ogni conto.</p></div><i>→</i>
-        <div style="animation-delay:.7s"><span>🔍</span><b>Controllo 2</b><p>Un revisore rilegge tutto: passaggi, regole, fatti.</p></div><i>→</i>
-        <div style="animation-delay:1s"><span>🔎</span><b>Controllo 3</b><p>Nei casi difficili rifà il problema da capo.</p></div></div>
+        <div style="animation-delay:.1s"><span>🧮</span><b>Prima i conti</b><p>I numeri li fa una calcolatrice vera, prima che Fly Aula scriva.</p></div><i>→</i>
+        <div style="animation-delay:.4s"><span>✍️</span><b>Scrive</b><p>La spiegazione compare subito, passo passo, con i disegni.</p></div><i>→</i>
+        <div style="animation-delay:.7s"><span>🤝</span><b>Un secondo cervello</b><p>Un'altra AI, di un'altra azienda, rilegge tutto: passaggi, regole, fatti.</p></div><i>→</i>
+        <div style="animation-delay:1s"><span>🔎</span><b>Controllo 3</b><p>Nei casi difficili un terzo controllo, ragionando con calma.</p></div></div>
       <p class="demo-grande" style="margin-top:28px">Se resta un dubbio, Fly Aula <b>non inventa</b>: scrive "⚠️ controlliamo con il prof".</p>
       <p class="demo-piccolo">Ogni errore trovato finisce nella tabella degli errori, e Fly Aula ha un esame di 200 domande per misurare quanto sbaglia.</p>`,
     () => `<h2>Per i professori</h2><div class="demo-carte quattro">
@@ -39,7 +39,16 @@ const Demo = (() => {
         <div>📷 Le foto delle pagine si <b>cancellano a fine lezione</b>.</div>
         <div>📈 Alla scuola arriva un report <b>solo di numeri</b>.</div>
         <div>⚖️ Fly Aula <b>aiuta</b> la lezione: non dà voti e non valuta gli alunni. Il prof decide sempre.</div></div>`,
-    () => `<div class="demo-cover">${LOGO}<h1>Proviamo dal vivo?</h1><p class="demo-grande">Fate voi una domanda a Fly Aula.</p><button class="btn demo-prova" id="demoProva">▶️ Prova adesso</button></div>`
+    () => `<h2>Pronta per tutta la scuola</h2><div class="demo-carte quattro">
+        <div><span>🏫</span><b>Un server per tutte le LIM</b><p>Un computer della scuola fa da cervello per ogni aula. Se si ferma, le LIM passano da sole a quello di riserva.</p></div>
+        <div><span>⚡</span><b>Memoria della scuola</b><p>Una domanda già controllata in un'aula, nelle altre arriva in un secondo.</p></div>
+        <div><span>⏳</span><b>Mai un'attesa muta</b><p>Se tante classi chiedono insieme, ogni LIM dice "sei il 2° in fila".</p></div>
+        <div><span>🛟</span><b>Mai bloccata</b><p>Se un cervello non risponde, risponde l'altro. Il prof può sempre fermare con ⏹.</p></div></div>`,
+    () => { let k = 0; return `<h2>Le materie: ${Object.keys(MATERIE).length}</h2>${(typeof GRUPPI_MATERIE !== "undefined" ? GRUPPI_MATERIE : [["", Object.keys(MATERIE)]]).map(([g, ks]) =>
+      `${g ? `<h3 class="demo-gruppo">${g}</h3>` : ""}<div class="demo-materie">${ks.filter(c => MATERIE[c]).map(c => `<div style="animation-delay:${(k++ * 0.04).toFixed(2)}s"><span>${MATERIE[c].emoji}</span><b>${MATERIE[c].nome}</b></div>`).join("")}</div>`).join("")}
+      <p class="demo-piccolo" style="margin-top:18px">In ogni materia, con le pagine del libro fotografate dal prof, Fly Aula segue proprio il libro della classe. Con l'orario si accende da sola sulla materia giusta.</p>`; },
+    () => `<div class="demo-cover">${LOGO}<h1>Proviamo dal vivo?</h1><p class="demo-grande">Un percorso di 5 minuti, oppure fate voi una domanda.</p>
+      <div class="demo-scelte"><button class="btn demo-prova" id="demoGuida">🎬 Percorso guidato dal vivo</button><button class="btn sec demo-prova" id="demoProva">✋ Fate voi una domanda</button></div></div>`
   ];
   function scriviDomanda(testo, poi) {
     const d = el("demoDomanda"); let k = 0;
@@ -73,6 +82,7 @@ const Demo = (() => {
     el("demoAvanti").textContent = i === SLIDE.length - 1 ? "Fine" : "Avanti ▶";
     if (i === 2) scriviDomanda("Fammi 320 : 8 passo passo", rispostaPreparata);
     const prova = el("demoProva"); if (prova) prova.onclick = () => { chiudi(); setTimeout(() => el("domanda").focus(), 100); };
+    const guida = el("demoGuida"); if (guida) guida.onclick = () => { chiudi(); Guida.apri(); };
   }
   const tasti = e => { if (el("pDemo").style.display !== "flex") return; if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); avanti(); } if (e.key === "ArrowLeft") indietro(); if (e.key === "Escape") chiudi(); };
   function avanti() { if (i < SLIDE.length - 1) { i++; mostra(); } else chiudi(); }
@@ -81,4 +91,61 @@ const Demo = (() => {
   function chiudi() { clearInterval(timerScrivi); el("pDemo").style.display = "none"; el("demoSlide").innerHTML = ""; }
   function collega() { el("demoAvanti").onclick = avanti; el("demoIndietro").onclick = indietro; el("demoEsci").onclick = chiudi; addEventListener("keydown", tasti); }
   return { apri, chiudi, collega, get pagina() { return i; } };
+})();
+
+// ===================================================================
+//  🎬 IL PERCORSO GUIDATO DAL VIVO
+//  Una scheda accanto alla lavagna: per ogni passo, cosa dire alla preside
+//  e un pulsante che fa la domanda VERA a Fly Aula (niente di preparato).
+// ===================================================================
+const Guida = (() => {
+  const el = id => document.getElementById(id);
+  const PASSI = [
+    { titolo: "Un conto alla lavagna", materia: "matematica", domanda: "Fammi 320 : 8 in colonna",
+      dire: "Facciamo una domanda vera. Fly Aula disegna la divisione in colonna, la spiega passo passo e una calcolatrice controlla ogni numero: guardate i ✓ verdi." },
+    { titolo: "Un problema con i soldi", materia: "matematica", domanda: "Una bici costa 480 €. Il negozio fa lo sconto del 15% e poi aggiunge l'IVA al 22%. Quanto paga il cliente?",
+      dire: "Un problema più difficile. I conti li fa prima la calcolatrice, poi Fly Aula spiega, e un secondo cervello di un'altra azienda ricontrolla tutto." },
+    { titolo: "La stessa domanda, in un'altra classe", materia: "matematica", domanda: "Fammi 320 : 8 in colonna", nuova: true,
+      dire: "Facciamo finta di essere in un'altra aula, con la stessa domanda: la risposta già controllata arriva in un secondo. Con 54 classi succede di continuo." },
+    { titolo: "Economia aziendale", materia: "economia", domanda: "Registra in partita doppia l'acquisto di merci per 2.000 € più IVA al 22%, pagato con bonifico bancario",
+      dire: "La partita doppia: Fly Aula disegna la scrittura in tabella e controlla da sola che il totale Dare sia uguale al totale Avere." },
+    { titolo: "Inglese, anche per chi è appena arrivato", materia: "inglese", domanda: "Spiegami la differenza tra present perfect e past simple", lingua: "ar",
+      dire: "Spiega in italiano semplice. E per un alunno straniero appena arrivato, la stessa spiegazione compare anche nella sua lingua: qui in arabo." },
+    { titolo: "Un esercizio per la classe", materia: "matematica", esercizio: true,
+      dire: "Fly Aula inventa un esercizio nuovo, lo controlla 3 volte, e la classe prova a risolverlo. Le verifiche A e B si preparano allo stesso modo." },
+    { titolo: "Senza internet", materia: "matematica", domanda: "Quanto fa 1.248 : 6?", nota: "Prima di toccare il pulsante, staccate il Wi-Fi o il cavo di rete di questo computer.",
+      dire: "Ora stacchiamo internet. Fly Aula continua a funzionare, perché il cervello è qui dentro: le domande dei ragazzi non escono mai dalla scuola." }
+  ];
+  let k = 0, occupata = false;
+  function disegna() {
+    const p = PASSI[k];
+    el("guida").innerHTML = `<div class="gd-testa"><span>🎬 Passo ${k + 1} di ${PASSI.length}</span><button class="gd-x" id="gdChiudi" title="Chiudi il percorso">✕</button></div>
+      <h3>${p.titolo}</h3>
+      <div class="gd-dire"><b>🗣️ Cosa dire</b><p>${p.dire}</p></div>
+      ${p.nota ? `<div class="gd-nota">⚠️ ${p.nota}</div>` : ""}
+      ${p.domanda ? `<div class="gd-domanda">“${p.domanda}”</div>` : ""}
+      <div class="gd-bottoni"><button class="btn" id="gdVai"${occupata ? " disabled" : ""}>${p.esercizio ? "✏️ Crea l'esercizio" : "▶ Fai la domanda"}</button>
+        <button class="btn sec" id="gdIndietro"${k === 0 ? " disabled" : ""}>◀</button><button class="btn sec" id="gdAvanti">${k === PASSI.length - 1 ? "Fine ✓" : "Avanti ▶"}</button></div>`;
+    el("gdChiudi").onclick = chiudi;
+    el("gdIndietro").onclick = () => { if (k > 0) { k--; disegna(); } };
+    el("gdAvanti").onclick = () => { if (k < PASSI.length - 1) { k++; disegna(); } else chiudi(); };
+    el("gdVai").onclick = esegui;
+  }
+  async function esegui() {
+    const p = PASSI[k];
+    if (occupata) return;
+    occupata = true; disegna();
+    try {
+      if (el("materia").value !== p.materia) { el("materia").value = p.materia; await nuovaLezione(true); }
+      else if (p.nuova) await nuovaLezione(false);
+      const lingua = el("lingua"), primaLingua = lingua.value;
+      if (p.lingua) lingua.value = p.lingua;
+      if (p.esercizio) await nuovoEsercizio(); else await chiedi(p.domanda);
+      lingua.value = primaLingua;
+    } catch (e) {}
+    occupata = false; disegna();
+  }
+  function apri() { k = 0; el("guida").style.display = "block"; document.body.classList.add("con-guida"); disegna(); }
+  function chiudi() { el("guida").style.display = "none"; document.body.classList.remove("con-guida"); }
+  return { apri, chiudi, get passo() { return k; }, get occupata() { return occupata; } };
 })();

@@ -90,7 +90,7 @@
     <button type="button" class="btn ferma" id="ferma" hidden title="Ferma la risposta (anche con il tasto Esc)">⏹ Ferma</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.9.7 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.9.8 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -117,7 +117,13 @@
     <h3>🏁 Gara tra cervelli</h3>
     <p class="sotto">Le stesse domande a ogni cervello scaricato, con gli stessi controlli. Vince chi sbaglia meno; a parità, il più veloce. Poi con un tocco lo scegli per Fly Aula.</p>
     <div id="esModelli"></div>
+    <label class="giudice-sce"><input type="checkbox" id="esGiudice" checked> ⭐ Un giudice vota anche come spiegano (un po' più lento)</label>
     <div class="riga-btn"><label>Domande per cervello <select class="pill" id="esNGara"><option>10</option><option selected>20</option><option>50</option></select></label><button class="btn" id="esGara">🏁 Fai la gara</button></div>
+  </div>
+  <div class="gara-box">
+    <h3>⚡ Risposte d'esempio pronte</h3>
+    <p class="sotto">Fly Aula risponde da sola alle domande d'esempio della prima schermata, le controlla come sempre e le mette in memoria: dopo, in ogni aula arrivano in un secondo. Si fa una volta, per esempio la sera (tutte le materie insieme richiedono qualche ora).</p>
+    <div class="riga-btn"><select class="pill" id="esPrepMateria"><option value="">Tutte le materie</option></select><button class="btn" id="esPrepara">⚡ Prepara le risposte d'esempio</button><span class="sotto" id="esPrepQuante"></span></div>
   </div>
   <div class="barra"><div id="esBarra"></div></div>
   <div id="esRisultato"></div>
@@ -193,6 +199,7 @@
   <div class="riga-btn"><button class="btn" id="rpStampa">🖨️ Stampa o salva PDF</button><button class="btn sec chiudi">Chiudi</button></div>
 </div></div>
 
+<div id="guida" aria-live="polite"></div>
 <div id="pDemo" class="sopra">
   <div id="demoSlide"></div>
   <div class="demo-barra"><button class="btn sec" id="demoEsci">✕ Esci</button><div id="demoPunti"></div><button class="btn sec" id="demoIndietro">◀</button><button class="btn" id="demoAvanti">Avanti ▶</button></div>
@@ -249,6 +256,7 @@
 <script src="controllo.js"></script>
 <script src="disegni.js"></script>
 <script src="esame.js"></script>
+<script src="quiz.js"></script>
 <script src="esercizi.js"></script>
 <script src="creaverifica.js"></script>
 <script src="report.js"></script>

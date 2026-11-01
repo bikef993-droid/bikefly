@@ -42,6 +42,10 @@ code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
   <h2>🖥️ Collegare una LIM</h2>
   <div class="qr-lim" id="tLim"></div>
 
+  <h2>⏱️ Tempi di risposta di oggi</h2>
+  <div class="t-griglia" id="tTempi"></div>
+  <p class="nota-s">Dal clic su "Chiedi" alla risposta controllata. Una risposta che arriva dalla memoria impiega meno di un secondo.</p>
+
   <h2>⚡ Memoria delle risposte</h2>
   <p class="nota-s">Le risposte già controllate restano qui 30 giorni: se un'altra classe fa la stessa domanda, arriva subito. Se un prof segnala un errore, quella risposta si cancella da sola.</p>
   <div class="t-riga"><span id="tMemo" class="nota-s"></span><button class="btn sec" id="tMemoVia">🧹 Svuota la memoria</button></div>
@@ -93,6 +97,11 @@ async function stato() {
   if (info.ruolo !== "server") $("tSotto").innerHTML = "⚠️ Questo computer è installato come <b>PC singolo</b>: per fare da server della scuola rilancia l'installazione e scegli <b>2</b>.";
   aule();
   try { $("tMemo").textContent = `${(await json("/fa/memo-quante")).quante} risposte in memoria`; } catch (e) { $("tMemo").textContent = ""; }
+  try {
+    const t = await json("/fa/tempi"), sec = ms => (ms / 1000).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + " s";
+    $("tTempi").innerHTML = carta("Risposte oggi", t.n) + carta("Tempo medio", t.n ? sec(t.media) : "—", t.n && t.media > 30000 ? "ko" : "ok")
+      + carta("La più lenta", t.n ? sec(t.max) : "—") + carta("Dalla memoria ⚡", t.n ? Math.round(100 * t.memoria / t.n) + "%" : "—") + carta("Oltre 1 minuto", t.lente, t.lente ? "ko" : "");
+  } catch (e) { $("tTempi").innerHTML = ""; }
 }
 $("tMemoVia").onclick = async () => { await fetch("/fa/memo", { method: "DELETE" }); stato(); };
 $("tSalva").onclick = async () => {

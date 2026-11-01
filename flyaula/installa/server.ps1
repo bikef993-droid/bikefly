@@ -38,6 +38,8 @@ try { $VRAM = [int]((& nvidia-smi --query-gpu=memory.total --format=csv,noheader
 $CODICI = @{}
 # la fila delle domande: chi sta aspettando il cervello, e da quando (cosi la LIM puo dire "sei il 3o in fila")
 $FILA = @{}
+# i tempi di risposta di oggi (solo numeri: niente domande, niente nomi)
+$TEMPI = @{ giorno = ''; n = 0; somma = 0; max = 0; memoria = 0; lente = 0 }
 function NomeAula([string]$a) {
   if (-not $a) { return '_' }
   $s = $a -replace '[^\p{L}\p{N}]', '_'
@@ -167,6 +169,22 @@ while ($ascolta.IsListening) {
         $posti = [Environment]::GetEnvironmentVariable('OLLAMA_NUM_PARALLEL', 'User'); if (-not $posti) { $posti = 1 }
         Testo $ctx 200 ('{"davanti":' + $davanti + ',"posti":' + [int]$posti + '}')
       }
+    }
+    elseif ($p -eq '/fa/tempo' -and $daRete) {
+      $oggi = (Get-Date).ToString('yyyy-MM-dd')
+      if ($TEMPI.giorno -ne $oggi) { $TEMPI.giorno = $oggi; $TEMPI.n = 0; $TEMPI.somma = 0; $TEMPI.max = 0; $TEMPI.memoria = 0; $TEMPI.lente = 0 }
+      $ms = 0
+      if ([int]::TryParse([string]$q.QueryString['ms'], [ref]$ms) -and $ms -ge 0 -and $ms -le 600000) {
+        $TEMPI.n++; $TEMPI.somma += $ms; if ($ms -gt $TEMPI.max) { $TEMPI.max = $ms }
+        if ($q.QueryString['m'] -eq '1') { $TEMPI.memoria++ }
+        if ($ms -gt 60000) { $TEMPI.lente++ }
+      }
+      Testo $ctx 200 '{"ok":true}'
+    }
+    elseif ($p -eq '/fa/tempi' -and $locale) {
+      $oggi = (Get-Date).ToString('yyyy-MM-dd')
+      if ($TEMPI.giorno -ne $oggi) { Testo $ctx 200 '{"n":0,"media":0,"max":0,"memoria":0,"lente":0}' }
+      else { Testo $ctx 200 (@{ n = $TEMPI.n; media = $(if ($TEMPI.n) { [Math]::Round($TEMPI.somma / $TEMPI.n) } else { 0 }); max = $TEMPI.max; memoria = $TEMPI.memoria; lente = $TEMPI.lente } | ConvertTo-Json -Compress) }
     }
     elseif ($p -eq '/fa/memo-quante' -and $locale) { Testo $ctx 200 ('{"quante":' + @(Get-ChildItem $MEMO -File).Count + '}') }
     elseif ($p -eq '/fa/stato' -and $daRete) {

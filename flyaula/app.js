@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.7 · il programma
+//  FLY AULA v0.9.8 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -14,6 +14,13 @@ window.modelliPresenti = [];
 // (con tante classi sarebbe un disastro). Con le pagine del libro si accorcia la storia della lezione.
 const contesto = () => 8192;
 const $ = id => document.getElementById(id);
+// il menu delle materie si costruisce da solo: ci sono tutte quelle che Fly Aula sa
+(function menuMaterie() {
+  const s = $("materia"); if (!s || typeof GRUPPI_MATERIE === "undefined") return;
+  const prima = s.value;
+  s.innerHTML = GRUPPI_MATERIE.map(([g, ks]) => `<optgroup label="${g}">${ks.filter(k => MATERIE[k]).map(k => `<option value="${k}">${MATERIE[k].emoji} ${MATERIE[k].nome}</option>`).join("")}</optgroup>`).join("");
+  s.value = MATERIE[prima] ? prima : "matematica";
+})();
 const chat = $("chat");
 function leggi(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function scrivi(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -93,8 +100,10 @@ const coppieNo = () => { try { return JSON.parse(leggi("flyaula_coppie_no") || "
 const chiaveCoppia = (a, b) => [a, b].sort().join(" + ");
 function scaricaDallaScheda(m) { Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: m, keep_alive: 0 }) }).catch(() => {}); }
 // un cervello della coppia non va: si toglie dalla coppia (e non si riprova più questa coppia su questo computer)
+const tolti = new Set();        // cervelli tolti dalla coppia in questa sessione
 function togliDallaCoppia(m, motivo) {
   if (!secondo || (m !== modello && m !== secondo)) return;
+  tolti.add(m);
   const no = coppieNo(); no.push(chiaveCoppia(modello, secondo)); scrivi("flyaula_coppie_no", JSON.stringify([...new Set(no)].slice(-20)));
   if (m === modello) modello = secondo;
   secondo = null;
@@ -115,7 +124,7 @@ async function unaChiamata(m, corpo, ms) {
 // risposta intera (per revisore, esercizi, esame, riassunti)
 // usa = quale cervello (se non si dice: il principale)
 async function cervello(sistema, utente, { temperature = 0.2, format, pensa = false, usa } = {}) {
-  const m = usa && (usa === modello || usa === secondo) ? usa : modello;   // un cervello tolto dalla coppia non si usa più
+  const m = usa && !tolti.has(usa) ? usa : modello;   // un cervello tolto dalla coppia (perché bloccato) non si usa più
   const corpo = m2 => ({ stream: false, keep_alive: "2h", ...(format ? { format } : {}), _pensa: pensa,
     options: { temperature, num_ctx: contesto(), num_predict: tetto(m2, pensa, MAX_PAROLE_LAVORO) }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] });
   const ms = pensa ? LIMITI.pensa : LIMITI.lavoro;
@@ -324,10 +333,11 @@ function chiaveMemoria(domanda, materia, livello, classe, giaParlato, speciale =
   const d = domanda.toLowerCase().replace(/[“”"'’`]/g, "").replace(/[?!;]+/g, " ").replace(/\s+/g, " ").trim().replace(/[.,]$/, "");
   if (d.length < 6) return null;
   if (giaParlato && CONTINUA.test(d)) return null;          // continua la conversazione: dipende da cosa è stato detto prima
+  if (/\b(dammi|fammi|inventa|crea|preparami)\b[^?]{0,30}\besercizi?\b/i.test(d)) return null;   // esercizi sempre nuovi, non dalla memoria
   return impronta(JSON.stringify([VERSIONE_MEMORIA, materia, livello, annoDellaClasse(classe) || 0, (Prof.argomento || "").toLowerCase(), d]));
 }
 function intestazioniMemoria() { return Scuola.codiceLim ? { "X-FlyAula-Codice": Scuola.codiceLim } : {}; }
-async function leggiMemoria(k) {
+async function leggiMemoria(k, materia = "") {
   const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 2500);
   try {
     const r = await fetch("/fa/memo?k=" + k, { cache: "no-store", signal: ctrl.signal });
@@ -335,7 +345,7 @@ async function leggiMemoria(k) {
     const j = await r.json();
     const testo = ripulisciRobot(String(j.testo || "")).testo;
     // anche dalla memoria: niente di strano, conti giusti, niente ripetizioni (altrimenti si risponde da capo)
-    if (!testo || testo.length > 8000 || !controllaRisposta(testo) || correggiConti(testo).corretti || trovaGiro(testo)) return null;
+    if (!testo || testo.length > 8000 || !controllaRisposta(testo, materia) || correggiConti(testo).corretti || trovaGiro(testo)) return null;
     return { testo, controlli: Number(j.controlli) || 2, coppia: !!j.coppia };
   } catch (e) { return null; } finally { clearTimeout(t); }
 }
@@ -441,6 +451,7 @@ async function chiedi(domanda, speciale = {}) {
     return;
   }
   occupato = true; $("invia").disabled = true; Voce.zitto();
+  const t0 = Date.now(); let daMemoria = false, risposta = false;
   domandaCorrente = domanda;
   const giaParlato = storia.length > 0;
   storia.push({ role: "user", content: domanda });
@@ -452,7 +463,7 @@ async function chiedi(domanda, speciale = {}) {
   let esciDallaFila = null;
   try { fatto: {
     // ⚡ questa domanda ha già una risposta controllata (da un'altra lezione o un'altra aula)? arriva subito
-    const ricordo = chiave ? await leggiMemoria(chiave) : null;
+    const ricordo = chiave ? await leggiMemoria(chiave, materia) : null;
     if (ricordo) {
       clearTimeout(attesa);
       const timbri = [`<span class="timbro">Controllata ${ricordo.controlli >= 3 ? "3 volte ✓✓✓" : "2 volte ✓✓"}</span>`];
@@ -465,6 +476,7 @@ async function chiedi(domanda, speciale = {}) {
       if (leggiAuto) leggiRisposta(bolla, ricordo.testo);
       const lingua = $("lingua").value;
       if (lingua) { chat.scrollTop = chat.scrollHeight; await aggiungiTraduzione(bolla, ricordo.testo, lingua); }
+      daMemoria = risposta = true;
       break fatto;
     }
     esciDallaFila = entraInFila(bolla);
@@ -560,12 +572,12 @@ async function chiedi(domanda, speciale = {}) {
       if (pas && numerate < 3) testo += "\n✏️ In colonna, passo passo:\n" + pas.map(x => "• " + x.replace(/\s*✓$/, "")).join("\n");   // il ✓ lo mette la calcolatrice
     }
     // 3) sicurezza anche sulla risposta
-    if (!controllaRisposta(testo)) { annotaErrore("Bloccata dalla sicurezza", "risposta non adatta"); testo = "Torniamo alla materia 😊 Prova a farmi un'altra domanda."; timbri.length = 0; }
+    if (!controllaRisposta(testo, materia)) { annotaErrore("Bloccata dalla sicurezza", "risposta non adatta"); testo = "Torniamo alla materia 😊 Prova a farmi un'altra domanda."; timbri.length = 0; }
     // 4) disegno finale: ogni conto rimasto viene segnato dalla calcolatrice
     const html = impagina(testo, true, tipo => { if (tipo === "ok") conta("contiOk"); });
     bolla.classList.remove("controllo");
     bolla.innerHTML = html + `<div class="timbri">${timbri.join("")}</div>`;
-    conta("risposte");
+    conta("risposte"); risposta = true;
     if (sq.autore !== sq.controllore) controllaMemoria();
     // ⚡ si ricorda solo una risposta pulita: niente dubbi, niente tagli, niente blocchi della sicurezza
     const daRicordare = chiave && (es.stato === "ok" || es.stato === "corretta") && !prima.fine && timbri.length;
@@ -584,6 +596,8 @@ async function chiedi(domanda, speciale = {}) {
     storia.pop(); controlla();
   }
   if (esciDallaFila) esciDallaFila();
+  // ⏱️ il tempo di questa risposta (solo il numero) per il pannello del tecnico
+  if (risposta) fetch(`/fa/tempo?ms=${Date.now() - t0}&m=${daMemoria ? 1 : 0}`, { cache: "no-store" }).catch(() => {});
   occupato = false; $("invia").disabled = false;
   chat.scrollTop = chat.scrollHeight;
 }
@@ -657,7 +671,7 @@ async function nuovoEsercizio(argomento = "") {
   try {
     const es = await creaEsercizio(cervello, MATERIE[$("materia").value].nome, $("livello").value, argomento || Prof.argomento, { chiave: $("materia").value });
     conta("esercizi");
-    card.innerHTML = `<div class="esercizio"><div class="tag">✏️ ESERCIZIO ${punti.totali + 1} · ${es.riserva ? "risultato calcolato da Fly Aula ✓" : "risultato controllato 3 volte ✓✓✓"}</div>${escape(es.testo)}
+    card.innerHTML = `<div class="esercizio"><div class="tag">✏️ ESERCIZIO ${punti.totali + 1} · ${es.riserva ? (es.tipo === "parola" ? "domanda dalla lista controllata ✓" : "risultato calcolato da Fly Aula ✓") : "risultato controllato 3 volte ✓✓✓"}</div>${escape(es.testo)}
       <div class="risp"><input placeholder="La vostra risposta" ${es.tipo === "parola" ? 'autocapitalize="off" spellcheck="false"' : 'inputmode="decimal"'}><button class="btn">Controlla</button><button class="btn sec b-aiuto">💡 Aiutino</button></div><div class="esito"></div></div>`;
     const inp = card.querySelector("input"), esito = card.querySelector(".esito");
     let tentativi = 0;
@@ -687,7 +701,7 @@ async function nuovoEsercizio(argomento = "") {
     inp.onkeydown = e => { if (e.key === "Enter") verifica(); };
     card.querySelector(".b-aiuto").onclick = () => {
       const primo = (es.spiegazione || "").split(/\n|(?=\d\.)/).find(x => x.trim());
-      esito.className = "esito no"; esito.textContent = "💡 " + (primo ? primo.trim() : (es.tipo === "parola" ? "Leggete bene la frase: che tempo verbale o che parola serve?" : "Leggete bene il testo e scrivete il conto da fare prima di calcolare."));
+      esito.className = "esito no"; esito.textContent = "💡 " + (primo ? primo.trim() : (es.tipo === "parola" ? (MATERIE[$("materia").value]?.parole ? "Leggete bene la frase: che tempo verbale o che parola serve?" : "Rileggete bene la domanda e pensate a quello che avete studiato.") : "Leggete bene il testo e scrivete il conto da fare prima di calcolare."));
     };
     inp.focus();
   } catch (e) { card.innerHTML = "⚠️ Non riesco a preparare l'esercizio: controlla che Ollama sia acceso."; }
@@ -700,6 +714,7 @@ let esameAttivo = false, esameRighe = [];
 async function provaCervello(domande, livello, ogniDomanda) {
   const per = {}, inizio = Date.now(), calcPrima = $("esCalc").checked;
   let prima = 0, dopo = 0, dubbi = 0, fatte = 0, guasti = 0, ritirato = false;
+  const risposte = [];                       // le spiegazioni, per il giudice (dopo)
   for (let i = 0; i < domande.length && esameAttivo; i++) {
     const q = domande[i], mat = q.categoria === "Economia aziendale" ? "economia" : "matematica";
     let r1 = "", x1 = NaN, x2 = NaN, rev = { ok: null };
@@ -708,6 +723,7 @@ async function provaCervello(domande, livello, ogniDomanda) {
       const sq = squadra(domandaDifficile(q.d, mat));
       r1 = await cervelloDi(sq.autore)(istruzioniMateria(mat, livello === "elementari" && mat === "economia" ? "superiori" : livello, "Esame", "") + istruzioniFatti(fatti) + "\nAlla fine scrivi su una riga da sola: RISULTATO: <solo il numero>", q.d, { temperature: 0.2 });
       x1 = leggiRisultato(r1);
+      risposte.push({ domanda: q.d, testo: r1 });
       // con i controlli: calcolatrice sui conti + revisore severo (senza suggerirgli il risultato)
       const es = await ricontrolloCompleto(cervelloDi(sq.autore), { controllore: cervelloDi(sq.controllore), domanda: q.d, testo: r1, contesto: MATERIE[mat].nome + ". La risposta deve finire con 'RISULTATO: numero'.", risultatoObbligatorio: false });
       rev = { ok: es.stato === "ok", problema: es.correzioni.join(" · "), controlli: es.controlli, dubbio: es.stato === "dubbio" };
@@ -723,7 +739,7 @@ async function provaCervello(domande, livello, ogniDomanda) {
     const riga = [i + 1, q.categoria, q.d, formatta(q.r), isFinite(x1) ? formatta(x1) : "?", ok1 ? "giusta" : "SBAGLIATA", isFinite(x2) ? formatta(x2) : "?", ok2 ? "giusta" : "SBAGLIATA", (rev.dubbio ? "DUBBIO: " : rev.problema ? "corretta: " : "ok") + (rev.problema || "") + (rev.controlli ? " (" + rev.controlli + " controlli)" : "")];
     ogniDomanda({ riga, fatte, prima, dopo, per, sec: (Date.now() - inizio) / 1000 / fatte });
   }
-  return { fatte, prima, dopo, dubbi, per, ritirato, sec: fatte ? (Date.now() - inizio) / 1000 / fatte : 0 };
+  return { fatte, prima, dopo, dubbi, per, ritirato, risposte, sec: fatte ? (Date.now() - inizio) / 1000 / fatte : 0 };
 }
 async function esame() {
   if (!modello) return mostraAiuto();
@@ -741,9 +757,48 @@ async function esame() {
   scrivi("flyaula_esame_" + modello, JSON.stringify({ quando: new Date().toLocaleString("it-IT"), n: fine.fatte, prima: fine.prima, dopo: fine.dopo }));
 }
 function mostraBottoniEsame(inCorso) {
-  $("esVia").style.display = $("esGara").style.display = inCorso ? "none" : "";
+  $("esVia").style.display = $("esGara").style.display = $("esPrepara").style.display = inCorso ? "none" : "";
   $("esStop").style.display = inCorso ? "" : "none";
   $("esCsv").style.display = !inCorso && esameRighe.length ? "" : "none";
+}
+
+// ---------------- ⚡ PREPARA LE RISPOSTE D'ESEMPIO ----------------
+// Le domande d'esempio della prima schermata (per ogni materia, 1ª e 2ª): Fly Aula le fa a sé stessa,
+// le controlla come sempre e le mette in memoria. Poi arrivano in un secondo in ogni aula. (Da fare la sera.)
+function domandeEsempio(solo = "") {
+  const out = [];
+  for (const [chiave, m] of Object.entries(MATERIE)) {
+    if (solo && solo !== chiave) continue;
+    // le materie del biennio: 1ª e 2ª con gli esempi del biennio; quelle che iniziano in 3ª: la 3ª con gli esempi delle superiori
+    const anni = m.anni || [1, 2];
+    for (const a of anni)
+      for (const d of ((a <= 2 ? m.esempi.biennio : null) || m.esempi.superiori || [])) out.push({ materia: chiave, classe: a + "ªA", domanda: d });
+  }
+  return out;
+}
+async function preparaEsempi() {
+  if (occupato) return;
+  if (Prof.modo !== "normale" || DSA.attiva || Pagine.attive) { $("esRisultato").innerHTML = `<p class="sotto">Per preparare le risposte d'esempio servono: modalità del prof "normale", DSA spenta, nessuna pagina del libro.</p>`; return; }
+  const prima = { materia: $("materia").value, livello: $("livello").value, classe: $("classe").value };
+  const lista = domandeEsempio($("esPrepMateria") ? $("esPrepMateria").value : ""), t0 = Date.now();
+  esameAttivo = true; mostraBottoniEsame(true);
+  let fatte = 0, nuove = 0;
+  for (const q of lista) {
+    if (!esameAttivo) break;
+    $("materia").value = q.materia; $("livello").value = "superiori"; $("classe").value = q.classe;
+    storia = [];
+    const prima1 = statistiche().dallaMemoria || 0;
+    await chiedi(q.domanda);
+    if ((statistiche().dallaMemoria || 0) === prima1) nuove++;
+    fatte++;
+    const resta = Math.round((Date.now() - t0) / fatte * (lista.length - fatte) / 60000);
+    $("esBarra").style.width = (100 * fatte / lista.length) + "%";
+    $("esRisultato").innerHTML = `<p class="sotto">⚡ Preparo le risposte d'esempio: <b>${fatte}/${lista.length}</b> (${escape(MATERIE[q.materia].nome)}, ${escape(q.classe)}) · manca ~${resta} min</p>`;
+  }
+  esameAttivo = false; mostraBottoniEsame(false);
+  $("materia").value = prima.materia; $("livello").value = prima.livello; $("classe").value = prima.classe;
+  await nuovaLezione(false);
+  $("esRisultato").innerHTML = `<p class="ok-gara">✓ Fatto: ${fatte} risposte d'esempio pronte (${nuove} nuove, le altre erano già in memoria). Ora in ogni aula arrivano subito.</p>`;
 }
 
 // ---------------- 🏁 la GARA tra cervelli ----------------
@@ -794,6 +849,17 @@ async function gara() {
     for (let i = 0; i < ord.length && !c; i++) for (let k = i + 1; k < ord.length && !c; k++) if (coppiaPossibile(ord[i], ord[k])) c = [ord[i], ord[k]];
     if (c) await corri(c[0], c[1]);
   }
+  // ⭐ il giudice: alla fine, così non deve alternarsi con i concorrenti nella scheda video
+  if (esameAttivo && $("esGiudice").checked) {
+    modello = inUso; secondo = null;
+    const daGiudicare = risultati.filter(r => !r.ritirato && r.risposte?.length);
+    for (let k = 0; k < daGiudicare.length && esameAttivo; k++) {
+      const r = daGiudicare[k];
+      r.voto = await giudica(r, livello, n => {
+        $("esRisultato").innerHTML = `<p class="sotto">⭐ Il giudice legge le spiegazioni di <b>${escape(r.m)}</b>: ${n}/${r.risposte.length}</p>` + disegnaGara(risultati, null, 0).replace(/<div class="fine-gara">[\s\S]*$/, "");
+      });
+    }
+  }
   modello = inUso; secondo = inUsoS;
   esameAttivo = false;
   mostraBottoniEsame(false);
@@ -804,22 +870,50 @@ async function gara() {
     b.outerHTML = `<p class="ok-gara">✓ Da adesso Fly Aula usa <b>${escape(b.dataset.s ? b.dataset.m + " + " + b.dataset.s : b.dataset.m)}</b>${b.dataset.s ? " (coppia)" : ""}${Scuola.ruolo === "server" ? " su tutte le LIM della scuola" : ""}.</p>`;
     preparaGara();
   };
-  scrivi("flyaula_gara", JSON.stringify({ quando: new Date().toLocaleString("it-IT"), n: domande.length, risultati: risultati.map(r => ({ m: r.m, prima: r.prima, dopo: r.dopo, fatte: r.fatte, sec: Math.round(r.sec) })) }));
+  scrivi("flyaula_gara", JSON.stringify({ quando: new Date().toLocaleString("it-IT"), n: domande.length, risultati: risultati.map(r => ({ m: r.m, prima: r.prima, dopo: r.dopo, fatte: r.fatte, sec: Math.round(r.sec), voto: r.voto?.media || null })) }));
+}
+// ⭐ IL GIUDICE DELLA SPIEGAZIONE: un cervello (sempre lo stesso, e mai quello giudicato) vota da 1 a 5
+// quanto è chiara la spiegazione. Il risultato giusto lo controlla già la calcolatrice: qui conta come spiega.
+const ISTRUZIONI_GIUDICE = livello => `Sei un professore esperto e severo. Valuti la SPIEGAZIONE scritta da un assistente per una classe (scuola ${livello}).
+NON giudicare se il risultato finale è giusto: quello lo controlliamo noi. Giudica solo come spiega:
+- chiarezza: si capisce subito cosa fare e perché?
+- passaggi: ogni passaggio è scritto e spiegato, senza salti?
+- italiano: corretto, semplice, adatto ai ragazzi, senza frasi strane o da robot?
+Rispondi SOLO con JSON: {"voto": un numero intero da 1 a 5, "motivo": "una frase breve"}`;
+function scegliGiudice(escluso) {
+  const tutti = cervelliDaGara();
+  return MODELLI.map(m => trova(tutti, m)).filter(Boolean).find(m => m !== escluso) || tutti.find(m => m !== escluso) || null;
+}
+async function giudica(risultato, livello, ogniVoto) {
+  const giudice = scegliGiudice(risultato.forte);
+  if (!giudice) return null;
+  const voti = [];
+  for (const r of risultato.risposte || []) {
+    if (!esameAttivo) break;
+    try {
+      const out = await cervello(ISTRUZIONI_GIUDICE(livello), `DOMANDA: ${r.domanda}\nSPIEGAZIONE DA VALUTARE:\n${String(r.testo).slice(0, 4000)}`, { temperature: 0, format: "json", usa: giudice });
+      const v = Number(JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1)).voto);
+      if (v >= 1 && v <= 5) voti.push(Math.round(v));
+    } catch (e) {}
+    ogniVoto(voti.length);
+  }
+  return voti.length ? { media: voti.reduce((a, b) => a + b, 0) / voti.length, giudice, n: voti.length } : null;
 }
 // classifica: più risposte giuste con i controlli; a parità, meno dubbi; poi il più veloce
 function classifica(risultati) {
-  return [...risultati].sort((a, b) => (a.ritirato - b.ritirato) || b.dopo / b.fatte - a.dopo / a.fatte || a.dubbi - b.dubbi || a.sec - b.sec);
+  return [...risultati].sort((a, b) => (a.ritirato - b.ritirato) || b.dopo / b.fatte - a.dopo / a.fatte || ((b.voto?.media || 0) - (a.voto?.media || 0)) || a.dubbi - b.dubbi || a.sec - b.sec);
 }
 function disegnaGara(risultati, inCorso, minuti) {
   const pc = (x, n) => n ? (Math.round(1000 * x / n) / 10).toLocaleString("it-IT") + "%" : "–";
-  const ord = classifica(risultati), medaglie = ["🥇", "🥈", "🥉"];
+  const ord = classifica(risultati), medaglie = ["🥇", "🥈", "🥉"], conVoto = risultati.some(r => r.voto);
   const secondi = x => (x < 10 ? Math.round(x * 10) / 10 : Math.round(x)).toLocaleString("it-IT") + " s";
-  const righe = ord.map((r, i) => `<tr${i === 0 && !inCorso ? ' class="vincitore"' : ""}><td>${medaglie[i] || i + 1}</td><td><b>${escape(r.m)}</b>${r.secondo ? ' <small class="tag-coppia">🤝 coppia</small>' : ""}${r.ritirato ? ' <small class="tag-ritirato">⛔ ritirato: non risponde</small>' : ""}</td><td>${pc(r.prima, r.fatte)}</td><td><b>${pc(r.dopo, r.fatte)}</b></td><td>${r.dubbi}</td><td>${secondi(r.sec)}</td></tr>`).join("");
-  const ora = inCorso ? `<tr><td>⏳</td><td><b>${escape(inCorso.m)}</b> <small>sta rispondendo: ${inCorso.fatte}/${inCorso.tot}</small></td><td>${pc(inCorso.prima, inCorso.fatte)}</td><td>${pc(inCorso.dopo, inCorso.fatte)}</td><td></td><td></td></tr>` : "";
+  const righe = ord.map((r, i) => `<tr${i === 0 && !inCorso ? ' class="vincitore"' : ""}><td>${medaglie[i] || i + 1}</td><td><b>${escape(r.m)}</b>${r.secondo ? ' <small class="tag-coppia">🤝 coppia</small>' : ""}${r.ritirato ? ' <small class="tag-ritirato">⛔ ritirato: non risponde</small>' : ""}</td><td>${pc(r.prima, r.fatte)}</td><td><b>${pc(r.dopo, r.fatte)}</b></td><td>${r.dubbi}</td>${conVoto ? `<td>${r.voto ? `<b>${r.voto.media.toLocaleString("it-IT", { maximumFractionDigits: 1 })}</b> ⭐` : "–"}</td>` : ""}<td>${secondi(r.sec)}</td></tr>`).join("");
+  const ora = inCorso ? `<tr><td>⏳</td><td><b>${escape(inCorso.m)}</b> <small>sta rispondendo: ${inCorso.fatte}/${inCorso.tot}</small></td><td>${pc(inCorso.prima, inCorso.fatte)}</td><td>${pc(inCorso.dopo, inCorso.fatte)}</td><td></td>${conVoto ? "<td></td>" : ""}<td></td></tr>` : "";
   const v = !inCorso && ord[0] && !ord[0].ritirato && ord[0];
   return `${inCorso ? `<p class="sotto">🏁 Gara in corso · tempo che manca: ~${minuti} min</p>` : ""}
-    <table class="tab-gara"><thead><tr><th></th><th>Cervello</th><th>Giuste alla prima risposta</th><th>Giuste con i controlli</th><th>Dubbi</th><th>Tempo per domanda</th></tr></thead><tbody>${righe}${ora}</tbody></table>
-    ${v ? `<div class="fine-gara"><p>🏆 Vince <b>${escape(v.m)}</b>${v.secondo ? " (coppia: uno scrive, l'altro controlla)" : ""}: ${pc(v.dopo, v.fatte)} giuste con i controlli, ${secondi(v.sec).replace(" s", " secondi")} per domanda.</p>
+    <table class="tab-gara"><thead><tr><th></th><th>Cervello</th><th>Giuste alla prima risposta</th><th>Giuste con i controlli</th><th>Dubbi</th>${conVoto ? "<th>Spiegazione</th>" : ""}<th>Tempo per domanda</th></tr></thead><tbody>${righe}${ora}</tbody></table>
+    ${v ? `<div class="fine-gara"><p>🏆 Vince <b>${escape(v.m)}</b>${v.secondo ? " (coppia: uno scrive, l'altro controlla)" : ""}: ${pc(v.dopo, v.fatte)} giuste con i controlli${v.voto ? `, spiegazione ${v.voto.media.toLocaleString("it-IT", { maximumFractionDigits: 1 })} ⭐ su 5` : ""}, ${secondi(v.sec).replace(" s", " secondi")} per domanda.</p>
+      ${conVoto ? `<p class="sotto">⭐ La spiegazione l'ha votata un altro cervello (mai sé stesso). È un'indicazione utile, non un giudizio perfetto: leggete anche qualche risposta.</p>` : ""}
       ${v.forte !== modello || (v.secondo || null) !== (secondo || null) ? `<button class="btn usa-vincitore" data-m="${escape(v.forte)}" data-s="${escape(v.secondo || "")}">✓ Usa ${escape(v.m)} da adesso</button>` : `<p class="ok-gara">✓ È già ${v.secondo ? "la coppia" : "il cervello"} in uso.</p>`}
       <p class="sotto">Il tempo conta: in classe una risposta dovrebbe arrivare in meno di 20-30 secondi. Prima di scegliere un cervello per tutta la scuola, prova anche il <b>test di carico</b> nella pagina del tecnico.</p></div>` : ""}`;
 }
@@ -862,7 +956,9 @@ function aggiornaAvvisoMateria() {
   const av = $("avvisoMateria"); if (!av) return;
   const off = lezioneOrario && !lezioneOrario.chiave;
   av.style.display = off ? "block" : "none";
-  if (off) av.innerHTML = `📚 Ora c'è <b>${escape(lezioneOrario.materia)}</b>: Fly Aula questa materia non la sa ancora.<br><small style="color:var(--nebbia)">Arriverà con i prossimi aggiornamenti. Buona lezione!</small>`;
+  if (off) av.innerHTML = lezioneOrario.materia === "Seconda lingua"
+    ? `📚 Ora c'è <b>Seconda lingua</b>.<br><small style="color:var(--nebbia)">Nell'orario scrivete quale lingua (Francese, Spagnolo, Tedesco o Cinese): così Fly Aula si accende da sola.</small>`
+    : `📚 Ora c'è <b>${escape(lezioneOrario.materia)}</b>: in quest'ora Fly Aula resta in pausa.<br><small style="color:var(--nebbia)">Buona lezione!</small>`;
   $("domanda").disabled = !!off; $("invia").disabled = !!off;
   const v = $("vuoto"); if (v) v.style.display = off ? "none" : "";
 }
@@ -1036,6 +1132,13 @@ $("svuota").onclick = () => { scrivi("flyaula_errori", "[]"); scrivi("flyaula_st
 $("apriEsame").onclick = () => { $("esLivello").value = $("livello").value; preparaGara(); apri("pEsame"); };
 $("esVia").onclick = esame;
 $("esGara").onclick = gara;
+$("esPrepara").onclick = preparaEsempi;
+(function sceltaPrepara() {
+  const sel = $("esPrepMateria"); if (!sel) return;
+  sel.innerHTML += Object.entries(MATERIE).map(([k, m]) => `<option value="${k}">${m.emoji} ${escape(m.nome)}</option>`).join("");
+  const quante = () => { const n = domandeEsempio(sel.value).length; $("esPrepQuante").textContent = `${n} domande · circa ${Math.max(1, Math.round(n * 0.75))} min`; };
+  sel.onchange = quante; quante();
+})();
 $("esStop").onclick = () => { esameAttivo = false; };
 $("esCsv").onclick = () => esameRighe[0] && esameRighe[0].length > 9
   ? scaricaCsv("fly-aula-gara.csv", ["Cervello", "N", "Categoria", "Domanda", "Risultato giusto", "Prima risposta", "Esito", "Con i controlli", "Esito", "Controlli"], esameRighe)

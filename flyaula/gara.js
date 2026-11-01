@@ -1,7 +1,7 @@
 // ===================================================================
 //  FLY AULA · 🏆 gara a squadre alla LIM
 //  Le domande e i risultati li calcola Fly Aula con la calcolatrice
-//  (per Inglese: parole di una lista controllata), quindi ZERO errori.
+//  (per le altre materie: domande di una lista controllata a mano).
 //  Turni alternati; se una squadra sbaglia, l'altra può "rubare" il punto.
 // ===================================================================
 const PAROLE_INGLESE = [
@@ -32,11 +32,15 @@ const Gara = (() => {
       const [it, en] = scegli(PAROLE_INGLESE);
       return { d: `Come si dice <b>"${escC(it)}"</b> in inglese?`, testo: true, accettate: en.split("|"), mostra: en.split("|")[0] };
     }
+    if (typeof Quiz !== "undefined" && Quiz.sa(materia)) {
+      const q = Quiz.domanda(materia, livello);
+      return q.accettate ? { d: escC(q.testo), testo: true, accettate: q.accettate, mostra: q.mostra } : { d: escC(q.testo), r: q.r, mostra: q.mostra };
+    }
     const nomi = categoriePer(materia, livello, el("classe").value, "");
     const e = CATEGORIE[scegli(nomi)]();
     return { d: escC(e.d), r: e.r, mostra: formatta(e.r) };
   }
-  const giusta = (q, x) => q.testo ? q.accettate.some(a => a.toLowerCase() === String(x).trim().toLowerCase().replace(/^(to |the |a |an )/, "") || a.toLowerCase() === String(x).trim().toLowerCase())
+  const giusta = (q, x) => q.testo ? Quiz.stessa(x, q.accettate)
     : giusto(leggiNumero(String(x).replace(/[^\d.,\-]/g, "")), q.r);
 
   function apri() {
@@ -46,7 +50,7 @@ const Gara = (() => {
         <div class="squadre-in"><label>Squadra 1<input id="gNomeA" value="🔴 Rossi" maxlength="18"></label><label>Squadra 2<input id="gNomeB" value="🔵 Blu" maxlength="18"></label></div>
         <div class="riga-btn"><label>Domande per squadra <select class="pill" id="gN"><option>3</option><option selected>5</option><option>8</option></select></label>
         <label>Tempo <select class="pill" id="gT"><option value="30">30 s</option><option value="60" selected>60 s</option><option value="90">90 s</option><option value="0">senza tempo</option></select></label></div>
-        <p class="nota-s">Materia: <b>${escC(MATERIE[el("materia").value].nome)}</b> · livello <b>${escC(el("livello").value)}</b>. I risultati li calcola la calcolatrice: zero errori.</p>
+        <p class="nota-s">Materia: <b>${escC(MATERIE[el("materia").value].nome)}</b> · livello <b>${escC(el("livello").value)}</b>. ${Quiz.sa(el("materia").value) ? "Le domande vengono da una lista controllata, i conti li fa la calcolatrice." : "I risultati li calcola la calcolatrice."}</p>
         <div class="riga-btn"><button class="btn" id="gVia">🏁 Si parte!</button><button class="btn sec" id="gChiudi1">Chiudi</button></div>
       </div>`;
     el("gVia").onclick = () => parti(el("gNomeA").value.trim() || "Squadra 1", el("gNomeB").value.trim() || "Squadra 2", +el("gN").value, +el("gT").value);
@@ -63,7 +67,9 @@ const Gara = (() => {
   }
   function nuovaDomanda() {
     if (st.fatte >= st.totali) return finale();
-    st.q = domanda(st.materia, st.livello); st.ruba = false;
+    st.viste = st.viste || new Set();
+    for (let t = 0; t < 15; t++) { st.q = domanda(st.materia, st.livello); if (!st.viste.has(st.q.d)) break; }   // niente domande ripetute nella stessa gara
+    st.viste.add(st.q.d); st.ruba = false;
     disegnaDomanda();
   }
   function disegnaDomanda() {

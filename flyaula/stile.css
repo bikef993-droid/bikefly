@@ -367,3 +367,36 @@ header{gap:10px;padding:10px 20px;flex-wrap:nowrap}
 #intro.lieve .in-motto{opacity:1}
 #intro.lieve .in-scia{display:none}
 #intro.lieve.via{transform:none}
+.giudice-sce{display:flex;gap:8px;align-items:center;font-weight:700;color:var(--nebbia);margin:4px 0 2px}.giudice-sce input{width:20px;height:20px}
+
+/* 🎬 percorso guidato dal vivo */
+#guida{display:none;position:fixed;right:18px;top:96px;width:min(400px,34vw);z-index:30;background:rgba(14,30,60,.96);border:1px solid rgba(255,255,255,.16);border-radius:24px;padding:16px 20px;box-shadow:0 18px 50px rgba(0,0,0,.45);animation:entra .35s both}
+#guida h3{font:900 24px Bricolage;margin:6px 0 10px}
+.gd-testa{display:flex;justify-content:space-between;align-items:center;color:var(--sole);font-weight:800;font-size:14px}
+.gd-x{background:none;border:0;color:var(--nebbia);font-size:20px;cursor:pointer}
+.gd-dire{background:rgba(255,255,255,.06);border-radius:16px;padding:10px 14px}.gd-dire b{color:var(--menta);font-size:14px}.gd-dire p{margin:4px 0 0;font-size:17px;line-height:1.45}
+.gd-nota{margin-top:10px;color:var(--sole);font-weight:700;font-size:15px}
+.gd-domanda{margin-top:10px;color:var(--nebbia);font-style:italic;font-size:15px}
+.gd-bottoni{display:flex;gap:8px;margin-top:14px}.gd-bottoni .btn{padding:10px 16px;font-size:17px}.gd-bottoni .btn:first-child{flex:1}
+.demo-materie{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.demo-materie div{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:14px 18px;animation:entra .45s both}
+.demo-materie span{font-size:34px}.demo-materie b{font:800 clamp(17px,1.5vw,22px) Figtree}
+.demo-scelte{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+body.con-guida main#chat,body.con-guida footer{margin-right:min(430px,36vw);transition:margin .3s}
+
+/* linea del tempo */
+.linea-t{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:8px;padding:6px 0 4px}
+.linea-t::before{content:"";position:absolute;left:4%;right:4%;top:46px;height:4px;border-radius:4px;background:linear-gradient(90deg,#00D2A0,#3B8BFF,#7C5CFF)}
+.lt-tappa{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;animation:entra .45s both}
+.lt-tappa b{font:800 clamp(16px,1.6vw,22px) Figtree;color:var(--c)}
+.lt-tappa i{width:18px;height:18px;border-radius:50%;background:var(--c);border:3px solid rgba(0,0,0,.35);z-index:1}
+.lt-tappa span{font-size:clamp(13px,1.15vw,16px);line-height:1.3}
+@media (max-width:640px){.linea-t{grid-template-columns:1fr}.linea-t::before{left:79px;right:auto;top:8px;bottom:8px;width:4px;height:auto}.lt-tappa{flex-direction:row;text-align:left}.lt-tappa b{min-width:64px;text-align:right}.lt-tappa i{flex:none}}
+@media (prefers-reduced-motion:reduce){.lt-tappa{animation:none}}
+
+/* tante materie nella presentazione: schede più piccole */
+.demo-gruppo{font:800 clamp(14px,1.2vw,18px) Figtree;letter-spacing:.06em;text-transform:uppercase;color:var(--nebbia,#9fb0c8);margin:14px 0 8px}
+#demoSlide .demo-materie{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+#demoSlide .demo-materie div{padding:9px 14px;border-radius:16px}
+#demoSlide .demo-materie span{font-size:26px}
+#demoSlide .demo-materie b{font-size:clamp(14px,1.15vw,18px)}

@@ -147,6 +147,23 @@ function disMappa(spec) {
   return box("Mappa concettuale", `<div class="mappa"><div class="m-centro">${e(parti[0])}</div><div class="m-rami">${rami}</div></div>`);
 }
 
+// 🕰️ linea del tempo (storia, arte, letteratura): "linea 1914 Inizio della guerra | 1915 Entra l'Italia | 1918 Fine"
+function leggiAnno(t) {
+  const m = String(t).match(/^\s*(\d{1,4})\s*(a\.?\s*c\.?|d\.?\s*c\.?)?(?=[\s:,–—-]|$)\s*[:,–—-]?\s*(.*)$/i);
+  if (!m) return null;
+  const ac = m[2] && /^a/i.test(m[2]);
+  return { anno: ac ? -Number(m[1]) : Number(m[1]), scritto: m[1] + (m[2] ? (ac ? " a.C." : " d.C.") : ""), cosa: m[3].trim() };
+}
+function disLinea(spec) {
+  const e = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])).replace(/\*\*/g, "");
+  const parti = spec.replace(/^\s*linea(\s+del\s+tempo)?\s*:?\s*/i, "").split("|").map(leggiAnno).filter(x => x && x.cosa);
+  if (parti.length < 2) return null;
+  const tappe = parti.slice(0, 8).sort((a, b) => a.anno - b.anno);
+  const tinte = ["#00D2A0", "#3B8BFF", "#FFD23F", "#FF5A5F", "#7C5CFF", "#F4A340"];
+  return box("Linea del tempo", `<div class="linea-t" style="--n:${tappe.length}">${tappe.map((t, i) =>
+    `<div class="lt-tappa" style="--c:${tinte[i % tinte.length]};animation-delay:${0.2 + i * 0.15}s"><b>${e(t.scritto)}</b><i></i><span>${e(t.cosa.slice(0, 80))}</span></div>`).join("")}</div>`);
+}
+
 // 📈 grafico di una funzione: y = 2x + 1, y = x^2 - 4x + 3 …
 function compilaFunzione(espr) {
   const s = String(espr).toLowerCase().replace(/^\s*(y|f\s*\(\s*x\s*\))\s*=\s*/, "").replace(/−/g, "-").replace(/[×·]/g, "*").replace(/:/g, "/")
@@ -255,6 +272,7 @@ function disMastrino(spec) {
 // lettura del comando scritto dal cervello
 function disegna(spec) {
   if (/^\s*mappa\b/i.test(spec)) { try { return disMappa(spec); } catch (e) { return null; } }
+  if (/^\s*linea\b/i.test(spec)) { try { return disLinea(spec); } catch (e) { return null; } }
   if (/^\s*scrittura\b/i.test(spec)) { try { return disScrittura(spec); } catch (e) { return null; } }
   if (/^\s*mastrino\b/i.test(spec)) { try { return disMastrino(spec); } catch (e) { return null; } }
   if (/^\s*grafico\b/i.test(spec)) {

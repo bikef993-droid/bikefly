@@ -52,7 +52,8 @@ function pulisciLatex(t) {
 const OPC = "+\\-−×x*·÷:\\/";
 const RE_CONTO = new RegExp(
   `(?<![\\w.,()^²³√%${OPC}])` +
-  `([-−]?\\(?\\d+(?:[.,]\\d+)*\\)?(?:\\s*[${OPC}]\\s*\\(?[-−]?\\d+(?:[.,]\\d+)*\\)?)+)` +
+  // ":" è una divisione solo con gli spazi da tutte e due le parti ("8 : 4") o senza spazi ("8:4"); "cifra 4: 4 : 4" non è "4 : 4 : 4"
+  `([-−]?\\(?\\d+(?:[.,]\\d+)*\\)?(?:(?:\\s*[+\\-−×x*·÷\\/]\\s*|\\s+:\\s+|:(?=\\(?[-−]?\\d))\\(?[-−]?\\d+(?:[.,]\\d+)*\\)?)+)` +
   `\\s*=\\s*([-−]?\\d+(?:[.,]\\d+)*)` +
   `(?!\\s*[${OPC}^²³%]\\s*\\(?\\d)(?!\\s*,?\\s*(?:con\\s+)?(?:il\\s+)?(?:resto|r\\.?\\s*\\d))(?![.,]?\\d)`, "gi");
 function decimaliDi(c) { const m = /,(\d+)$/.exec(c) || /\.(\d{1,2})$/.exec(c); return m ? m[1].length : 0; }
@@ -288,10 +289,13 @@ function passiInColonna(a, op, b) {
     parz = parz * 10 + d[i];
     if (i > 0) passi.push(`${d.slice(0, i).join("")} : ${b} non si può (${d.slice(0, i).join("")} è più piccolo di ${b}): prendo ${i + 1} cifre, cioè ${parz}.`);
     let q = Math.floor(parz / b), r = parz - q * b, quoz = String(q);
-    passi.push(`${parz} : ${b} = ${q}, perché ${q} × ${b} = ${q * b}; resto ${r}.`);
+    // (scritto "= 3 con resto 2": così la calcolatrice sa che è una divisione con il resto e non la "corregge")
+    const unPasso = (parz, q, r) => r ? `${parz} : ${b} = ${q} con resto ${r} (${q ? `perché ${q} × ${b} = ${q * b}` : `${parz} è più piccolo di ${b}`})`
+      : `${parz} : ${b} = ${q} (${q ? `perché ${q} × ${b} = ${q * b}` : "zero diviso un numero fa sempre 0"}), resto 0`;
+    passi.push(unPasso(parz, q, r) + ".");
     for (i = i + 1; i < d.length; i++) {
       parz = r * 10 + d[i]; q = Math.floor(parz / b); r = parz - q * b; quoz += q;
-      passi.push(`Abbasso la cifra ${d[i]}: ${parz} : ${b} = ${q}${q ? `, perché ${q} × ${b} = ${q * b}` : ` (${parz} è più piccolo di ${b})`}; resto ${r}.`);
+      passi.push(`Abbasso la cifra ${d[i]} e ottengo ${parz}. ${unPasso(parz, q, r)}.`);
     }
     const Q = Number(quoz);
     passi.push(`Risultato: ${a} : ${b} = ${f(Q)}${r ? ` con il resto di ${r}` : ""}. Prova: ${f(Q)} × ${b}${r ? ` + ${r}` : ""} = ${f(a)} ✓`);
@@ -360,8 +364,11 @@ function passiInColonna(a, op, b) {
 //  "modello", e (se il disegno c'è) quelle in cui dice di non saper disegnare.
 // ===================================================================
 const FRASI_ROBOT = [
-  /\bistruzion[ie]\b[^.!?\n]{0,40}\b(date|ricevute|che ho|del sistema|fornite)/i,
-  /\b(come|in quanto|sono (solo )?(un|una))\s+(modello( linguistico| di (intelligenza artificiale|linguaggio))?|intelligenza artificiale|ia\b|ai\b|assistente virtuale|programma)/i,
+  // (le "istruzioni" di un programma, in Informatica, non si toccano)
+  /\bistruzion[ie]\b(?![^.!?\n]{0,40}\b(computer|macchina|processore|cpu|programm\w*|codice|algoritm\w*|robot|python|ciclo|linguaggio|calcolatore)\b)[^.!?\n]{0,40}\b(date|ricevute|che ho|del sistema|fornite)\b/i,
+  // "come modello di mercato", "come programma di viaggio"… vanno bene: si tolgono solo le frasi su di sé
+  /\b(come|in quanto)\s+(un |una )?(modello (linguistico|di (intelligenza artificiale|linguaggio|ia))|intelligenza artificiale|ia|ai|assistente virtuale)\s*,?\s*(non|io|posso|ho|sono|devo)\b/i,
+  /\bsono (solo |soltanto |semplicemente )?(un|una|un')\s*(modello( linguistico| di (intelligenza artificiale|linguaggio))?|intelligenza artificiale|ia|ai|assistente virtuale|programma( informatico| di intelligenza artificiale)?)\s*(,|\.|e\b|che\b|non\b|$)/i,
   /\b(system prompt|prompt di sistema|il mio prompt|le mie regole)\b/i,
   /\bsiamo concentrati sull[ae]? /i,
   /\bnon ho (accesso|la possibilità) (a internet|di navigare)/i
