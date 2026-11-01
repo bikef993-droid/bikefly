@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.20 · il programma
+//  FLY AULA v0.9.21 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -443,6 +443,9 @@ function domandaDifficile(domanda, materia, speciale = {}) {
 }
 function squadra(difficile, materia = "") {
   if (!secondo) return { autore: modello, controllore: modello };
+  // 🔄 a turni: le domande facili le fa tutte il cervello che è già nella scheda (nessun cambio, risposta subito);
+  // le difficili la coppia: scrive uno, controlla l'altro (Fly Aula poi rimette a posto chi scrive)
+  if (aTurni() && !difficile) return { autore: modello, controllore: modello };
   // 🧠 se la prova di precisione ha scelto il cervello migliore per questa materia, scrive lui (l'altro controlla)
   const meglio = typeof Precisione !== "undefined" && materia ? Precisione.autorePer(materia, modello, secondo) : null;
   if (meglio) return { autore: meglio, controllore: meglio === modello ? secondo : modello };
@@ -644,7 +647,7 @@ async function chiedi(domanda, speciale = {}) {
     bolla.classList.remove("controllo");
     bolla.innerHTML = html + `<div class="timbri">${timbri.join("")}</div>`;
     conta("risposte"); risposta = true;
-    if (sq.autore !== sq.controllore) controllaMemoria();
+    if (sq.autore !== sq.controllore) { controllaMemoria(); if (aTurni()) rimettiChiScrive(); }
     controllaScheda();
     // ⚡ si ricorda solo una risposta pulita: niente dubbi, niente tagli, niente blocchi della sicurezza
     const daRicordare = chiave && (es.stato === "ok" || es.stato === "corretta") && !prima.fine && timbri.length;
@@ -1122,11 +1125,22 @@ function memoriaCoppia(a, b) {
   const serve = m => pesi[m] + 0.8e9 + classi * perClasse;
   return serve(a) + serve(b);
 }
-function coppiaPossibile(a, b) { return a && b && a !== b && famiglia(a) !== famiglia(b) && !coppieNo().includes(chiaveCoppia(a, b)) && stannoInsieme(a, b); }
+function coppiaPossibile(a, b) { return a && b && a !== b && famiglia(a) !== famiglia(b) && !coppieNo().includes(chiaveCoppia(a, b)) && (stannoInsieme(a, b) || turniPossibili(a, b)); }
+// 🔄 COPPIA A TURNI: se i due cervelli NON stanno insieme nella scheda ma ognuno ci sta da solo, si danno il cambio
+// (uno scrive, poi l'altro controlla). Automatica su una LIM sola; spenta sul server con tante classi (farebbe aspettare tutti).
+function turniAccesi() { const t = Scuola.turni; return t === "1" || (t !== "0" && Scuola.ruolo !== "server"); }
+function turniPossibili(a, b) {
+  const vram = Scuola.vram * 1024 * 1024;
+  const perClasse = Scuola.marca && Scuola.marca !== "nvidia" ? 0.8e9 : 0.4e9, daSolo = m => pesi[m] + 0.8e9 + perClasse;
+  return turniAccesi() && vram > 0 && pesi[a] > 0 && pesi[b] > 0 && daSolo(a) <= vram && daSolo(b) <= vram;
+}
+function aTurni() { return !!secondo && secondo !== modello && !stannoInsieme(modello, secondo); }
+// dopo il turno del cervello che controlla, quello che scrive torna nella scheda in sottofondo (pronto per la prossima domanda)
+function rimettiChiScrive() { Scuola.chiama("/api/generate", { method: "POST", body: JSON.stringify({ model: modello, prompt: "", keep_alive: riposo() }) }).catch(() => {}); }
 // la prova vera: dopo una risposta della coppia, Ollama dice dove sono i cervelli.
 // Se uno è finito (anche in parte) sul processore, o se uno ha dovuto cacciare l'altro, la coppia NON ci sta.
 async function controllaMemoria() {
-  if (!secondo) return;
+  if (!secondo || aTurni()) return;   // a turni è normale che i due non siano nella scheda insieme
   try {
     const r = await Scuola.chiama("/api/ps", { cache: "no-store" });
     const caricati = (await r.json()).models || [];
@@ -1137,6 +1151,8 @@ async function controllaMemoria() {
       // da ora si provano solo coppie PIÙ PICCOLE di questa
       const m = memoriaCoppia(modello, secondo);
       if (m > 0) scrivi("flyaula_limite_coppia", String(Math.min(m, Number(leggi("flyaula_limite_coppia")) || Infinity)));
+      // 🔄 non stanno insieme ma ognuno ci sta da solo: la coppia resta, A TURNI (niente cervelli persi)
+      if (turniPossibili(modello, secondo)) { annotaErrore("Coppia a turni", `${modello} e ${secondo} non stanno insieme nella scheda: si danno il cambio.`, "(automatico)"); aggiornaEtichettaStato(); return; }
       // funzionano tutti e due, ma non insieme: si tiene il più forte (il principale)
       if (!a || !b) togliDallaCoppia(secondo, "i due cervelli non stanno insieme nella scheda video (uno caccia l'altro)");
       else togliDallaCoppia(secondo, "nella scheda video non c'è posto per tutti e due (una parte finisce sul processore, lentissimo)");
@@ -1194,7 +1210,7 @@ window.aggiornaEtichettaStato = function () {
   if (!modello) { s.textContent = "☕ Si sta svegliando…"; s.className = "ko"; s.title = "Il cervello non risponde"; return; }
   s.textContent = Scuola.suRiserva ? "🟡 Pronta · server di riserva" : Scuola.ruolo === "lim" ? "🟢 Pronta · server della scuola" : "🟢 Pronta";
   s.className = Scuola.suRiserva ? "riserva" : "ok";
-  s.title = `${secondo ? "Cervelli: " + modello + " + " + secondo + " (coppia)" : "Cervello: " + modello} · ${Scuola.base}${Scuola.aula ? " · aula " + Scuola.aula : ""}`;
+  s.title = `${secondo ? "Cervelli: " + modello + " + " + secondo + (aTurni() ? " (coppia a turni)" : " (coppia)") : "Cervello: " + modello} · ${Scuola.base}${Scuola.aula ? " · aula " + Scuola.aula : ""}`;
 };
 setInterval(() => { if (!modello) controlla(); }, 15000);
 function mostraAiuto(acceso) {

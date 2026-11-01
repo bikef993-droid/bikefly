@@ -79,6 +79,7 @@
       <button id="apriReport">📈 Report per la scuola</button>
       <button id="apriDemo">🎬 Presentazione per la preside</button>
       <button id="apriEsame">📝 Esame delle domande (tecnico)</button>
+      <button id="apriGuida" onclick="document.getElementById('menu').classList.remove('aperto');Tutorial.pannello()">❓ Guida per i prof</button>
       <button id="apriPrivacy" onclick="document.getElementById('menu').classList.remove('aperto');window.open('privacy.html','_blank')">🔒 Privacy e dati</button>
       <button id="apriInstallaPc">💻 Installa sul PC della classe</button>
       <button id="installa" style="display:none">🌐 Aggiungi come app del browser</button>
@@ -95,7 +96,7 @@
     <button type="button" class="btn ferma" id="ferma" hidden title="Ferma la risposta (anche con il tasto Esc)">⏹ Ferma</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.9.20 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.9.21 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -232,9 +233,9 @@
     <div class="lv-gruppo"><button id="lvAnnulla" title="Annulla (Ctrl+Z)">↶</button><button id="lvRipeti" title="Rifai (Ctrl+Y)">↷</button><button id="lvPulisci" title="Pulisci la pagina">🗑️</button></div>
     <div class="lv-gruppo"><button id="lvPrima" title="Pagina prima">‹</button><span id="lvNum">1 / 1</span><button id="lvDopo" title="Pagina dopo">›</button><button id="lvNuova" title="Nuova pagina">＋</button><button id="lvSfondo" title="Sfondo: scuro, quadretti, righe, bianco">▦</button></div>
     <div class="spazio"></div>
-    <button class="btn" id="lvCorreggi">✅ Correggi i conti</button>
-    <button class="btn sec" id="lvLeggi">📖 Leggi</button>
-    <div class="lv-gruppo"><button id="lvSalva" title="Salva la pagina come immagine">💾</button><button id="lvChiudi" title="Chiudi la lavagna (Esc)">✕</button></div>
+    <button class="btn" id="lvCorreggi">✅ Correggi<span class="lungo"> i conti</span></button>
+    <button class="btn sec" id="lvLeggi">📖<span class="lungo"> Leggi</span></button>
+    <div class="lv-gruppo"><button id="lvGuida" title="Come si usa la lavagna">❓</button><button id="lvSalva" title="Salva la pagina come immagine">💾</button><button id="lvChiudi" title="Chiudi la lavagna (Esc)">✕</button></div>
   </div>
   <div class="lv-foglio" id="lvFoglio"><canvas id="lvTela"></canvas><canvas id="lvSegni"></canvas><div class="lv-fumetto" id="lvFumetto" hidden></div><div class="lv-stat" id="lvStat"></div></div>
   <div class="lv-conferma" id="lvConferma" hidden></div>
@@ -304,6 +305,7 @@
 <script src="strumenti.js"></script>
 <script src="attivita.js"></script>
 <script src="giochi.js"></script>
+<script src="guida.js"></script>
 <script src="report.js"></script>
 <script src="demo.js"></script>
 <script src="orario.js"></script>

@@ -74,7 +74,9 @@ code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:8px}
   <h2>🌙 Energia</h2>
   <div class="t-riga"><label class="nota-s" style="font-size:16px">Dopo quanto tempo senza domande i cervelli lasciano la scheda video:</label>
     <select id="tRiposo"><option value="">2 ore (normale)</option><option value="60">1 ora</option><option value="30">30 minuti</option><option value="15">15 minuti (consuma meno)</option></select>
+    <select id="tTurni" title="Coppia a turni"><option value="">🔄 Coppia a turni: automatica</option><option value="1">🔄 Coppia a turni: sempre</option><option value="0">🔄 Coppia a turni: mai</option></select>
     <button class="btn sec" id="tLibera">🌙 Libera la scheda video adesso</button><span id="tRiposoOk" class="nota-s"></span></div>
+  <p class="nota-s">🔄 <b>Coppia a turni</b>: se i due cervelli non stanno insieme nella scheda, si danno il cambio (le domande facili le fa uno solo, subito; le difficili: uno scrive e l'altro controlla, qualche secondo in più). Automatica = accesa su un PC singolo, spenta sul server con tante classi.</p>
   <p class="nota-s">Con meno tempo la scheda video consuma meno quando nessuno usa Fly Aula; la prima domanda dopo una pausa arriva qualche secondo più lenta. Per spegnere il computer di notte: impostazioni di Windows (Sistema → Alimentazione).</p>
 
   <div class="t-sez" id="sezAvvisi">
@@ -474,7 +476,11 @@ $("tLibera").onclick = async () => {
   $("tRiposoOk").textContent = ps.length ? `✓ ${ps.length === 1 ? "1 cervello tolto" : ps.length + " cervelli tolti"} dalla scheda video: si riaccendono alla prima domanda` : "La scheda video era già libera";
   stato();
 };
-(async () => { try { const c = await json("/fa/config"); $("tRiposo").value = c.riposo || ""; } catch (e) {} })();
+(async () => { try { const c = await json("/fa/config"); $("tRiposo").value = c.riposo || ""; $("tTurni").value = c.turni || ""; } catch (e) {} })();
+$("tTurni").onchange = async () => {
+  const r = await fetch("/fa/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ turni: $("tTurni").value }) });
+  $("tRiposoOk").textContent = r.ok ? "✓ Salvato: le LIM lo usano dalla prossima accensione" : "⚠️ Non salvato";
+};
 
 // ======================= 📢 CIRCOLARI =======================
 const LINGUE_C = [["semplice", "🇮🇹 Italiano semplice", ""], ["inglese", "🇬🇧 Inglese", "English"], ["francese", "🇫🇷 Francese", "French"], ["spagnolo", "🇪🇸 Spagnolo", "Spanish"], ["rumeno", "🇷🇴 Rumeno", "Romanian"], ["albanese", "🇦🇱 Albanese", "Albanian"], ["arabo", "🇸🇦 Arabo", "Arabic"], ["ucraino", "🇺🇦 Ucraino", "Ukrainian"], ["cinese", "🇨🇳 Cinese", "Simplified Chinese"], ["urdu", "🇵🇰 Urdu", "Urdu"]];

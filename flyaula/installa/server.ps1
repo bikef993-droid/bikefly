@@ -20,10 +20,10 @@ Remove-Item $PAG -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $PAG, $ORARI, $MEMO, $PROFD | Out-Null
 
 function LeggiConfig {
-  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = ''; materie = ''; parole = ''; avvisi = ''; pinavvisi = ''; riposo = '' }
+  $c = @{ ruolo = 'singolo'; nome = ''; riserva = ''; cervello = ''; cervello2 = ''; codicelim = ''; materie = ''; parole = ''; avvisi = ''; pinavvisi = ''; riposo = ''; turni = '' }
   try {
     $j = [IO.File]::ReadAllText($CFGF, $UTF8) | ConvertFrom-Json
-    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2', 'codicelim', 'materie', 'parole', 'avvisi', 'pinavvisi', 'riposo') { if ($j.$k) { $c[$k] = [string]$j.$k } }
+    foreach ($k in 'ruolo', 'nome', 'riserva', 'server', 'aula', 'cervello', 'cervello2', 'codicelim', 'materie', 'parole', 'avvisi', 'pinavvisi', 'riposo', 'turni') { if ($j.$k) { $c[$k] = [string]$j.$k } }
   } catch {}
   return $c
 }
@@ -206,7 +206,7 @@ while ($ascolta.IsListening) {
 
     if ($p -eq '/fa/scuola' -and $daRete) {
       $par = [Environment]::GetEnvironmentVariable('OLLAMA_NUM_PARALLEL', 'User')
-      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; materie = $CFG.materie; parole = $CFG.parole; avvisi = $CFG.avvisi; riposo = $CFG.riposo; vram = $VRAM; marca = $SCHEDA.marca; scheda = $SCHEDA.nome; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
+      Testo $ctx 200 (@{ ruolo = $(if ($SERVER) { 'server' } else { 'singolo' }); nome = $CFG.nome; riserva = $CFG.riserva; cervello = $CFG.cervello; cervello2 = $CFG.cervello2; materie = $CFG.materie; parole = $CFG.parole; avvisi = $CFG.avvisi; riposo = $CFG.riposo; turni = $CFG.turni; vram = $VRAM; marca = $SCHEDA.marca; scheda = $SCHEDA.nome; parallelo = $par; ip = (IpLocale) } | ConvertTo-Json -Compress)
     }
     elseif ($p -eq '/fa/config' -and $locale) {
       if ($q.HttpMethod -eq 'POST') {
@@ -219,6 +219,7 @@ while ($ascolta.IsListening) {
           if ($null -ne $j.cervello2) { $CFG.cervello2 = (([string]$j.cervello2) -replace '[^\w\.\-:]', '') }
           if ($null -ne $j.materie) { $m = [string]$j.materie; if ($m.Length -le 3000 -and $m -match '^[\w\.\-:{}",]*$') { $CFG.materie = $m } }
           if ($null -ne $j.riposo) { $r = [string]$j.riposo; if ($r -eq '' -or ($r -match '^\d{1,3}$' -and [int]$r -ge 10 -and [int]$r -le 480)) { $CFG.riposo = $r } }
+          if ($null -ne $j.turni) { $tu = [string]$j.turni; if (@('', '0', '1') -contains $tu) { $CFG.turni = $tu } }
           $parOk = $true
           if ($null -ne $j.parole) { $pl = ParoleOk $j.parole; if ($null -eq $pl) { $parOk = $false } else { $CFG.parole = $pl } }
           if ($parOk) { SalvaConfig $CFG; Testo $ctx 200 '{"ok":true}' } else { Testo $ctx 400 '{"errore":"parole"}' }

@@ -341,6 +341,7 @@ const Lavagna = (() => {
     aperta = true; el("pLavagna").classList.add("aperta");
     el("lvLeggi").title = cervelloCheVede() ? "Leggi parole e frasi con " + cervelloCheVede() : "Per leggere parole e frasi serve un cervello che vede (es. qwen3-vl:8b)";
     requestAnimationFrame(misura);
+    if (typeof Tutorial !== "undefined") Tutorial.primaVoltaLavagna();   // la prima volta: l'introduzione
   }
   function chiudi() { aperta = false; el("pLavagna").classList.remove("aperta"); el("lvConferma").hidden = true; salva(); }
   function collega2() {
@@ -360,9 +361,10 @@ const Lavagna = (() => {
     el("lvAnnulla").onclick = indietro; el("lvRipeti").onclick = avanti;
     el("lvPulisci").onclick = e => { const b = e.currentTarget; if (!pagine[pg].tratti.length) return; if (b.dataset.sicuro !== "1") { b.dataset.sicuro = "1"; b.textContent = "Sicuro?"; setTimeout(() => { b.dataset.sicuro = ""; b.textContent = "🗑️"; }, 2500); return; } b.dataset.sicuro = ""; b.textContent = "🗑️"; pulisci(); };
     el("lvPrima").onclick = () => vaiPagina(pg - 1); el("lvDopo").onclick = () => vaiPagina(pg + 1); el("lvNuova").onclick = nuovaPagina;
-    el("lvSfondo").onclick = cambiaSfondo; el("lvCorreggi").onclick = correggi; el("lvLeggi").onclick = leggiConIlCervello; el("lvSalva").onclick = salvaImmagine;
+    el("lvSfondo").onclick = cambiaSfondo; if (el("lvGuida")) el("lvGuida").onclick = () => Tutorial.avvia("lavagna"); el("lvCorreggi").onclick = correggi; el("lvLeggi").onclick = leggiConIlCervello; el("lvSalva").onclick = salvaImmagine;
     document.addEventListener("keydown", e => {
       if (!aperta) return;
+      if (e.key === "Escape" && typeof Tutorial !== "undefined" && Tutorial.attiva) { Tutorial.chiudi(); return; }
       if (e.key === "Escape") { if (!el("lvConferma").hidden) { el("lvConferma").hidden = true; el("lvConferma").innerHTML = ""; } else chiudi(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && e.target.tagName !== "INPUT" && e.target.tagName !== "TEXTAREA") { e.preventDefault(); e.shiftKey ? avanti() : indietro(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y" && e.target.tagName !== "INPUT") { e.preventDefault(); avanti(); }

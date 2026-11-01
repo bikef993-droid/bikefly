@@ -419,16 +419,16 @@ body.con-guida main#chat,body.con-guida footer{margin-right:min(430px,36vw);tran
 /* ---------- 🖊️ LAVAGNA ---------- */
 .lavagna{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;background:var(--notte)}
 .lavagna.aperta{display:flex}
-.lv-barra{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto;padding:8px 12px;background:var(--notte2);border-bottom:1px solid rgba(255,255,255,.1)}
+.lv-barra{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding:8px 12px;background:var(--notte2);border-bottom:1px solid rgba(255,255,255,.1)}
 .lv-barra .spazio{flex:1}
 .lv-gruppo{display:flex;flex:none;align-items:center;gap:2px;background:rgba(255,255,255,.05);border-radius:16px;padding:4px}
-.lv-gruppo button{min-width:48px;height:50px;border:0;border-radius:12px;background:transparent;color:var(--latte);font:800 24px Figtree;cursor:pointer;display:grid;place-items:center}
+.lv-gruppo button{min-width:44px;height:48px;border:0;border-radius:12px;background:transparent;color:var(--latte);font:800 24px Figtree;cursor:pointer;display:grid;place-items:center}
 .lv-gruppo button:hover{background:rgba(255,255,255,.08)}.lv-gruppo button.on{background:rgba(59,139,255,.35);box-shadow:inset 0 0 0 2px var(--cielo)}
 .lv-gruppo button:disabled{opacity:.3;cursor:default}
 .lv-gruppo button i{display:block;width:var(--d);height:var(--d);border-radius:50%;background:var(--latte)}
-.lv-col::after{content:"";width:26px;height:26px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+.lv-col::after{content:"";width:24px;height:24px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px rgba(255,255,255,.35)}
 #lvNum{font:900 18px Figtree;min-width:64px;text-align:center}
-.lv-barra .btn{flex:none;height:50px;padding:0 16px;font-size:18px;white-space:nowrap}
+.lv-barra .btn{flex:none;height:48px;padding:0 14px;font-size:17px;white-space:nowrap}
 .lv-foglio{position:relative;flex:1;min-height:0;overflow:hidden}
 .lv-foglio canvas{position:absolute;inset:0;display:block}
 #lvTela{touch-action:none;cursor:crosshair}#lvSegni{pointer-events:none}
@@ -516,3 +516,8 @@ body.con-guida main#chat,body.con-guida footer{margin-right:min(430px,36vw);tran
 .re-cerchio{width:min(34vw,320px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(0,210,160,.9),rgba(59,139,255,.55));box-shadow:0 0 80px rgba(0,210,160,.35);transform:scale(1)}
 .re-testo{font:900 clamp(30px,4vw,56px) Figtree;color:var(--latte);min-height:1.3em}.re-tempo{font:800 22px Figtree;color:var(--nebbia)}
 .spunta{display:flex!important;gap:8px;align-items:center;font-size:15px}
+/* ❓ guide passo passo */
+.tour-velo{position:absolute;inset:0;background:rgba(4,10,22,.72)}
+.tour-fumetto.tour-centro{left:50%;top:50%;transform:translate(-50%,-50%);width:520px;animation:none}
+.tour-bott{display:flex;gap:8px;justify-content:flex-end}.tour-bott .btn.sec{color:#0B1A33;background:rgba(11,26,51,.08);border-color:rgba(11,26,51,.15)}
+@media (max-width:1450px){.lv-barra .lungo{display:none}}
