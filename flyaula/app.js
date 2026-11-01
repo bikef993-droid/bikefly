@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.14 · il programma
+//  FLY AULA v0.9.15 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -356,7 +356,7 @@ async function leggiMemoria(k, materia = "") {
     const testo = ripulisciRobot(String(j.testo || "")).testo;
     // anche dalla memoria: niente di strano, conti giusti, niente ripetizioni (altrimenti si risponde da capo)
     if (!testo || testo.length > 8000 || !controllaRisposta(testo, materia) || correggiConti(testo).corretti || Fatti.correggi(testo).corretti || trovaGiro(testo)) return null;
-    return { testo, controlli: Number(j.controlli) || 2, coppia: !!j.coppia };
+    return { testo, controlli: Number(j.controlli) || 2, coppia: !!j.coppia, modello: String(j.modello || "").replace(/[^\w.:\-]/g, "").slice(0, 40) };
   } catch (e) { return null; } finally { clearTimeout(t); }
 }
 function salvaInMemoria(k, dati) {
@@ -485,7 +485,7 @@ async function chiedi(domanda, speciale = {}) {
       timbri.push(`<span class="timbro blu">⚡ Già controllata in un'altra lezione: risposta immediata</span>`);
       bolla.innerHTML = impagina(ricordo.testo, true, tipo => { if (tipo === "ok") conta("contiOk"); }) + `<div class="timbri">${timbri.join("")}</div>`;
       conta("risposte"); conta("dallaMemoria"); contaGiorno(materia);
-      aggiungiAzioni(bolla, domanda, ricordo.testo, chiave);
+      aggiungiAzioni(bolla, domanda, ricordo.testo, chiave, { memoria: true, controlli: ricordo.controlli, coppia: ricordo.coppia, cervello: ricordo.modello });
       storia.push({ role: "assistant", content: ricordo.testo });
       if (leggiAuto) leggiRisposta(bolla, ricordo.testo);
       const lingua = $("lingua").value;
@@ -496,7 +496,8 @@ async function chiedi(domanda, speciale = {}) {
     esciDallaFila = entraInFila(bolla);
     // 0) 🧮 i conti li fa la calcolatrice PRIMA che il cervello scriva
     const fatti = await contiPrima(domanda, materia, bolla);
-    sistema += istruzioniFatti(fatti) + Fatti.perDomanda(domanda);   // 📚 date, capitali, autori… quelli sicuri
+    const fattiSicuri = Fatti.perDomanda(domanda);
+    sistema += istruzioniFatti(fatti) + fattiSicuri;   // 📚 date, capitali, autori… quelli sicuri
     const contoSecco = MATERIE[materia].calcoli ? contoNellaDomanda(domanda) : null;
     sistema += aiutoColonna(contoSecco);
     // 1) prima stesura (si vede mentre la scrive; il prof la può fermare con ⏹)
@@ -592,7 +593,8 @@ async function chiedi(domanda, speciale = {}) {
     // 3) sicurezza anche sulla risposta
     if (!controllaRisposta(testo, materia)) { annotaErrore("Bloccata dalla sicurezza", "risposta non adatta"); testo = "Torniamo alla materia 😊 Prova a farmi un'altra domanda."; timbri.length = 0; }
     // 4) disegno finale: ogni conto rimasto viene segnato dalla calcolatrice
-    const html = impagina(testo, true, tipo => { if (tipo === "ok") conta("contiOk"); });
+    let contiVisti = 0;
+    const html = impagina(testo, true, tipo => { if (tipo === "ok") { conta("contiOk"); contiVisti++; } });
     bolla.classList.remove("controllo");
     bolla.innerHTML = html + `<div class="timbri">${timbri.join("")}</div>`;
     conta("risposte"); risposta = true;
@@ -601,7 +603,11 @@ async function chiedi(domanda, speciale = {}) {
     // ⚡ si ricorda solo una risposta pulita: niente dubbi, niente tagli, niente blocchi della sicurezza
     const daRicordare = chiave && (es.stato === "ok" || es.stato === "corretta") && !prima.fine && timbri.length;
     if (daRicordare) salvaInMemoria(chiave, { testo, controlli: es.controlli, coppia: sq.autore !== sq.controllore, modello: sq.autore });
-    aggiungiAzioni(bolla, domanda, testo, daRicordare ? chiave : null);
+    // 🔎 "Perché lo dici?": da dove arriva ogni pezzo della risposta
+    const origine = { cervello: sq.autore, controllore: sq.controllore !== sq.autore ? sq.controllore : null, controlli: es.controlli, stato: es.stato,
+      contiPrima: fatti.length, contiVisti, contiCorretti: es.contiCorretti || 0, fattiUsati: fattiSicuri ? fattiSicuri.replace(/^[^:]*:\s*/, "").split(/(?<=\.)\s+(?=[A-ZÀ-Ý])/).length : 0,
+      fattiCorretti: fc.corretti || 0, pagine: Pagine.attive, programma: !!istruzioniProgramma(materia, livello, $("classe").value), correzioni: es.correzioni.length, bloccata: !timbri.length };
+    aggiungiAzioni(bolla, domanda, testo, daRicordare ? chiave : null, origine);
     storia.push({ role: "assistant", content: testo });
     if (leggiAuto) leggiRisposta(bolla, testo);
     const lingua = $("lingua").value;
@@ -621,10 +627,33 @@ async function chiedi(domanda, speciale = {}) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-function aggiungiAzioni(bolla, domanda, testo, chiave = null) {
+// 🔎 PERCHÉ LO DICI? Le fonti di una risposta, in parole semplici (niente di inventato: solo quello che è successo davvero)
+function fontiRisposta(o) {
+  const r = [];
+  if (o.memoria) r.push(["⚡", `Questa risposta era già stata scritta e controllata ${o.controlli >= 3 ? "3" : "2"} volte in un'altra lezione${o.cervello ? ` (l'aveva scritta <b>${escape(o.cervello)}</b>)` : ""}${o.coppia ? ", anche da un secondo cervello" : ""}. Per questo arriva subito.`]);
+  if (o.memoria) r.push(["🧮", "I conti con il segno ✓ li ha rifatti la <b>calcolatrice</b> anche adesso."]);
+  if (o.contiPrima) r.push(["🧮", `${o.contiPrima === 1 ? "Il conto della domanda l'ha fatto" : o.contiPrima + " conti li ha fatti"} la <b>calcolatrice</b> prima che il cervello scrivesse.`]);
+  if (o.contiVisti) r.push(["✓", `${o.contiVisti === 1 ? "1 conto della risposta è stato rifatto" : o.contiVisti + " conti della risposta sono stati rifatti"} dalla <b>calcolatrice</b> (il segno ✓ accanto).`]);
+  if (o.contiCorretti) r.push(["🧮", `${o.contiCorretti === 1 ? "1 conto sbagliato è stato corretto" : o.contiCorretti + " conti sbagliati sono stati corretti"} dalla calcolatrice.`]);
+  if (o.fattiUsati) r.push(["📚", `${o.fattiUsati === 1 ? "1 fatto" : o.fattiUsati + " fatti"} (date, capitali, autori, numeri della Costituzione) presi dalla <b>lista dei fatti sicuri</b>, controllata a mano.`]);
+  if (o.fattiCorretti) r.push(["📚", `${o.fattiCorretti === 1 ? "1 fatto sbagliato è stato corretto" : o.fattiCorretti + " fatti sbagliati sono stati corretti"} con la lista dei fatti sicuri.`]);
+  if (o.pagine) r.push(["📷", "Ha usato le <b>pagine del libro</b> fotografate oggi dal prof."]);
+  if (o.programma) r.push(["📋", "È rimasta al livello del <b>programma della classe</b>."]);
+  if (!o.memoria && o.cervello) r.push(["🧠", `L'ha scritta il cervello <b>${escape(o.cervello)}</b>${o.controllore ? ` e l'ha ricontrollata un secondo cervello, <b>${escape(o.controllore)}</b>` : ", che poi l'ha riletta da revisore"}: ${o.controlli >= 3 ? "3 controlli" : "2 controlli"} in tutto${o.correzioni ? `, con ${o.correzioni === 1 ? "1 correzione" : o.correzioni + " correzioni"}` : ""}.`]);
+  if (o.stato === "dubbio") r.push(["⚠️", "Dopo 3 controlli è rimasto un <b>dubbio</b>: meglio verificare con il prof."]);
+  r.push(["💬", "Il resto della spiegazione (le parole, gli esempi) l'ha scritto il cervello: se qualcosa ti sembra strano, chiedilo al prof o tocca 👎."]);
+  return `<div class="fonti"><div class="fonti-t">🔎 Da dove arriva questa risposta</div>${r.map(([i, t]) => `<div class="fonte"><span>${i}</span><span>${t}</span></div>`).join("")}</div>`;
+}
+function aggiungiAzioni(bolla, domanda, testo, chiave = null, origine = null) {
   const d = document.createElement("div"); d.className = "azioni";
-  d.innerHTML = `<button class="b-leggi">🔊 Leggi</button><button class="b-segnala">👎 Segnala un errore</button>`;
+  d.innerHTML = `<button class="b-leggi">🔊 Leggi</button>${origine && !origine.bloccata ? `<button class="b-perche">🔎 Perché lo dici?</button>` : ""}<button class="b-segnala">👎 Segnala un errore</button>`;
   bolla.parentElement.appendChild(d);
+  const perche = d.querySelector(".b-perche");
+  if (perche) perche.onclick = () => {
+    const c = bolla.parentElement.querySelector(".fonti");
+    if (c) { c.remove(); perche.classList.remove("on"); return; }
+    d.insertAdjacentHTML("afterend", fontiRisposta(origine)); perche.classList.add("on");
+  };
   d.querySelector(".b-leggi").onclick = () => leggiRisposta(bolla, testo);
   d.querySelector(".b-segnala").onclick = () => {
     d.innerHTML = `<input placeholder="Cosa era sbagliato? (es. il passaggio 3)" maxlength="300"><button>Invia</button><button>Annulla</button>`;
@@ -637,7 +666,7 @@ function aggiungiAzioni(bolla, domanda, testo, chiave = null) {
       d.innerHTML = `<span class="grazie">✓ Segnalato: grazie, servirà a migliorare Fly Aula</span>`;
     };
     invia.onclick = manda; inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); manda(); } };
-    annulla.onclick = () => { d.remove(); aggiungiAzioni(bolla, domanda, testo, chiave); };
+    annulla.onclick = () => { d.remove(); aggiungiAzioni(bolla, domanda, testo, chiave, origine); };
   };
 }
 

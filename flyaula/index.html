@@ -55,6 +55,7 @@
   <div class="spazio"></div>
   <span id="timer"></span>
   <span id="stato" title="">Mi preparo…</span>
+  <button class="grande" id="apriLavagna" title="Lavagna: scrivi con la penna, Fly Aula corregge i conti"><span>🖊️</span>Lavagna</button>
   <button class="grande" id="apriEsercizi"><span>✏️</span>Esercizi</button>
   <button class="grande" id="apriPagine" title="Fotografa le pagine del libro di oggi"><span>📷</span>Pagine</button>
   <button class="grande" id="apriGaraTop"><span>🏆</span>Gara</button>
@@ -75,6 +76,7 @@
       <button id="apriReport">📈 Report per la scuola</button>
       <button id="apriDemo">🎬 Presentazione per la preside</button>
       <button id="apriEsame">📝 Esame delle domande (tecnico)</button>
+      <button id="apriPrivacy" onclick="window.open('privacy.html','_blank')">🔒 Privacy e dati</button>
       <button id="apriInstallaPc">💻 Installa sul PC della classe</button>
       <button id="installa" style="display:none">🌐 Aggiungi come app del browser</button>
     </div>
@@ -90,7 +92,7 @@
     <button type="button" class="btn ferma" id="ferma" hidden title="Ferma la risposta (anche con il tasto Esc)">⏹ Ferma</button>
     <button class="btn" id="invia">Chiedi</button>
   </form>
-  <div class="nota" id="notaPiede">Fly Aula v0.9.14 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
+  <div class="nota" id="notaPiede">Fly Aula v0.9.15 · i conti li fa una calcolatrice · ogni risposta controllata 2 volte (3 nei casi difficili), con 2 cervelli diversi quando ci sono · tutto resta su questo computer</div>
 </footer>
 
 <div id="aiuto"><div class="box" id="aiutoBox"></div></div>
@@ -219,6 +221,22 @@
 </div></div>
 
 <div id="guida" aria-live="polite"></div>
+<div id="pLavagna" class="lavagna">
+  <div class="lv-barra">
+    <div class="lv-gruppo"><button data-str="penna" class="on" title="Penna">✏️</button><button data-str="evid" title="Evidenziatore">🖍️</button><button data-str="gomma" title="Gomma (cancella un tratto intero)">🧽</button></div>
+    <div class="lv-gruppo"><button data-col="auto" class="on lv-col" title="Bianco / nero" style="--c:linear-gradient(135deg,#F3F6FB 50%,#14213D 50%)"></button><button data-col="sole" class="lv-col" title="Giallo" style="--c:#FFD23F"></button><button data-col="cielo" class="lv-col" title="Azzurro" style="--c:#3B8BFF"></button><button data-col="menta" class="lv-col" title="Verde" style="--c:#00D2A0"></button><button data-col="corallo" class="lv-col" title="Rosso" style="--c:#FF5A5F"></button></div>
+    <div class="lv-gruppo"><button data-sp="2" title="Sottile"><i style="--d:6px"></i></button><button data-sp="4" class="on" title="Media"><i style="--d:10px"></i></button><button data-sp="8" title="Grossa"><i style="--d:16px"></i></button></div>
+    <div class="lv-gruppo"><button id="lvAnnulla" title="Annulla (Ctrl+Z)">↶</button><button id="lvRipeti" title="Rifai (Ctrl+Y)">↷</button><button id="lvPulisci" title="Pulisci la pagina">🗑️</button></div>
+    <div class="lv-gruppo"><button id="lvPrima" title="Pagina prima">‹</button><span id="lvNum">1 / 1</span><button id="lvDopo" title="Pagina dopo">›</button><button id="lvNuova" title="Nuova pagina">＋</button><button id="lvSfondo" title="Sfondo: scuro, quadretti, righe, bianco">▦</button></div>
+    <div class="spazio"></div>
+    <button class="btn" id="lvCorreggi">✅ Correggi i conti</button>
+    <button class="btn sec" id="lvLeggi">📖 Leggi</button>
+    <div class="lv-gruppo"><button id="lvSalva" title="Salva la pagina come immagine">💾</button><button id="lvChiudi" title="Chiudi la lavagna (Esc)">✕</button></div>
+  </div>
+  <div class="lv-foglio" id="lvFoglio"><canvas id="lvTela"></canvas><canvas id="lvSegni"></canvas><div class="lv-fumetto" id="lvFumetto" hidden></div><div class="lv-stat" id="lvStat"></div></div>
+  <div class="lv-conferma" id="lvConferma" hidden></div>
+</div>
+
 <div id="pDemo" class="sopra">
   <div id="demoSlide"></div>
   <div class="demo-barra"><button class="btn sec" id="demoEsci">✕ Esci</button><div id="demoPunti"></div><button class="btn sec" id="demoIndietro">◀</button><button class="btn" id="demoAvanti">Avanti ▶</button></div>
@@ -286,5 +304,7 @@
 <script src="app.js"></script>
 <script src="precisione.js"></script>
 <script src="trappole.js"></script>
+<script src="tratti.js"></script>
+<script src="lavagna.js"></script>
 </body>
 </html>

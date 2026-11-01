@@ -1,7 +1,7 @@
 // ===================================================================
 //  FLY AULA · 📄 crea una verifica da stampare (solo per il prof, con PIN)
 //  Con il PIN personale del prof si salva da sola nel suo archivio (sul server della scuola).
-//  Ogni esercizio: controllato 3 volte. Fila B: stessi tipi, numeri diversi.
+//  Ogni esercizio: controllato 3 volte. File B e C: stessi tipi, numeri diversi (contro chi copia dal vicino).
 //  La verifica la PREPARA Fly Aula, ma la rilegge e la decide il prof.
 //  I voti restano del prof: qui non si valuta nessuno.
 // ===================================================================
@@ -20,7 +20,7 @@ const CreaVerifica = (() => {
           <p class="nota-s">${escC(MATERIE[materia].nome)} · ${escC(livello)}${anno ? " · classe " + anno + "ª" : ""}. Suggerimenti dal programma della classe.</p></section>
         <section><h3>📋 Com'è fatta</h3>
           <div class="riga-btn" style="margin:0"><label>Esercizi <select class="pill" id="cvN"><option>4</option><option selected>6</option><option>8</option><option>10</option></select></label>
-          <label>File <select class="pill" id="cvFile"><option value="AB" selected>A e B</option><option value="A">solo A</option></select></label></div>
+          <label>File <select class="pill" id="cvFile"><option value="AB" selected>A e B</option><option value="ABC">A, B e C</option><option value="A">solo A</option></select></label></div>
           <input id="cvTitolo" style="margin-top:10px" value="Verifica di ${escC(MATERIE[materia].nome)}" maxlength="80"></section>
         <section><h3>🏫 Intestazione</h3><input id="cvScuola" placeholder="Nome della scuola (facoltativo)" maxlength="80" value="${escC(leggiC("flyaula_scuola") || "")}">
           <p class="nota-s">Sul foglio: nome e cognome, classe, data e spazio per i punti (li decide il prof).</p></section>
@@ -38,7 +38,7 @@ const CreaVerifica = (() => {
   // ---------- 📚 archivio del prof: la verifica si salva da sola mentre si prepara ----------
   let salvataggio = Promise.resolve();
   function foglio() {
-    return { tipo: "verifica", titolo: lav.titolo, materia: lav.materia, livello: lav.livello, classe: lav.classe, aula: lav.aula || "", argomento: lav.argomento, scuola: lav.scuola, data: lav.data, A: lav.A, B: lav.B };
+    return { tipo: "verifica", titolo: lav.titolo, materia: lav.materia, livello: lav.livello, classe: lav.classe, aula: lav.aula || "", argomento: lav.argomento, scuola: lav.scuola, data: lav.data, A: lav.A, B: lav.B, C: lav.C || null };
   }
   function mostraArchivio(t) {
     const b = el("cvArchivio"); if (!b) return;
@@ -60,7 +60,7 @@ const CreaVerifica = (() => {
   }
   // riaperta dall'archivio: si può ristampare, rifare un esercizio, toglierlo
   function carica(f, id) {
-    lav = { A: Array.isArray(f.A) ? f.A : [], B: Array.isArray(f.B) ? f.B : null, materia: MATERIE[f.materia] ? f.materia : el("materia").value, livello: f.livello || el("livello").value,
+    lav = { A: Array.isArray(f.A) ? f.A : [], B: Array.isArray(f.B) ? f.B : null, C: Array.isArray(f.C) && Array.isArray(f.B) ? f.C : null, materia: MATERIE[f.materia] ? f.materia : el("materia").value, livello: f.livello || el("livello").value,
       classe: f.classe || "", aula: f.aula || "", argomento: f.argomento || "", titolo: f.titolo || "Verifica", scuola: f.scuola || "", data: f.data || new Date().toISOString(), idArchivio: id };
     apri();
     el("cvStato").textContent = `📂 Aperta dal tuo archivio: ${lav.A.length} esercizi${lav.B ? " per fila" : ""}. Puoi ristamparla, rifare o togliere un esercizio (le modifiche si salvano da sole).`;
@@ -70,13 +70,13 @@ const CreaVerifica = (() => {
 
   async function prepara() {
     if (!modello) return mostraAiuto();
-    const materia = el("materia").value, livello = el("livello").value, n = +el("cvN").value, conB = el("cvFile").value === "AB";
+    const materia = el("materia").value, livello = el("livello").value, n = +el("cvN").value, conB = el("cvFile").value !== "A", conC = el("cvFile").value === "ABC";
     scriviC("flyaula_scuola", el("cvScuola").value.trim());
-    lav = { A: [], B: conB ? [] : null, materia, livello, classe: el("classe").value, aula: (typeof Scuola !== "undefined" && Scuola.aula) || "", argomento: el("cvArg").value.trim(), titolo: el("cvTitolo").value.trim() || "Verifica", scuola: el("cvScuola").value.trim(), data: new Date().toISOString(), idArchivio: null };
+    lav = { A: [], B: conB ? [] : null, C: conC ? [] : null, materia, livello, classe: el("classe").value, aula: (typeof Scuola !== "undefined" && Scuola.aula) || "", argomento: el("cvArg").value.trim(), titolo: el("cvTitolo").value.trim() || "Verifica", scuola: el("cvScuola").value.trim(), data: new Date().toISOString(), idArchivio: null };
     mostraArchivio("");
     fermo = false;
     el("cvVia").style.display = "none"; el("cvStop").style.display = ""; el("cvBarraBox").style.display = "";
-    const totale = n * (conB ? 2 : 1); let fatti = 0;
+    const totale = n * (1 + (conB ? 1 : 0) + (conC ? 1 : 0)); let fatti = 0;
     const avanza = t => { el("cvBarra").style.width = (100 * fatti / totale) + "%"; el("cvStato").textContent = t; };
     for (let i = 0; i < n && !fermo; i++) {
       avanza(`✏️ Esercizio ${i + 1} di ${n} (fila A): lo scrivo e lo controllo 3 volte…`);
@@ -86,9 +86,14 @@ const CreaVerifica = (() => {
         avanza(`✏️ Esercizio ${i + 1} di ${n} (fila B): stessi tipi, numeri diversi, altri 3 controlli…`);
         lav.B.push(await creaVariante(cervello, a, MATERIE[materia].nome, livello, materia, lav.argomento)); fatti++; disegna();
       }
+      if (conC && !fermo) {
+        avanza(`✏️ Esercizio ${i + 1} di ${n} (fila C): stessi tipi, numeri diversi da A e da B, altri 3 controlli…`);
+        lav.C.push(await creaVariante(cervello, a, MATERIE[materia].nome, livello, materia, lav.argomento, [lav.B[i] && lav.B[i].testo].filter(Boolean), "C")); fatti++; disegna();
+      }
       salvaInArchivio();          // si salva un pezzo alla volta: se si chiude a metà, quello fatto non si perde
     }
     if (conB) while (lav.B.length < lav.A.length) lav.B.push(esercizioDiRiserva(materia, livello, lav.argomento));
+    if (conC) while (lav.C.length < lav.A.length) lav.C.push(esercizioDiRiserva(materia, livello, lav.argomento));
     avanza(fermo ? "⏹️ Fermata: puoi stampare quello che c'è o ripartire." : `✓ Pronta! ${lav.A.length} esercizi${conB ? " per fila" : ""}, ognuno controllato 3 volte. Rileggila prima di stamparla.`);
     el("cvVia").style.display = ""; el("cvVia").textContent = "🪄 Rifai da capo"; el("cvStop").style.display = "none";
     conta("verificheCreate");
@@ -102,22 +107,24 @@ const CreaVerifica = (() => {
   function disegna() {
     if (!lav) return;
     el("cvLavoro").innerHTML = `
-      <table class="cv-tab"><thead><tr><th>N</th><th>Fila A</th>${lav.B ? "<th>Fila B</th>" : ""}<th></th></tr></thead><tbody>
-      ${lav.A.map((a, i) => `<tr><td><b>${i + 1}</b></td><td>${rigaEs(a)}</td>${lav.B ? `<td>${lav.B[i] ? rigaEs(lav.B[i]) : '<div class="lavoro">…</div>'}</td>` : ""}
+      <table class="cv-tab"><thead><tr><th>N</th><th>Fila A</th>${lav.B ? "<th>Fila B</th>" : ""}${lav.C ? "<th>Fila C</th>" : ""}<th></th></tr></thead><tbody>
+      ${lav.A.map((a, i) => `<tr><td><b>${i + 1}</b></td><td>${rigaEs(a)}</td>${lav.B ? `<td>${lav.B[i] ? rigaEs(lav.B[i]) : '<div class="lavoro">…</div>'}</td>` : ""}${lav.C ? `<td>${lav.C[i] ? rigaEs(lav.C[i]) : '<div class="lavoro">…</div>'}</td>` : ""}
         <td class="cv-az"><button data-r="${i}" title="Rifai questo esercizio">🔄</button><button data-x="${i}" title="Togli questo esercizio">✕</button></td></tr>`).join("")}
       </tbody></table>
-      ${lav.A.length ? `<div class="riga-btn"><button class="btn" id="cvStA">🖨️ Stampa fila A</button>${lav.B ? '<button class="btn" id="cvStB">🖨️ Stampa fila B</button>' : ""}<button class="btn sec" id="cvStS">🖨️ Soluzioni (solo prof)</button></div>
+      ${lav.A.length ? `<div class="riga-btn"><button class="btn" id="cvStA">🖨️ Stampa fila A</button>${lav.B ? '<button class="btn" id="cvStB">🖨️ Stampa fila B</button>' : ""}${lav.C ? '<button class="btn" id="cvStC">🖨️ Stampa fila C</button>' : ""}<button class="btn sec" id="cvStS">🖨️ Soluzioni (solo prof)</button></div>
       <p class="nota-s">Dalla finestra di stampa puoi anche scegliere <b>Salva come PDF</b>. La verifica la prepara Fly Aula, ma la decide il prof: rileggila sempre.</p>` : ""}`;
     el("cvLavoro").querySelectorAll("[data-r]").forEach(b => b.onclick = async () => {
       const i = +b.dataset.r; b.disabled = true; b.textContent = "⏳";
       const evita = lav.A.map(e => e.testo);
       lav.A[i] = await creaEsercizio(cervello, MATERIE[lav.materia].nome, lav.livello, lav.argomento, { evita, chiave: lav.materia });
       if (lav.B) lav.B[i] = await creaVariante(cervello, lav.A[i], MATERIE[lav.materia].nome, lav.livello, lav.materia, lav.argomento);
+      if (lav.C) lav.C[i] = await creaVariante(cervello, lav.A[i], MATERIE[lav.materia].nome, lav.livello, lav.materia, lav.argomento, [lav.B && lav.B[i] && lav.B[i].testo].filter(Boolean), "C");
       disegna(); salvaInArchivio();
     });
-    el("cvLavoro").querySelectorAll("[data-x]").forEach(b => b.onclick = () => { const i = +b.dataset.x; lav.A.splice(i, 1); if (lav.B) lav.B.splice(i, 1); disegna(); salvaInArchivio(); });
+    el("cvLavoro").querySelectorAll("[data-x]").forEach(b => b.onclick = () => { const i = +b.dataset.x; lav.A.splice(i, 1); if (lav.B) lav.B.splice(i, 1); if (lav.C) lav.C.splice(i, 1); disegna(); salvaInArchivio(); });
     if (el("cvStA")) el("cvStA").onclick = () => stampaFila("A");
     if (el("cvStB")) el("cvStB").onclick = () => stampaFila("B");
+    if (el("cvStC")) el("cvStC").onclick = () => stampaFila("C");
     if (el("cvStS")) el("cvStS").onclick = stampaSoluzioni;
   }
   function testa(fila) {
@@ -125,7 +132,7 @@ const CreaVerifica = (() => {
       <div class="testa"><span>Nome e cognome ______________________________</span><span>Classe ${escC(lav.classe)}</span><span>Data ____________</span></div>`;
   }
   function stampaFila(f) {
-    const lista = f === "B" ? lav.B : lav.A;
+    const lista = f === "C" ? lav.C : f === "B" ? lav.B : lav.A;
     stampa(`${lav.titolo} - Fila ${f}`, testa(f) + (lav.argomento ? `<p><b>Argomento:</b> ${escC(lav.argomento)}</p>` : "") +
       lista.map((e, i) => `<div class="es"><span class="punti">punti ____</span><b class="n">${i + 1}.</b> ${escC(e.testo)}<div class="spazio"></div></div>`).join("") +
       `<p style="margin-top:18px"><b>Punteggio totale: ______</b></p>`);
@@ -133,7 +140,7 @@ const CreaVerifica = (() => {
   function stampaSoluzioni() {
     const blocco = (lista, f) => `<h2>Fila ${f}</h2>` + lista.map((e, i) => `<div class="es"><b class="n">${i + 1}.</b> ${escC(e.testo)}<div class="sol"><b>Soluzione: ${escC(soluzioneDi(e))}</b>${e.conto ? ` &nbsp;(${escC(e.conto)})` : ""}${e.spiegazione ? `<br>${escC(e.spiegazione).replace(/\n/g, "<br>")}` : ""}</div></div>`).join("");
     stampa(`${lav.titolo} - Soluzioni`, `<h1>${escC(lav.titolo)} · SOLUZIONI (solo per il docente)</h1><div class="testa"><span>Classe ${escC(lav.classe)}</span><span>${escC(lav.argomento || "")}</span><span>${new Date().toLocaleDateString("it-IT")}</span></div>
-      <p>Ogni soluzione è stata controllata 3 volte (calcolatrice, revisore, esercizio risolto da capo). Il docente la rilegge prima dell'uso.</p>` + blocco(lav.A, "A") + (lav.B ? `<div class="salto"></div>` + blocco(lav.B, "B") : ""));
+      <p>Ogni soluzione è stata controllata 3 volte (calcolatrice, revisore, esercizio risolto da capo). Il docente la rilegge prima dell'uso.</p>` + blocco(lav.A, "A") + (lav.B ? `<div class="salto"></div>` + blocco(lav.B, "B") : "") + (lav.C ? `<div class="salto"></div>` + blocco(lav.C, "C") : ""));
   }
   return { apri, carica, stato: () => lav };
 })();

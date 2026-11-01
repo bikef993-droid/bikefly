@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fly Aula · Privacy e dati</title>
+<link rel="icon" href="icona-192.png">
+<style>
+@font-face{font-family:Figtree;src:url(../font/Figtree.ttf)}
+@font-face{font-family:Bricolage;src:url(../font/Bricolage.ttf)}
+:root{--testo:#14213D;--grigio:#5A6B85;--linea:#DCE3EE;--blu:#3B8BFF;--verde:#00A27C;--sfondo:#F6F8FC}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sfondo);color:var(--testo);font:500 17px/1.55 Figtree,system-ui,sans-serif}
+.pagina{max-width:900px;margin:0 auto;padding:36px 22px 60px;background:#fff;min-height:100vh}
+h1{font:800 34px/1.15 Bricolage,Figtree,sans-serif;margin:0 0 6px}
+h2{font:800 22px Figtree;margin:30px 0 10px;padding-top:14px;border-top:2px solid var(--linea)}
+.sotto{color:var(--grigio);margin:0 0 18px}
+.riquadro{background:#EEF5FF;border:1px solid #C9DEFF;border-radius:14px;padding:14px 18px;margin:14px 0}
+.riquadro.verde{background:#E9FBF5;border-color:#B5EEDB}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:15.5px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--linea)}
+th{background:#F1F4FA;font-weight:800}
+td:first-child{font-weight:700;width:30%}
+ul{padding-left:22px;margin:6px 0}li{margin:4px 0}
+code{background:#F1F4FA;padding:1px 6px;border-radius:6px;font-size:14.5px}
+.barra{display:flex;gap:10px;margin:0 0 20px;flex-wrap:wrap}
+.barra button{border:0;border-radius:12px;padding:10px 18px;font:800 16px Figtree;cursor:pointer;background:linear-gradient(90deg,#00D2A0,#3B8BFF);color:#fff}
+.nota{font-size:14px;color:var(--grigio)}
+@media print{body{background:#fff}.pagina{padding:0}.barra{display:none}h2{break-after:avoid}table,.riquadro{break-inside:avoid}}
+@media (max-width:600px){h1{font-size:27px}td:first-child{width:auto}}
+</style>
+</head>
+<body>
+<div class="pagina">
+  <div class="barra"><button onclick="print()">🖨️ Stampa o salva come PDF</button></div>
+  <h1>🔒 Fly Aula: privacy e dati</h1>
+  <p class="sotto">Documento informativo per la Dirigenza e per il Responsabile della protezione dei dati (DPO) · versione <span id="ver">attuale</span></p>
+
+  <div class="riquadro">
+    <b>In breve.</b> Fly Aula è un assistente per le LIM che funziona <b>dentro la scuola</b>: l'intelligenza artificiale gira su un computer della scuola, non su internet.
+    Gli alunni <b>non hanno account</b> e non devono scrivere il loro nome. Le domande non vengono mandate a nessuna azienda esterna.
+  </div>
+  <p class="nota">Questo documento descrive come funziona il programma. Non è un parere legale: le valutazioni previste dalla legge (informativa, valutazione d'impatto, base giuridica) spettano alla scuola e al suo DPO, che possono usare queste informazioni come punto di partenza.</p>
+
+  <h2>1. Dove gira l'intelligenza artificiale</h2>
+  <ul>
+    <li>I "cervelli" (modelli di intelligenza artificiale aperti, per esempio Gemma o Qwen) sono <b>installati sul computer della scuola</b> con il programma Ollama.</li>
+    <li>Le domande delle LIM arrivano a quel computer attraverso la <b>rete interna della scuola</b>. Nessuna domanda e nessuna risposta passa da servizi di intelligenza artificiale su internet.</li>
+    <li>Senza server, ogni LIM può funzionare da sola con il suo computer ("PC singolo").</li>
+  </ul>
+
+  <h2>2. Cosa resta salvato, dove e per quanto</h2>
+  <p>Sul <b>computer che fa da server</b> (cartella <code>%LOCALAPPDATA%\FlyAula</code>):</p>
+  <table>
+    <tr><th>Cosa</th><th>Cosa contiene</th><th>Per quanto</th></tr>
+    <tr><td>Memoria delle risposte</td><td>Le risposte già controllate, per riproporle subito a un'altra classe. La domanda è salvata solo come <b>codice</b> (impronta), non come testo.</td><td>Usate per 30 giorni, al massimo 5.000. Il tecnico le cancella con un clic. Una risposta segnalata da un prof si cancella da sola.</td></tr>
+    <tr><td>Prof e archivio</td><td>Nome dei prof inseriti dal tecnico e PIN <b>cifrato</b> (PBKDF2, non si può rileggere). Archivio personale di ogni prof: verifiche e riassunti che ha preparato.</td><td>Finché il prof o il tecnico li cancella (al massimo 300 per prof).</td></tr>
+    <tr><td>Orari delle aule</td><td>Classe e materia per ogni ora.</td><td>Finché la scuola li cambia.</td></tr>
+    <tr><td>Foto delle pagine del libro</td><td>Le foto che il prof manda dal suo telefono per la lezione.</td><td>Si cancellano a fine lezione e comunque a ogni riavvio del server.</td></tr>
+    <tr><td>Avvisi "un alunno sta male"</td><td><b>Solo</b> aula, classe, materia e ora. <b>Mai la frase scritta e mai il nome.</b> Sono spenti finché la scuola non li accende, e si leggono solo con un PIN.</td><td>Al massimo gli ultimi 300; si possono svuotare.</td></tr>
+    <tr><td>Errori di Fly Aula</td><td>Gli errori che Fly Aula ha corretto da sola (conti, fatti) o che un prof ha segnalato, con la domanda (massimo 200 caratteri), l'aula e la materia. Servono a migliorarla. Le frasi personali e le domande fermate dai filtri <b>non</b> ci sono.</td><td>Al massimo gli ultimi 1.000; il tecnico li può svuotare.</td></tr>
+    <tr><td>Impostazioni</td><td>Nome della scuola, cervelli scelti, codice delle LIM, parole d'allarme aggiunte dalla scuola.</td><td>Finché la scuola le cambia.</td></tr>
+  </table>
+  <p>Nel <b>browser di ogni LIM</b> (memoria del browser di quel computer): le impostazioni della classe, il registro degli errori di quella LIM (ultimi 500), le statistiche, il riassunto della lezione, le pagine della lavagna, il PIN della LIM (cifrato). La conversazione della lezione si cancella con "Nuova lezione".</p>
+
+  <h2>3. Gli alunni</h2>
+  <ul>
+    <li>Nessun account, nessuna password, nessun nome richiesto. La classe è indicata come "3ªB".</li>
+    <li>I filtri fermano parolacce, richieste pericolose e <b>dati personali</b> (numeri di telefono, indirizzi, email, password): quelle domande non arrivano al cervello e non vengono salvate.</li>
+    <li>Se un alunno scrive di stare male, Fly Aula risponde con un messaggio fisso e gentile: parlarne con il prof o con un adulto di cui si fida, Telefono Azzurro (19696) e il 112. La frase <b>non viene salvata</b>.</li>
+    <li>Fly Aula dice sempre di essere un assistente digitale e non una persona.</li>
+  </ul>
+
+  <h2>4. Chi vede cosa</h2>
+  <table>
+    <tr><th>Chi</th><th>Cosa vede</th></tr>
+    <tr><td>La classe</td><td>Solo quello che compare sulla LIM della sua aula.</td></tr>
+    <tr><td>Il prof</td><td>Il suo pannello e il suo archivio, con il suo PIN personale. Non vede l'archivio degli altri prof.</td></tr>
+    <tr><td>Tecnico / segreteria</td><td>La pagina del server: impostazioni, orari, elenco dei prof (senza PIN), errori di Fly Aula. Gli avvisi solo con il PIN degli avvisi. Questa pagina si apre <b>solo sul computer server</b>: dalle LIM e dalla rete non si apre.</td></tr>
+    <tr><td>Fuori dalla scuola</td><td>Nessuno: il server sta sulla rete interna della scuola e non è pubblicato su internet.</td></tr>
+  </table>
+
+  <h2>5. Quando Fly Aula usa internet</h2>
+  <ul>
+    <li><b>Aggiornamenti:</b> il computer controlla se c'è una versione nuova sul sito di Fly Aula (GitHub Pages) e la scarica. Non manda dati della scuola.</li>
+    <li><b>Installazione:</b> scarica il programma Ollama e i cervelli (una volta).</li>
+    <li><b>Lettore di testo delle foto:</b> il server lo scarica una volta con gli aggiornamenti; poi le LIM lo usano senza internet.</li>
+    <li><b>Voce (facoltativa):</b> la prima volta che si usa il microfono si scarica il modello per capire la voce. L'audio resta sul computer e non viene mandato da nessuna parte.</li>
+    <li>Nessuna pubblicità, nessun sistema di statistiche esterno, nessun servizio di intelligenza artificiale online.</li>
+  </ul>
+
+  <h2>6. Sicurezza</h2>
+  <ul>
+    <li>Le LIM possono scrivere sul server solo con il <b>codice delle LIM</b>: un telefono qualsiasi non può mandare avvisi o errori finti.</li>
+    <li>PIN dei prof e degli avvisi cifrati; dopo 5 PIN sbagliati il blocco dura 5 minuti.</li>
+    <li>Le impostazioni si cambiano solo dal computer server, non dalla rete.</li>
+  </ul>
+
+  <h2>7. Il ruolo delle persone</h2>
+  <div class="riquadro verde">
+    <ul style="margin:0">
+      <li>L'intelligenza artificiale <b>può sbagliare</b>. Per questo ogni risposta è controllata più volte: la calcolatrice rifà i conti, una lista di fatti sicuri corregge date e nomi, un secondo controllo rilegge tutto. Il bottone "🔎 Perché lo dici?" mostra da dove arriva ogni risposta.</li>
+      <li>Le verifiche le <b>prepara</b> Fly Aula, ma le <b>decide e rilegge il prof</b>. I voti li mette solo il prof: Fly Aula non valuta nessuno.</li>
+      <li>Ogni prof può segnalare un errore con 👎: quella risposta non viene più riproposta.</li>
+    </ul>
+  </div>
+
+  <h2>8. Contatti</h2>
+  <p>Per domande su Fly Aula: <b>bikef993@gmail.com</b></p>
+  <p class="nota">Documento generato da Fly Aula. Descrive il funzionamento del programma nella versione indicata in alto.</p>
+</div>
+<script>
+fetch("installa/versione.txt", { cache: "no-store" }).then(r => r.ok ? r.text() : "").then(t => { t = t.trim(); if (/^[\d.]+$/.test(t)) document.getElementById("ver").textContent = t; }).catch(() => {});
+</script>
+</body>
+</html>

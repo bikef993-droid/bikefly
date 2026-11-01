@@ -27,23 +27,33 @@ const Pagine = (() => {
   async function leggiFoto(src) {
     const visione = (window.modelliPresenti || []).find(m => VISIONE.test(m));
     if (visione) {
-      const r = await Scuola.chiama("/api/chat", { method: "POST", body: JSON.stringify({ model: visione, stream: false, keep_alive: "30m", options: { temperature: 0, num_ctx: 8192 },
+      const r = await Scuola.chiama("/api/chat", { method: "POST", body: JSON.stringify({ model: visione, stream: false, keep_alive: "60s", options: { temperature: 0, num_ctx: 8192 },
         messages: [{ role: "user", content: "Trascrivi ESATTAMENTE tutto il testo stampato in questa pagina di un libro scolastico, nell'ordine in cui si legge. Mantieni i titoli, i numeri e le formule. Non aggiungere niente, non riassumere, non commentare.", images: [await inBase64(src)] }] }) });
       const j = await r.json();
       const t = (j.message?.content || "").trim();
       if (t) return t;
     }
-    // senza modello che vede: lettore di testo nel browser (serve internet la prima volta)
-    if (!ocrPronto) ocrPronto = new Promise((ok, no) => {
-      if (window.Tesseract) return ok();
-      const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
-      s.onload = ok; s.onerror = () => { ocrPronto = null; no(new Error("lettore non disponibile")); };
-      document.head.appendChild(s);
-    });
-    await ocrPronto;
-    const r = await Tesseract.recognize(src, "ita");
+    // senza modello che vede: lettore di testo nel browser. Prima la copia DENTRO Fly Aula (lib/, la scarica il server
+    // con gli aggiornamenti: così le LIM non hanno bisogno di internet), poi internet come riserva.
+    const r = await (await lettore()).recognize(src, "ita", ocrOpzioni);
     return (r.data.text || "").trim();
+  }
+  let ocrOpzioni = {};
+  const carica = url => new Promise((ok, no) => { const s = document.createElement("script"); s.src = url; s.onload = ok; s.onerror = () => { s.remove(); no(new Error(url)); }; document.head.appendChild(s); });
+  function lettore() {
+    if (!ocrPronto) ocrPronto = (async () => {
+      if (window.Tesseract) return window.Tesseract;
+      const lib = new URL("lib/tesseract/", location.href).href;
+      try {
+        await carica(lib + "tesseract.min.js");
+        ocrOpzioni = { workerPath: lib + "worker.min.js", corePath: lib + "core", langPath: lib + "lang", gzip: true };
+      } catch (e) {
+        await carica("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+        ocrOpzioni = {};
+      }
+      return window.Tesseract;
+    })().catch(e => { ocrPronto = null; throw new Error("lettore non disponibile"); });
+    return ocrPronto;
   }
   async function leggi(p) {
     p.stato = "leggo"; disegnaLista();
@@ -139,5 +149,5 @@ const Pagine = (() => {
     el("pgCancella").onclick = svuota;
     el("pgChiudi").onclick = chiudi;
   }
-  return { apri, chiudi, svuota, istruzioni, fonte, collega, get attive() { return !!testoUsato; } };
+  return { apri, chiudi, svuota, istruzioni, fonte, collega, leggiFoto, get attive() { return !!testoUsato; } };
 })();

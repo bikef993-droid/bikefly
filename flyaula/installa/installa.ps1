@@ -54,6 +54,24 @@ while ($scelta -notin @('1', '2', '3')) { $scelta = (Read-Host '   Scrivi 1, 2 o
 $ruolo = @{ '1' = 'singolo'; '2' = 'server'; '3' = 'lim' }[$scelta]
 $TOT = if ($ruolo -eq 'lim') { 3 } else { 6 }
 
+# pezzi grandi presi da internet UNA volta (lettore di testo offline): se ci sono gia si tengono, se manca internet si salta
+function PrendiEsterni($wc, $base, $vecchia) {
+  try {
+    $righe = $wc.DownloadString("$SITO/flyaula/installa/esterni.txt") -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }
+    foreach ($r in $righe) {
+      $pz = @($r -split '\s+' | Where-Object { $_ })
+      if ($pz.Count -lt 2 -or $pz[0] -notmatch '^flyaula/lib/[\w\-/\.]+$' -or $pz[0] -match '\.\.') { continue }
+      $rel = $pz[0].Replace('/', '\'); $d = Join-Path $base $rel
+      New-Item -ItemType Directory -Force -Path (Split-Path $d) | Out-Null
+      $v = $null; if ($vecchia) { $v = Join-Path $vecchia $rel }
+      if ($v -and (Test-Path $v) -and (Get-Item $v).Length -gt 0) { Copy-Item $v $d -Force; continue }
+      foreach ($u in $pz[1..($pz.Count - 1)]) {
+        if ($u -notmatch '^https://') { continue }
+        try { $wc.DownloadFile($u, $d); if ((Get-Item $d).Length -gt 0) { break } } catch { Remove-Item $d -Force -ErrorAction SilentlyContinue }
+      }
+    }
+  } catch {}
+}
 # ---------------- 1: i file ----------------
 Passo 1 $TOT 'Scarico Fly Aula'
 New-Item -ItemType Directory -Force -Path $DIR | Out-Null
@@ -64,6 +82,7 @@ try {
     New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
     $wc.DownloadFile("$SITO/$f", $dest)
   }
+  PrendiEsterni $wc (Join-Path $DIR 'app') $null
   foreach ($s in 'server.ps1', 'avvia.ps1', 'icona.ico') { Copy-Item (Join-Path $DIR "app\flyaula\installa\$s") (Join-Path $DIR $s) -Force }
   $wc.DownloadString("$SITO/flyaula/installa/versione.txt").Trim() | Set-Content (Join-Path $DIR 'versione.txt')
   Ok "$($lista.Count) file in $DIR"

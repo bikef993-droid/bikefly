@@ -1,0 +1,10 @@
+# pezzi grandi presi UNA volta da internet dal server (o dal PC singolo) e tenuti tra un aggiornamento e l'altro:
+# cosi il lettore di testo delle foto funziona anche sulle LIM senza internet.
+# formato: percorso  indirizzo1  [indirizzo2 di riserva]
+flyaula/lib/tesseract/tesseract.min.js https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js
+flyaula/lib/tesseract/worker.min.js https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js https://unpkg.com/tesseract.js@5.1.1/dist/worker.min.js
+flyaula/lib/tesseract/core/tesseract-core.wasm.js https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core.wasm.js https://unpkg.com/tesseract.js-core@5.1.1/tesseract-core.wasm.js
+flyaula/lib/tesseract/core/tesseract-core-simd.wasm.js https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-simd.wasm.js https://unpkg.com/tesseract.js-core@5.1.1/tesseract-core-simd.wasm.js
+flyaula/lib/tesseract/core/tesseract-core-lstm.wasm.js https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-lstm.wasm.js https://unpkg.com/tesseract.js-core@5.1.1/tesseract-core-lstm.wasm.js
+flyaula/lib/tesseract/core/tesseract-core-simd-lstm.wasm.js https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-simd-lstm.wasm.js https://unpkg.com/tesseract.js-core@5.1.1/tesseract-core-simd-lstm.wasm.js
+flyaula/lib/tesseract/lang/ita.traineddata.gz https://cdn.jsdelivr.net/npm/@tesseract.js-data/ita/4.0.0_best_int/ita.traineddata.gz https://tessdata.projectnaptha.com/4.0.0/ita.traineddata.gz

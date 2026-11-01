@@ -138,17 +138,17 @@ async function creaEsercizio(cervello, materia, livello, argomento, { evita = []
   return esercizioDiRiserva(k, livello, argomento);
 }
 // fila B: stesso tipo di esercizio, numeri e contesto diversi — con gli stessi 3 controlli
-async function creaVariante(cervello, es, materia, livello, chiave, argomento = "") {
+async function creaVariante(cervello, es, materia, livello, chiave, argomento = "", altre = [], fila = "B") {
   if (es.riserva) return esercizioDiRiserva(chiave, livello, argomento);
   for (let tentativo = 0; tentativo < 3; tentativo++) {
     try {
       const parola = es.tipo === "parola";
-      const out = await cervello(`Crea una VARIANTE di questo esercizio per la fila B di una verifica: stesso tipo e stessa difficoltà, ma ${parola ? "parola o frase diversa" : "numeri diversi e un contesto un po' diverso"}.
+      const out = await cervello(`Crea una VARIANTE di questo esercizio per la fila ${fila} di una verifica: stesso tipo e stessa difficoltà, ma ${parola ? "parola o frase diversa" : "numeri diversi e un contesto un po' diverso"}${altre.length ? " (diversi anche da quelli delle altre file)" : ""}.
 Rispondi SOLO con JSON nello stesso formato: ${parola ? '{"testo": "…", "risposta": "…", "accettate": ["…"], "spiegazione": "…"}' : '{"testo": "…", "conto": "…", "risultato": numero, "unita": "…", "spiegazione": "…"}'}`,
         JSON.stringify(parola ? { testo: es.testo, risposta: es.risposta } : { testo: es.testo, conto: es.conto, risultato: es.risultato, unita: es.unita }), { temperature: 0.7, format: "json" });
       const j = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
       const v = await controllaPerTipo(cervello, j, parola ? (tipoEsercizio(chiave) === "lingua" ? "lingua" : "breve") : "numero", materia, livello);
-      if (v && v.testo !== es.testo) return v;
+      if (v && v.testo !== es.testo && !altre.includes(v.testo)) return v;
     } catch (e) {}
   }
   return esercizioDiRiserva(chiave, livello, argomento);
