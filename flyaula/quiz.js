@@ -231,6 +231,234 @@ const Quiz = (() => {
     ] }
   };
 
+  // ------------- in più (v0.9.11): liste più grandi, stesse regole -------------
+  const altre = (g, voci) => GRUPPI[g].voci.push(...voci);
+  altre("capitali", [
+    capitale("dei Paesi Bassi", "Amsterdam"), capitale("del Lussemburgo", "Lussemburgo"), capitale("di Cipro", "Nicosia"), capitale("della Bielorussia", "Minsk"),
+    capitale("della Bosnia ed Erzegovina", "Sarajevo"), capitale("della Macedonia del Nord", "Skopje"), capitale("del Montenegro", "Podgorica"), capitale("di San Marino", "San Marino|città di san marino"),
+    capitale("della Corea del Sud", "Seul|seoul"), capitale("della Thailandia", "Bangkok"), capitale("dell'Iran", "Teheran|tehran"), capitale("dell'Arabia Saudita", "Riad|riyadh"),
+    capitale("della Nigeria", "Abuja"), capitale("del Kenya", "Nairobi"), capitale("dell'Etiopia", "Addis Abeba|addis ababa"), capitale("dell'Algeria", "Algeri"),
+    capitale("della Tunisia", "Tunisi"), capitale("del Cile", "Santiago|santiago del cile"), capitale("del Perù", "Lima"), capitale("della Colombia", "Bogotà|bogota"),
+    capitale("del Venezuela", "Caracas"), capitale("di Cuba", "L'Avana|avana"), capitale("della Nuova Zelanda", "Wellington"), capitale("del Vietnam", "Hanoi"),
+    capitale("delle Filippine", "Manila"), capitale("del Pakistan", "Islamabad")
+  ]);
+  altre("geofatti", [
+    ["Qual è la montagna più alta del mondo?", "Everest|monte everest", "Monte Bianco|Kilimangiaro|Aconcagua"],
+    ["Qual è il deserto caldo più grande del mondo?", "Sahara|deserto del sahara", "Gobi|Kalahari|Atacama"],
+    ["Quante sono le province dell'Emilia-Romagna?", "9"],
+    ["Quale fiume attraversa Roma?", "Tevere", "Arno|Po|Adige"],
+    ["Quale fiume attraversa Firenze?", "Arno", "Tevere|Po|Adige"],
+    ["Qual è l'isola più grande d'Italia?", "Sicilia", "Sardegna|Elba|Capri"],
+    ["Quale stretto separa la Sicilia dalla Calabria?", "Stretto di Messina|messina", "Stretto di Gibilterra|Bosforo|Stretto di Bonifacio"],
+    ["Quale mare c'è tra l'Italia e i Balcani?", "Adriatico|mar adriatico|mare adriatico", "Tirreno|Ligure|Mar Nero"],
+    ["Quante sono le regioni italiane a statuto speciale?", "5"]
+  ]);
+  altre("date", [
+    ["In che anno fu concesso lo Statuto Albertino?", "1848"], ["In che anno ci fu la pace di Westfalia?", "1648"],
+    ["In che anno nacque l'Impero tedesco (unificazione della Germania)?", "1871"], ["In che anno ci fu la battaglia di Lepanto?", "1571"],
+    ["In che anno cadde Costantinopoli, conquistata dagli Ottomani?", "1453"], ["In che anno fu emanato l'Editto di Milano (Costantino)?", "313"],
+    ["In che anno si sciolse l'Unione Sovietica?", "1991"], ["In che anno fu firmato il Trattato di Maastricht?", "1992"],
+    ["In che anno ci fu lo sbarco in Normandia?", "1944"], ["In che anno ci fu l'armistizio dell'8 settembre?", "1943"],
+    ["In che anno morì Giulio Cesare?", "44 a.C.|44 ac|44", "27 a.C.|49 a.C.|14 d.C."]
+  ]);
+  altre("personaggi", [
+    ["Chi fu il primo presidente della Repubblica italiana?", "Enrico De Nicola|de nicola"], ["Chi guidò l'India verso l'indipendenza con la non violenza?", "Gandhi|mahatma gandhi|mohandas gandhi"],
+    ["Quale regina d'Egitto fu alleata di Marco Antonio?", "Cleopatra"], ["Quale condottiero cartaginese attraversò le Alpi con gli elefanti?", "Annibale"],
+    ["Chi guidò i bolscevichi nella Rivoluzione russa del 1917?", "Lenin|vladimir lenin"], ["Chi pronunciò il discorso \"I have a dream\"?", "Martin Luther King|luther king"],
+    ["Chi fondò il fascismo in Italia?", "Benito Mussolini|mussolini"], ["Chi scoprì il Polo Sud per primo, nel 1911?", "Roald Amundsen|amundsen"]
+  ]);
+  altre("autori", [
+    ["Chi ha scritto Il Gattopardo?", "Giuseppe Tomasi di Lampedusa|tomasi di lampedusa"], ["Chi ha scritto Ossi di seppia?", "Eugenio Montale|montale"],
+    ["Chi ha scritto L'allegria?", "Giuseppe Ungaretti|ungaretti"], ["Chi ha scritto Dei Sepolcri?", "Ugo Foscolo|foscolo"],
+    ["Chi ha scritto Il nome della rosa?", "Umberto Eco|eco"], ["Chi ha scritto La locandiera?", "Carlo Goldoni|goldoni"],
+    ["Chi ha scritto Myricae?", "Giovanni Pascoli|pascoli"], ["Chi ha scritto Il piacere?", "Gabriele D'Annunzio|d'annunzio|dannunzio"],
+    ["Chi ha scritto il libro Cuore?", "Edmondo De Amicis|de amicis"], ["Chi ha scritto il Cantico delle creature?", "San Francesco d'Assisi|francesco d'assisi|san francesco"],
+    ["Chi ha scritto l'Odissea?", "Omero"], ["Chi ha scritto l'Eneide?", "Virgilio|publio virgilio marone"], ["Chi ha scritto Romeo e Giulietta?", "William Shakespeare|shakespeare"]
+  ]);
+  altre("grammatica", [
+    ["Qual è il plurale di \"dio\"?", "dei", "dii|dio|die"], ["Qual è il plurale di \"ala\"?", "ali", "alas|alle|alli"],
+    ["Qual è il plurale di \"mano\"?", "mani", "mano|mane|manni"], ["Qual è il plurale di \"eco\"?", "echi", "eci|echie|eco"],
+    ["Qual è il plurale di \"re\"?", "re", "rei|ri|rie"], ["Che parte del discorso è \"e\" in \"Marco e Luca\"?", "congiunzione", "preposizione|avverbio|articolo"],
+    ["Che parte del discorso è \"lui\"?", "pronome", "aggettivo|articolo|avverbio"], ["Che parte del discorso è \"il\"?", "articolo", "pronome|preposizione|aggettivo"]
+  ]);
+  GRUPPI.complementi = { livelli: "MS", voci: [
+    ["Nella frase \"Vado a Roma\", che complemento è \"a Roma\"?", "complemento di moto a luogo|moto a luogo", "stato in luogo|moto da luogo|complemento di termine"],
+    ["Nella frase \"Parto da Milano\", che complemento è \"da Milano\"?", "complemento di moto da luogo|moto da luogo", "moto a luogo|stato in luogo|complemento d'agente"],
+    ["Nella frase \"Il libro è sul tavolo\", che complemento è \"sul tavolo\"?", "complemento di stato in luogo|stato in luogo", "moto a luogo|moto per luogo|complemento oggetto"],
+    ["Nella frase \"Esco con Luca\", che complemento è \"con Luca\"?", "complemento di compagnia|compagnia", "complemento di mezzo|complemento di modo|complemento di termine"],
+    ["Nella frase \"La casa di Marco\", che complemento è \"di Marco\"?", "complemento di specificazione|specificazione", "complemento di termine|complemento di origine|complemento di materia"],
+    ["Nella frase \"Regalo un libro a Sara\", che complemento è \"a Sara\"?", "complemento di termine|termine", "complemento oggetto|moto a luogo|complemento di specificazione"]
+  ] };
+  GRUPPI.figure = { livelli: "MS", voci: [
+    ["\"Il tuo sorriso è il sole\": che figura retorica è?", "metafora", "similitudine|iperbole|ossimoro"],
+    ["\"Forte come un leone\": che figura retorica è?", "similitudine", "metafora|iperbole|ossimoro"],
+    ["\"Te l'ho detto mille volte\": che figura retorica è?", "iperbole", "metafora|similitudine|ossimoro"],
+    ["\"Ghiaccio bollente\": che figura retorica è?", "ossimoro", "metafora|similitudine|iperbole"]
+  ] };
+  altre("costituzione", [
+    ["Quanti sono gli articoli dei Principi fondamentali della Costituzione?", "12"], ["Quante sono le Camere del Parlamento italiano?", "2"],
+    ["Quante firme servono per chiedere un referendum abrogativo?", "500.000|500000|cinquecentomila"], ["Quante firme servono per una proposta di legge di iniziativa popolare?", "50.000|50000|cinquantamila"]
+  ]);
+  altre("poteri", [
+    ["Chi elegge il Presidente della Repubblica?", "il Parlamento in seduta comune|parlamento|il parlamento", "i cittadini|il Governo|il Senato"],
+    ["Chi nomina il Presidente del Consiglio?", "il Presidente della Repubblica|presidente della repubblica", "il Parlamento|i cittadini|la Corte costituzionale"],
+    ["Chi controlla che le leggi rispettino la Costituzione?", "la Corte costituzionale|corte costituzionale", "il Senato|il Governo|la Corte dei conti"],
+    ["Come si chiama il sistema con due Camere che hanno gli stessi poteri?", "bicameralismo perfetto|bicameralismo paritario", "monocameralismo|bicameralismo imperfetto|federalismo"],
+    ["Con quale strumento i cittadini possono cancellare una legge?", "referendum abrogativo|referendum", "decreto legge|petizione|legge delega"]
+  ]);
+  altre("economiapol", [
+    ["Come si chiama la quantità di un bene che i consumatori vogliono comprare?", "domanda|la domanda", "offerta|produzione|equilibrio"],
+    ["Come si chiama la quantità di un bene che le imprese vogliono vendere?", "offerta|l'offerta", "domanda|consumo|equilibrio"],
+    ["Come si chiama il prezzo a cui la domanda è uguale all'offerta?", "prezzo di equilibrio|equilibrio", "prezzo di costo|prezzo massimo|prezzo politico"],
+    ["Quale imposta pagano le società sui loro utili?", "IRES", "IRPEF|IVA|IMU"],
+    ["Chi approva il bilancio dello Stato?", "il Parlamento|parlamento", "il Governo|la Banca d'Italia|il Presidente della Repubblica"],
+    ["Qual è la moneta del Regno Unito?", "sterlina|sterlina inglese", "euro|dollaro|franco"], ["Qual è la moneta degli Stati Uniti?", "dollaro|dollaro statunitense", "euro|sterlina|yen"],
+    ["Qual è la moneta del Giappone?", "yen", "yuan|won|dollaro"], ["Qual è la moneta della Svizzera?", "franco svizzero|franco", "euro|sterlina|corona"]
+  ]);
+  altre("europa", [
+    ["Qual è l'inno dell'Unione europea?", "Inno alla gioia|l'inno alla gioia", "Marsigliese|Fratelli d'Italia|God Save the King"],
+    ["Quante stelle ci sono sulla bandiera dell'Unione europea?", "12"]
+  ]);
+  altre("biologia", [
+    ["Quale molecola contiene l'informazione genetica?", "DNA|il dna", "ATP|glucosio|amido"],
+    ["Come si chiama la divisione di una cellula in due cellule uguali?", "mitosi", "meiosi|fotosintesi|fecondazione"],
+    ["Come si chiama la divisione cellulare che forma i gameti?", "meiosi", "mitosi|fotosintesi|osmosi"],
+    ["Quale organo filtra il sangue e produce l'urina?", "reni|i reni|rene", "fegato|polmoni|milza"],
+    ["Quali cellule del sangue trasportano l'ossigeno?", "globuli rossi|i globuli rossi|eritrociti", "globuli bianchi|piastrine|neuroni"],
+    ["Quali cellule del sangue ci difendono dalle infezioni?", "globuli bianchi|i globuli bianchi|leucociti", "globuli rossi|piastrine|neuroni"],
+    ["Quante cavità (camere) ha il cuore umano?", "4"],
+    ["Come si chiamano gli animali che depongono le uova?", "ovipari", "vivipari|mammiferi|erbivori"],
+    ["Come si chiamano gli animali che allattano i piccoli?", "mammiferi", "rettili|anfibi|uccelli"]
+  ]);
+  altre("terra", [
+    ["Qual è il gas più abbondante nell'atmosfera?", "azoto", "ossigeno|anidride carbonica|argon"],
+    ["In quale strato dell'atmosfera viviamo?", "troposfera", "stratosfera|mesosfera|termosfera"],
+    ["In quale strato dell'atmosfera si trova lo strato di ozono?", "stratosfera", "troposfera|mesosfera|esosfera"],
+    ["Quale pianeta è chiamato \"il pianeta rosso\"?", "Marte", "Venere|Giove|Mercurio"],
+    ["Quale pianeta ha gli anelli più famosi?", "Saturno", "Giove|Urano|Nettuno"],
+    ["Qual è la stella più vicina alla Terra?", "il Sole|sole", "Sirio|la Stella Polare|Alfa Centauri"],
+    ["Con quale scala si misura la magnitudo (l'energia) di un terremoto?", "Richter|scala richter", "Mercalli|Beaufort|Celsius"],
+    ["Con quale scala si misurano gli effetti (i danni) di un terremoto?", "Mercalli|scala mercalli", "Richter|Beaufort|Kelvin"],
+    ["Come si chiama il punto della superficie che sta sopra l'ipocentro?", "epicentro", "cratere|faglia|magma"]
+  ]);
+  GRUPPI.scienziati = { livelli: "MS", voci: [
+    ["Chi formulò i tre principi della dinamica e la legge di gravitazione universale?", "Isaac Newton|newton"], ["Chi scoprì con il cannocchiale i quattro satelliti più grandi di Giove?", "Galileo Galilei|galileo"],
+    ["Chi propose la teoria dell'evoluzione per selezione naturale?", "Charles Darwin|darwin"], ["Chi scoprì le leggi dell'ereditarietà con le piante di pisello?", "Gregor Mendel|mendel"],
+    ["Chi formulò la teoria della relatività?", "Albert Einstein|einstein"], ["Chi fu la prima donna a vincere un premio Nobel, per gli studi sulla radioattività?", "Marie Curie|curie|maria curie"],
+    ["Chi scoprì la penicillina?", "Alexander Fleming|fleming"], ["Chi inventò la pila elettrica?", "Alessandro Volta|volta"],
+    ["Chi inventò il telegrafo senza fili (la radio)?", "Guglielmo Marconi|marconi"], ["Chi creò la tavola periodica degli elementi?", "Dmitrij Mendeleev|mendeleev|mendeleiev"],
+    ["Chi propose che la Terra gira intorno al Sole (eliocentrismo) nel Cinquecento?", "Niccolò Copernico|copernico"], ["Chi scoprì il principio del galleggiamento dei corpi?", "Archimede"]
+  ] };
+  altre("unita", [
+    ["Quanti metri ci sono in un chilometro?", "1000|1.000|mille"], ["Quanti grammi ci sono in un chilogrammo?", "1000|1.000|mille"],
+    ["Quanti secondi ci sono in un'ora?", "3600|3.600"], ["A quanti gradi Celsius bolle l'acqua, al livello del mare?", "100"],
+    ["A quanti gradi Celsius gela l'acqua?", "0|zero"], ["Quanto vale circa l'accelerazione di gravità sulla Terra, in m/s²?", "9,8|9.8|9,81|9.81"]
+  ]);
+  altre("simboli", [["manganese", "Mn"], ["cobalto", "Co"], ["platino", "Pt"], ["bromo", "Br"], ["berillio", "Be"], ["boro", "B"], ["titanio", "Ti"], ["tungsteno", "W"], ["bario", "Ba"], ["cromo", "Cr"], ["cripto", "Kr"], ["xeno", "Xe"]]
+    .map(([el, s]) => [`Qual è il simbolo chimico di: ${el}?`, s]));
+  altre("formule", [
+    ["Qual è la formula del glucosio?", "C6H12O6"], ["Qual è la formula dell'acido solforico?", "H2SO4"], ["Qual è la formula dell'idrossido di sodio?", "NaOH"],
+    ["Qual è la formula dell'ossigeno gassoso?", "O2"], ["Qual è la formula dell'azoto gassoso?", "N2"], ["Qual è la formula del carbonato di calcio?", "CaCO3"]
+  ]);
+  altre("informatica", [
+    ["Che cosa vuol dire la sigla CPU?", "Central Processing Unit|unità centrale di elaborazione", "Computer Personal Unit|Central Program Utility|Control Power Unit"],
+    ["Che cosa vuol dire la sigla RAM?", "Random Access Memory", "Read Access Memory|Rapid Action Memory|Random Archive Module"],
+    ["Quale porta logica dà 1 solo se tutti e due gli ingressi sono 1?", "AND", "OR|NOT|XOR"],
+    ["Quale porta logica dà 1 se almeno un ingresso è 1?", "OR", "AND|NOT|NAND"],
+    ["Quale porta logica inverte il valore (0 diventa 1)?", "NOT", "AND|OR|XOR"],
+    ["Come si chiama il programma che si usa per navigare in Internet?", "browser|il browser", "firewall|driver|compilatore"],
+    ["Come si chiama la protezione che blocca gli accessi non autorizzati alla rete?", "firewall|il firewall", "browser|router|antivirus"],
+    ["Come si chiama la truffa via email che cerca di rubare le password?", "phishing|il phishing", "spam|backup|streaming"],
+    ["Quale funzione del foglio di calcolo fa la media dei numeri?", "MEDIA|media()", "SOMMA|CONTA|MAX"]
+  ]);
+  altre("artisti", [
+    ["Chi ha dipinto la Ronda di notte?", "Rembrandt|rembrandt van rijn"], ["Chi ha dipinto L'urlo?", "Edvard Munch|munch"],
+    ["Chi ha dipinto La persistenza della memoria, con gli orologi molli?", "Salvador Dalí|dali"], ["Chi ha progettato il colonnato di piazza San Pietro?", "Gian Lorenzo Bernini|bernini"],
+    ["Chi ha dipinto la Venere di Urbino?", "Tiziano|tiziano vecellio"], ["Chi ha affrescato la Cappella degli Scrovegni a Padova?", "Giotto|giotto di bondone"],
+    ["Chi ha dipinto La Libertà che guida il popolo?", "Eugène Delacroix|delacroix"], ["Chi ha dipinto Il Quarto Stato?", "Giuseppe Pellizza da Volpedo|pellizza da volpedo|pellizza"]
+  ]);
+  altre("luoghi", [
+    ["In quale città si trova la Mole Antonelliana?", "Torino"], ["In quale città si trova Piazza del Campo, dove si corre il Palio?", "Siena"],
+    ["In quale città si trova la Cappella degli Scrovegni?", "Padova"], ["In quale città si trova l'Arena famosa per la lirica?", "Verona"],
+    ["In quale città si trova la grande Reggia dei Borbone?", "Caserta"], ["In quale città si trova la Valle dei Templi?", "Agrigento"],
+    ["In quale città si trovano i Sassi?", "Matera"], ["In quale città si trova il Big Ben?", "Londra"], ["In quale città si trova la Sagrada Família?", "Barcellona"],
+    ["In quale città si trova la Porta di Brandeburgo?", "Berlino"], ["In quale città si trova il Partenone?", "Atene"]
+  ]);
+  altre("stili", [
+    ["Come si chiama lo stile delle chiese con archi a tutto sesto e muri spessi (XI-XII secolo)?", "romanico", "gotico|barocco|rococò"],
+    ["Come si chiama il movimento di fine Settecento che si ispira all'arte greca e romana?", "neoclassicismo", "romanticismo|barocco|futurismo"],
+    ["Come si chiama il movimento italiano di Marinetti che esaltava la velocità e le macchine?", "futurismo", "cubismo|impressionismo|surrealismo"],
+    ["Come si chiama il periodo di Leonardo, Michelangelo e Raffaello?", "Rinascimento", "Medioevo|Barocco|Illuminismo"]
+  ]);
+  altre("sport", [
+    ["Quanti cerchi ci sono nel simbolo delle Olimpiadi?", "5"], ["Quanti metri è lunga una piscina olimpionica?", "50"],
+    ["Quanti punti vale un canestro tirato da oltre la linea dei tre punti?", "3"], ["Quanti minuti di gioco dura una partita di pallacanestro (regole FIBA)?", "40"],
+    ["Quanto è alta, in metri, la rete della pallavolo femminile?", "2,24|2.24"], ["Quanti metri misura la gara di velocità più corta alle Olimpiadi?", "100"]
+  ]);
+  altre("corpo", [
+    ["Quanti denti ha la dentatura completa di un adulto?", "32"], ["Qual è l'organo più grande del corpo umano?", "la pelle|pelle", "fegato|cervello|intestino"],
+    ["Qual è il muscolo più grande del corpo umano?", "grande gluteo|gluteo", "bicipite|quadricipite|deltoide"]
+  ]);
+
+  GRUPPI.diritto2 = { livelli: "MS", voci: [
+    ["A che età si diventa maggiorenni in Italia?", "18"],
+    ["Come si chiama il contratto che trasferisce la proprietà di una cosa in cambio di un prezzo?", "compravendita|vendita", "locazione|mutuo|donazione"],
+    ["Come si chiama il contratto con cui si dà in uso un bene in cambio di un canone?", "locazione|affitto", "compravendita|mutuo|comodato"],
+    ["Come si chiama il contratto con cui si presta una somma di denaro?", "mutuo", "locazione|comodato|compravendita"],
+    ["Nell'obbligazione, chi deve fare la prestazione?", "il debitore|debitore", "il creditore|il garante|il notaio"],
+    ["Nell'obbligazione, chi ha diritto a ricevere la prestazione?", "il creditore|creditore", "il debitore|il fideiussore|il giudice"],
+    ["Dopo quanti giorni dalla pubblicazione, di solito, una legge entra in vigore?", "15"],
+    ["Su quale giornale ufficiale si pubblicano le leggi?", "Gazzetta Ufficiale|la gazzetta ufficiale", "Bollettino Europeo|Albo pretorio|Codice civile"],
+    ["Chi promulga le leggi?", "il Presidente della Repubblica|presidente della repubblica", "il Presidente del Consiglio|il Senato|la Corte costituzionale"],
+    ["Entro quanti giorni un decreto-legge deve diventare legge?", "60"],
+    ["Articolo 3: \"Tutti i cittadini hanno pari dignità sociale e sono eguali davanti alla…\"", "legge|alla legge", "Costituzione|Stato|Repubblica"],
+    ["La Costituzione italiana è rigida o flessibile?", "rigida", "flessibile|consuetudinaria|ottriata"],
+    ["Qual è la forma di governo dell'Italia?", "repubblica parlamentare", "repubblica presidenziale|monarchia costituzionale|repubblica semipresidenziale"],
+    ["Chi può sciogliere le Camere?", "il Presidente della Repubblica|presidente della repubblica", "il Presidente del Consiglio|la Corte costituzionale|il Presidente del Senato"],
+    ["Chi dà la fiducia al Governo?", "le Camere|il Parlamento|parlamento", "il Presidente della Repubblica|i cittadini|la Corte costituzionale"]
+  ] };
+  altre("economiapol", [
+    ["Come si chiama la parte dell'economia che studia il singolo consumatore e la singola impresa?", "microeconomia", "macroeconomia|econometria|statistica"],
+    ["Come si chiama la parte dell'economia che studia l'economia di un intero Paese?", "macroeconomia", "microeconomia|ragioneria|merceologia"],
+    ["Come si chiamano i beni che si usano insieme, come auto e benzina?", "complementari|beni complementari", "succedanei|inferiori|pubblici"],
+    ["Come si chiamano i beni che si possono usare uno al posto dell'altro, come burro e margarina?", "succedanei|sostituti|beni succedanei", "complementari|inferiori|di lusso"],
+    ["Come si chiama la fase in cui il PIL cala per almeno due trimestri di fila?", "recessione", "espansione|ripresa|inflazione"],
+    ["Chi decide la politica monetaria nei Paesi dell'euro?", "la BCE|bce|banca centrale europea", "la Commissione europea|il Parlamento europeo|il Fondo monetario internazionale"],
+    ["Quale imposta si paga sul possesso degli immobili?", "IMU", "IVA|IRPEF|IRES"],
+    ["Il debito pubblico è il debito di chi?", "dello Stato|lo stato|stato", "delle famiglie|delle imprese|delle banche"],
+    ["Come si chiama la differenza tra esportazioni e importazioni?", "saldo commerciale|bilancia commerciale", "debito pubblico|PIL|inflazione"],
+    ["I fattori della produzione classici sono terra, lavoro e…", "capitale|il capitale", "moneta|tasse|consumo"],
+    ["Quando i prezzi salgono, il potere d'acquisto della moneta…", "diminuisce|scende|cala", "aumenta|resta uguale|raddoppia"],
+    ["Come si chiama il mercato con tanti venditori e tanti compratori di un bene uguale?", "concorrenza perfetta", "monopolio|oligopolio|monopsonio"]
+  ]);
+  GRUPPI.regole = { livelli: "EMS", voci: [
+    ["Quanti giocatori per squadra ci sono in campo nella pallamano?", "7"], ["Quanti giocatori per squadra ci sono in campo nel calcio a 5?", "5"],
+    ["Quanti punti vale un tiro libero nella pallacanestro?", "1"], ["In quale sport si fa il \"muro\" sotto rete?", "pallavolo", "calcio|pallacanestro|rugby"],
+    ["Quanti tocchi può fare al massimo una squadra di pallavolo prima di mandare la palla di là (senza contare il muro)?", "3"],
+    ["Quanti metri è lunga la pista di atletica, nella corsia interna?", "400"], ["Quante gare ha il decathlon?", "10"], ["Quante gare ha l'eptathlon?", "7"],
+    ["Ogni quanti anni si giocano i Mondiali di calcio?", "4"], ["In quale città si sono svolte le Olimpiadi estive del 2024?", "Parigi", "Londra|Tokyo|Los Angeles"],
+    ["Quale capacità permette di fare uno sforzo a lungo?", "resistenza", "forza|velocità|equilibrio"],
+    ["Come si chiama la capacità di muovere le articolazioni in tutta la loro ampiezza?", "mobilità articolare|flessibilità|mobilità", "resistenza|forza|velocità"],
+    ["Come si chiama il muscolo davanti alla coscia?", "quadricipite|quadricipite femorale", "bicipite|tricipite|polpaccio"],
+    ["Come si chiama l'osso del braccio tra la spalla e il gomito?", "omero", "femore|radio|tibia"],
+    ["Come si chiama il muscolo dietro il braccio, che lo distende?", "tricipite", "bicipite|deltoide|quadricipite"],
+    ["Qual è il numero unico per le emergenze in Italia?", "112"],
+    ["In che posizione si mette una persona svenuta che respira?", "posizione laterale di sicurezza|laterale di sicurezza|pls", "supina con le gambe giù|seduta|in piedi"]
+  ] };
+  altre("biologia", [
+    ["Come si chiama il pigmento verde che serve alla fotosintesi?", "clorofilla", "emoglobina|melanina|carotene"],
+    ["Quale parte della cellula contiene il DNA e controlla la cellula?", "nucleo|il nucleo", "ribosoma|vacuolo|membrana"],
+    ["Come si chiamano gli esseri viventi che producono da soli il proprio cibo?", "autotrofi", "eterotrofi|decompositori|parassiti"],
+    ["Come si chiamano gli esseri viventi che non producono da soli il proprio cibo?", "eterotrofi", "autotrofi|produttori|fotosintetici"],
+    ["Come si chiama la struttura che avvolge e protegge ogni cellula?", "membrana cellulare|membrana plasmatica|membrana", "parete cellulare|nucleo|citoplasma"],
+    ["In quale parte dell'intestino si assorbono la maggior parte dei nutrienti?", "intestino tenue|tenue", "intestino crasso|stomaco|esofago"]
+  ]);
+  altre("terra", [
+    ["Come si chiama il passaggio dell'acqua da liquido a vapore?", "evaporazione", "condensazione|fusione|solidificazione"],
+    ["Come si chiama il passaggio dell'acqua da vapore a liquido?", "condensazione", "evaporazione|sublimazione|fusione"],
+    ["Come si chiama il passaggio da solido a liquido?", "fusione", "solidificazione|evaporazione|condensazione"]
+  ]);
+
   // ------------- vocabolario delle lingue (italiano → lingua) -------------
   const LINGUE = {
     francese: { nome: "francese", voci: [
@@ -276,6 +504,24 @@ const Quiz = (() => {
     ] }
   };
 
+
+  const piuParole = (l, voci) => LINGUE[l].voci.push(...voci);
+  piuParole("francese", [["bicicletta", "le vélo|vélo|la bicyclette|bicyclette"], ["macchina (auto)", "la voiture|voiture"], ["strada (di città)", "la rue|rue"], ["pioggia", "la pluie|pluie"],
+    ["neve", "la neige|neige"], ["mare", "la mer|mer"], ["fiore", "la fleur|fleur"], ["albero", "l'arbre|arbre"], ["cielo", "le ciel|ciel"], ["notte", "la nuit|nuit"], ["giorno", "le jour|jour"],
+    ["settimana", "la semaine|semaine"], ["mese", "le mois|mois"], ["caldo", "chaud"], ["freddo", "froid"], ["nero", "noir"], ["bianco", "blanc"], ["blu", "bleu"], ["parlare", "parler"],
+    ["mangiare", "manger"], ["bere", "boire"], ["dormire", "dormir"], ["scrivere", "écrire"], ["leggere", "lire"], ["grande", "grand|grande"]]);
+  piuParole("spagnolo", [["bicicletta", "la bicicleta|bicicleta"], ["macchina (auto)", "el coche|coche|el carro|carro"], ["strada (di città)", "la calle|calle"], ["pioggia", "la lluvia|lluvia"],
+    ["neve", "la nieve|nieve"], ["mare", "el mar|mar"], ["fiore", "la flor|flor"], ["albero", "el árbol|árbol"], ["notte", "la noche|noche"], ["giorno", "el día|día"], ["settimana", "la semana|semana"],
+    ["mese", "el mes|mes"], ["caldo", "caliente"], ["freddo", "frío"], ["nero", "negro"], ["bianco", "blanco"], ["parlare", "hablar"], ["mangiare", "comer"], ["bere", "beber"], ["dormire", "dormir"],
+    ["scrivere", "escribir"], ["leggere", "leer"], ["insegnante", "el profesor|profesor|la profesora|profesora"], ["libro", "el libro|libro"]]);
+  piuParole("tedesco", [["bicicletta", "das Fahrrad|fahrrad|das Rad"], ["macchina (auto)", "das Auto|auto|der Wagen"], ["strada", "die Straße|straße"], ["pioggia", "der Regen|regen"],
+    ["neve", "der Schnee|schnee"], ["mare", "das Meer|meer|die See"], ["fiore", "die Blume|blume"], ["albero", "der Baum|baum"], ["cielo", "der Himmel|himmel"], ["notte", "die Nacht|nacht"],
+    ["giorno", "der Tag|tag"], ["settimana", "die Woche|woche"], ["mese", "der Monat|monat"], ["anno", "das Jahr|jahr"], ["freddo", "kalt"], ["nero", "schwarz"], ["bianco", "weiß"], ["blu", "blau"],
+    ["parlare", "sprechen"], ["mangiare", "essen"], ["bere", "trinken"], ["dormire", "schlafen"], ["scrivere", "schreiben"], ["leggere", "lesen"], ["insegnante", "der Lehrer|lehrer|die Lehrerin|lehrerin"]]);
+  piuParole("cinese", [["sole", "太阳|tàiyáng"], ["luna", "月亮|yuèliang"], ["casa (famiglia)", "家|jiā"], ["rosso", "红色|hóngsè"], ["bianco", "白色|báisè"], ["nero", "黑色|hēisè"],
+    ["anno", "年|nián"], ["uomo", "男人|nánrén"], ["donna", "女人|nǚrén"], ["bambino", "孩子|háizi"], ["medico", "医生|yīshēng"], ["ospedale", "医院|yīyuàn"], ["computer", "电脑|diànnǎo"],
+    ["telefono", "电话|diànhuà"], ["cento", "百|bǎi"], ["fuoco", "火|huǒ"]]);
+
   // ------------- conti calcolati (zero errori di calcolo) -------------
   const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   const pesca = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -286,25 +532,28 @@ const Quiz = (() => {
     densita: () => { const d = rnd(1, 9), V = rnd(2, 20); return { d: `Un oggetto ha massa ${d * V} g e volume ${V} cm³. Qual è la sua densità in g/cm³?`, r: d }; },
     lavoro: () => { const F = rnd(2, 20) * 5, s = rnd(2, 20); return { d: `Una forza di ${F} N sposta una cassa di ${s} m nella stessa direzione. Quanti joule di lavoro fa? (L = F × s)`, r: F * s }; },
     cinetica: () => { const m = rnd(1, 10) * 2, v = rnd(1, 10); return { d: `Un corpo di ${m} kg va a ${v} m/s. Quanti joule di energia cinetica ha? (Ec = ½ × m × v²)`, r: m * v * v / 2 }; },
+    pressione: () => { const S = rnd(2, 10), p = rnd(2, 50) * 10; return { d: `Una forza di ${p * S} N preme su una superficie di ${S} m². Quanti pascal è la pressione? (p = F : S)`, r: p }; },
+    potenza: () => { const t = rnd(2, 20), P = rnd(2, 30) * 10; return { d: `Un motore fa un lavoro di ${P * t} J in ${t} secondi. Quanti watt è la sua potenza? (P = L : t)`, r: P }; },
+    spazio: () => { const v = rnd(2, 30), t = rnd(2, 12); return { d: `Una bici va a velocità costante di ${v} m/s per ${t} secondi. Quanti metri percorre? (s = v × t)`, r: v * t }; },
     bin2dec: () => { const n = rnd(3, 63); return { d: `Quanto vale in decimale il numero binario ${n.toString(2)}?`, r: n }; },
     dec2bin: () => { const n = rnd(3, 63), b = n.toString(2); return { d: `Scrivi in binario il numero ${n}.`, testo: true, accettate: [b, b.padStart(8, "0")], mostra: b }; }
   };
 
   // che cosa può chiedere ogni materia
   const PIANO = {
-    italiano: { gruppi: ["autori", "grammatica", "tempi"] },
+    italiano: { gruppi: ["autori", "grammatica", "tempi", "complementi", "figure"] },
     storia: { gruppi: ["date", "personaggi"] },
     geografia: { gruppi: ["capitali", "regioni", "geofatti"] },
-    diritto: { gruppi: ["costituzione", "poteri"] },
+    diritto: { gruppi: ["costituzione", "poteri", "diritto2", "europa"] },
     economiapolitica: { gruppi: ["economiapol", "europa"] },
     relazioni: { gruppi: ["europa", "economiapol", "capitali"] },
-    scienze: { gruppi: ["biologia", "terra"] },
-    fisica: { gruppi: ["unita"], conti: ["velocita", "forza", "ohm", "densita", "lavoro", "cinetica"] },
+    scienze: { gruppi: ["biologia", "terra", "scienziati"] },
+    fisica: { gruppi: ["unita", "scienziati"], conti: ["velocita", "forza", "ohm", "densita", "lavoro", "cinetica", "pressione", "potenza", "spazio"] },
     chimica: { gruppi: ["simboli", "elementi", "formule", "atomo"] },
     informatica: { gruppi: ["informatica"], conti: ["bin2dec", "dec2bin"] },
     turismo: { gruppi: ["capitali", "regioni", "luoghi"], categorie: ["Percentuali", "Economia aziendale"] },
     arte: { gruppi: ["artisti", "luoghi", "stili"] },
-    motorie: { gruppi: ["sport", "corpo"] },
+    motorie: { gruppi: ["sport", "corpo", "regole"] },
     francese: { lingua: "francese" }, spagnolo: { lingua: "spagnolo" }, tedesco: { lingua: "tedesco" }, cinese: { lingua: "cinese" }
   };
 
@@ -358,7 +607,7 @@ const Quiz = (() => {
     if (acc.every(numerica)) {
       const x = Number(acc[0].replace(",", ".")), dec = /[.,]/.test(acc[0]);
       const passi = dec ? [1, -1, 2, 0.5] : x >= 300 ? [1, -1, 2, -2, 3, 5, -5, 10, -10] : [1, -1, 2, -2, 3, 4];
-      const cand = []; for (const s of passi.sort(() => Math.random() - .5)) { const v = Math.round((x + s) * 1000) / 1000; if (v > 0 && !(x >= 300 && v > 2026) && v !== x) cand.push(dec ? formattaN(v) : String(v)); }
+      const cand = []; for (const s of passi.sort(() => Math.random() - .5)) { const v = Math.round((x + s) * 1000) / 1000; if (v > 0 && !(/\banno\b/i.test(voce[0]) && v > 2026) && v !== x) cand.push(dec ? formattaN(v) : String(v)); }
       return cand;
     }
     return gruppo.voci.filter(v => v !== voce).map(v => v[1].split("|")[0]).filter(a => !stessa(a, acc));

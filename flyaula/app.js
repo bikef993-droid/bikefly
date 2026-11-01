@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.10 · il programma
+//  FLY AULA v0.9.11 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -291,6 +291,7 @@ function impagina(testo, finito, segna) {
       return finito ? (disegna(dis[1]) || "") : `<div class="lavoro">🎨 preparo il disegno…</div>`;
     }
     let e = escape(r).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\[DISEGNO:[^\]]*\]/gi, "");
+    if (typeof Scrittura !== "undefined") e = Scrittura.abbellisci(e, $("materia").value);   // H₂O, m/s², art. 3
     const m = e.match(/^\s*(\d+)[.)]\s+(.*)$/);
     const corpo = finito ? controllaConti(m ? m[2] : e, segna) : (m ? m[2] : e);
     return m ? `<div class="passo"><span class="n">${m[1]}</span><span>${corpo}</span></div>` : `<div>${corpo}</div>`;
@@ -345,7 +346,7 @@ async function leggiMemoria(k, materia = "") {
     const j = await r.json();
     const testo = ripulisciRobot(String(j.testo || "")).testo;
     // anche dalla memoria: niente di strano, conti giusti, niente ripetizioni (altrimenti si risponde da capo)
-    if (!testo || testo.length > 8000 || !controllaRisposta(testo, materia) || correggiConti(testo).corretti || trovaGiro(testo)) return null;
+    if (!testo || testo.length > 8000 || !controllaRisposta(testo, materia) || correggiConti(testo).corretti || Fatti.correggi(testo).corretti || trovaGiro(testo)) return null;
     return { testo, controlli: Number(j.controlli) || 2, coppia: !!j.coppia };
   } catch (e) { return null; } finally { clearTimeout(t); }
 }
@@ -482,7 +483,7 @@ async function chiedi(domanda, speciale = {}) {
     esciDallaFila = entraInFila(bolla);
     // 0) 🧮 i conti li fa la calcolatrice PRIMA che il cervello scriva
     const fatti = await contiPrima(domanda, materia, bolla);
-    sistema += istruzioniFatti(fatti);
+    sistema += istruzioniFatti(fatti) + Fatti.perDomanda(domanda);   // 📚 date, capitali, autori… quelli sicuri
     const contoSecco = MATERIE[materia].calcoli ? contoNellaDomanda(domanda) : null;
     sistema += aiutoColonna(contoSecco);
     // 1) prima stesura (si vede mentre la scrive; il prof la può fermare con ⏹)
@@ -541,6 +542,9 @@ async function chiedi(domanda, speciale = {}) {
       ogniPasso: n => { const l = $("lavoroRev"); if (l) l.textContent = passi[n]; }
     });
     testo = es.testo;
+    // 📚 i fatti sicuri: una data, una capitale, un autore o un numero della Costituzione sbagliati si correggono qui
+    const fc = Fatti.correggi(testo, materia);
+    if (fc.corretti) { testo = fc.testo; conta("fattiCorretti", fc.corretti); annotaErrore("Fatto sbagliato (corretto con i fatti sicuri)", fc.dettagli.join(" · ")); }
     conta("ricontrollate"); conta(es.controlli >= 3 ? "tripli" : "doppi"); contaGiorno(materia);
     if (es.contiCorretti) { conta("contiCorretti", es.contiCorretti); annotaErrore("Conto sbagliato (corretto dalla calcolatrice)", `${es.contiCorretti} ${es.contiCorretti === 1 ? "conto corretto" : "conti corretti"}`); }
     es.correzioni.forEach(c => { conta("correttiRevisore"); annotaErrore("Corretta dal ricontrollo", c); });
@@ -553,6 +557,7 @@ async function chiedi(domanda, speciale = {}) {
     } else if (es.stato === "corretta") {
       timbri.push(`<span class="timbro giallo">🔁 Corretta e ricontrollata ${quante}${es.correzioni[0] ? ": " + escape(es.correzioni[0]).slice(0, 80) : ""}</span>`);
     } else timbri.push(`<span class="timbro">Controllata ${quante}</span>`);
+    if (fc.corretti) timbri.push(`<span class="timbro giallo" title="${escape(fc.dettagli.join(" · "))}">📚 ${fc.corretti === 1 ? "1 fatto corretto" : fc.corretti + " fatti corretti"} con i fatti sicuri</span>`);
     if (es.contiCorretti) timbri.push(`<span class="timbro giallo">🧮 ${es.contiCorretti} ${es.contiCorretti === 1 ? "conto corretto" : "conti corretti"} dalla calcolatrice</span>`);
     if (Pagine.attive) timbri.push(`<span class="timbro blu">📷 Usate le pagine del libro</span>`);
     if (sq.autore !== sq.controllore) timbri.push(`<span class="timbro blu" title="Ha scritto ${escape(sq.autore)}, ha controllato ${escape(sq.controllore)}">🤝 Controllata da un secondo cervello</span>`);
@@ -652,6 +657,7 @@ async function riassuntoAssenti() {
   c.innerHTML = `<div class="lavoro" style="font-size:22px">📒 Scrivo il riassunto e lo controllo 3 volte con la lezione…</div>`;
   try {
     const es = await creaRiassunto(cervello, storia, $("materia").value, $("livello").value, $("classe").value);
+    es.testo = Fatti.correggi(es.testo).testo;
     ultimoRiassunto = es.testo;
     const data = new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
     c.innerHTML = `<div class="ria-testa">📒 ${escape(MATERIE[$("materia").value].nome)} · ${escape($("classe").value)} · ${escape(data)}</div>

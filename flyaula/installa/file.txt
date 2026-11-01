@@ -8,6 +8,7 @@ flyaula/controllo.js
 flyaula/disegni.js
 flyaula/esame.js
 flyaula/quiz.js
+flyaula/fatti.js
 flyaula/esercizi.js
 flyaula/orario.js
 flyaula/voce.js

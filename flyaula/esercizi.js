@@ -72,6 +72,7 @@ async function controllaEsercizioParola(cervello, j, livello, materia = "Inglese
   const risposta = String(j.risposta || "").trim();
   const accettate = [risposta, ...(Array.isArray(j.accettate) ? j.accettate.map(String) : [])].map(normalizza).filter(Boolean);
   if (!j.testo || !risposta || risposta.split(/\s+/).length > (lingua ? 3 : 4)) return null;                                // 1
+  if (!lingua && typeof Fatti !== "undefined" && Fatti.correggi(String(j.testo).replace(/[?!.]+\s*$/, "") + " risposta: " + risposta).corretti) return null;   // contro i fatti sicuri
   const rev = await revisiona(cervello,
     lingua ? `Controlla questo ESERCIZIO DI ${materia.toUpperCase()} (non è una risposta): è chiaro, ha UNA sola risposta giusta, ed è proprio quella indicata (o una delle accettate)? La lingua è corretta?`
       : `Controlla questa DOMANDA DI ${materia.toUpperCase()} per la classe (non è una risposta): è chiara, il fatto è sicuro e da libro di scuola, ha UNA sola risposta giusta, ed è proprio quella indicata? Se hai anche un piccolo dubbio sul fatto, rispondi che NON va bene.`,
