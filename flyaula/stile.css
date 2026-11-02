@@ -231,6 +231,7 @@ body.dsa .passo{margin:14px 0}
 .gara-risp input{flex:1;background:var(--notte2);border:3px solid rgba(255,255,255,.2);color:var(--latte);border-radius:20px;padding:16px 20px;font:900 clamp(26px,3vw,40px) Figtree;min-width:0}
 #gEsito{margin-top:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font:900 clamp(22px,2.4vw,32px) Figtree}
 #gEsito .btn{padding:14px 26px}.g-si{color:var(--menta)}.g-no{color:var(--sole)}
+.g-nota{font-size:.6em;font-weight:700;color:#FFE38A;margin-top:8px}.g-pensa{opacity:.8}
 .gara-fine h1{font:900 clamp(44px,6vw,90px) Bricolage;margin:0 0 16px}
 .tabellone.fine{max-width:900px;margin:0 auto 24px}
 .ria-testa{font:800 18px Figtree;color:var(--menta);margin-bottom:10px}

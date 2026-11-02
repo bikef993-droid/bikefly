@@ -64,7 +64,9 @@ NON dire mai il nome. Rispondi SOLO con JSON: {"risposta": "sì" oppure "no" opp
     const prova = () => {
       const g = norm(el("giNome").value); if (!g || !segreto) return;
       const parti = norm(segreto.nome).split(" ").filter(x => x.length > 2 && !["conte", "di", "del", "von", "de"].includes(x)), cognome = parti[parti.length - 1];
-      if (g === norm(segreto.nome) || (cognome && g.split(" ").includes(cognome))) {
+      // ✍️ anche scritto con un errore ("Garibaldy", "Leonardo da Vici") vale; un altro personaggio no
+      const v = Quiz.valuta(el("giNome").value, { accettate: [segreto.nome, ...(cognome ? [cognome] : [])], gruppo: "personaggi" });
+      if (g === norm(segreto.nome) || (cognome && g.split(" ").includes(cognome)) || v.voto === "giusta") {
         el("giEsito").innerHTML = `<p class="at-msg ok">🎉 Sì! Era <b>${esc(segreto.nome)}</b> (${esc(segreto.chi)}). Indovinato con ${domande.length} ${domande.length === 1 ? "domanda" : "domande"}!</p><div class="riga-btn"><button class="btn" id="giAncora">🔄 Un altro</button></div>`;
         puntiClasse(3); conta("indovinati"); segreto = null; el("giAncora").onclick = () => vai("indovina");
       } else el("giEsito").innerHTML = `<p class="at-msg">No, non è ${esc(el("giNome").value)}. Continuate!</p>`;
@@ -80,14 +82,15 @@ NON dire mai il nome. Rispondi SOLO con JSON: {"risposta": "sì" oppure "no" opp
     const out = [{ tema: "🧮 Matematica", testo: `Quanto fa ${a} × ${b} + ${c}?`, r: a * b + c, mostra: String(a * b + c) }];
     for (const [k, nome] of [["storia", "🏛️ Storia"], ["geografia", "🌍 Geografia"], ["inglese", "🇬🇧 Inglese"], ["scienze", "🔬 Scienze"]]) {
       const q = typeof Precisione !== "undefined" ? Precisione.domandePer(k, 1)[0] : null;
-      if (q) out.push({ tema: nome, testo: q.testo, r: q.r, accettate: q.accettate, mostra: String(q.mostra) });
+      if (q) out.push({ tema: nome, testo: q.testo, r: q.r, accettate: q.accettate, mostra: String(q.mostra), sbagliate: q.sbagliate, gruppo: q.gruppo, lingua: q.lingua });
     }
     return out;
   }
-  function giusta(l, risposta) {
-    if (l.accettate) return Quiz.stessa(risposta, l.accettate);
+  // ✍️ risposta scritta male? Fly Aula la capisce (refusi, inglese…) ma non regala niente: { voto: giusta | quasi | sbagliata }
+  async function giusta(l, risposta) {
+    if (l.accettate) return Quiz.valutaIntelligente(risposta, l);
     const x = leggiNumero(String(risposta).replace(/[^\d.,\-]/g, ""));
-    return isFinite(x) && Math.abs(x - l.r) <= Math.max(0.011, Math.abs(l.r) * 1e-6);
+    return { voto: isFinite(x) && Math.abs(x - l.r) <= Math.max(0.011, Math.abs(l.r) * 1e-6) ? "giusta" : "sbagliata", forma: l.mostra };
   }
   function escapeRoom() {
     escape = { l: lucchetti(), i: 0, fine: Date.now() + 10 * 60000, aiuti: 0 };
@@ -113,9 +116,17 @@ NON dire mai il nome. Rispondi SOLO con JSON: {"risposta": "sì" oppure "no" opp
     const x = L[escape.i];
     el("giEnigma").innerHTML = `<p class="nota-s">Lucchetto ${escape.i + 1} di ${L.length} · ${esc(x.tema)}</p><p class="at-dom">${esc(x.testo)}</p>
       <div class="riga-btn"><input id="giRisp" class="at-input" maxlength="60" placeholder="La risposta" autocomplete="off"><button class="btn" id="giApri">🔑 Apri</button><button class="btn sec" id="giAiuto">💡 Aiuto</button></div><div id="giMsg"></div>`;
-    const apri1 = () => {
-      const r = el("giRisp").value.trim(); if (!r) return;
-      if (giusta(x, r)) { escape.i++; puntiClasse(1); enigma(); }
+    let provando = false;
+    const apri1 = async () => {
+      const r = el("giRisp").value.trim(); if (!r || provando) return;
+      provando = true; el("giMsg").innerHTML = `<p class="at-msg">🔑 Provo la chiave…</p>`;
+      const v = await giusta(x, r); provando = false;
+      if (!el("giMsg") || escape.l[escape.i] !== x) return;
+      const nota = Quiz.commento(v, r);
+      if (v.voto === "giusta") {
+        escape.i++; puntiClasse(1); enigma();
+        if (nota) { const m = el("giMsg"); if (m) m.innerHTML = `<p class="at-msg ok">🔓 Aperto! ${esc(nota)}</p>`; }
+      } else if (v.voto === "quasi") { el("giMsg").innerHTML = `<p class="at-msg">🟡 Quasi! Il lucchetto si muove ma non si apre: ${esc(v.perche || "manca un pezzo")}. Riprova!</p>`; el("giRisp").select(); }
       else { el("giMsg").innerHTML = `<p class="at-msg">❌ Il lucchetto non si apre. Riprova!</p>`; el("giRisp").select(); }
     };
     el("giApri").onclick = apri1; el("giRisp").onkeydown = e => { if (e.key === "Enter") apri1(); };

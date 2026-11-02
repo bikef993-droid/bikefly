@@ -34,14 +34,15 @@ const Gara = (() => {
     }
     if (typeof Quiz !== "undefined" && Quiz.sa(materia)) {
       const q = Quiz.domanda(materia, livello);
-      return q.accettate ? { d: escC(q.testo), testo: true, accettate: q.accettate, mostra: q.mostra } : { d: escC(q.testo), r: q.r, mostra: q.mostra };
+      return q.accettate ? { d: escC(q.testo), testo: true, domanda: q.testo, accettate: q.accettate, mostra: q.mostra, sbagliate: q.sbagliate, gruppo: q.gruppo, lingua: q.lingua } : { d: escC(q.testo), r: q.r, mostra: q.mostra };
     }
     const nomi = categoriePer(materia, livello, el("classe").value, "");
     const e = CATEGORIE[scegli(nomi)]();
     return { d: escC(e.d), r: e.r, mostra: formatta(e.r) };
   }
-  const giusta = (q, x) => q.testo ? Quiz.stessa(x, q.accettate)
-    : giusto(leggiNumero(String(x).replace(/[^\d.,\-]/g, "")), q.r);
+  // ✍️ risposta scritta male? si capisce (refusi, inglese…) ma non si regala niente: { voto: giusta | quasi | sbagliata }
+  const giusta = async (q, x) => q.testo ? Quiz.valutaIntelligente(x, { testo: q.domanda || q.d.replace(/<[^>]+>/g, ""), accettate: q.accettate, sbagliate: q.sbagliate, gruppo: q.gruppo, lingua: q.lingua })
+    : { voto: giusto(leggiNumero(String(x).replace(/[^\d.,\-]/g, "")), q.r) ? "giusta" : "sbagliata" };
 
   function apri() {
     el("pGara").style.display = "block";
@@ -93,24 +94,28 @@ const Gara = (() => {
       }, 100);
     }
   }
-  function rispondi(x) {
+  async function rispondi(x) {
     clearInterval(timer);
-    const ok = x !== null && giusta(st.q, x);
     const esito = el("gEsito"); el("gForm").querySelectorAll("input,button").forEach(i => i.disabled = true);
+    const q = st.q;
+    if (x !== null && q.testo) esito.innerHTML = `<div class="g-pensa">🤔 Controllo come l'avete scritta…</div>`;
+    const v = x === null ? { voto: "sbagliata" } : await giusta(q, x);
+    if (!st || st.q !== q) return;
+    const ok = v.voto === "giusta", nota = q.testo ? Quiz.commento(v, x) : "";
     if (ok) {
       st.punti[st.turno]++; SUONI.si(); coriandoli(el("pGara"), 60);
-      esito.innerHTML = `<div class="g-si">🎉 GIUSTO! +1 a ${escC(st.nomi[st.turno])} · ${escC(st.q.mostra)}</div><button class="btn" id="gAvanti">Avanti ▶</button>`;
+      esito.innerHTML = `<div class="g-si">🎉 GIUSTO! +1 a ${escC(st.nomi[st.turno])} · ${escC(st.q.mostra)}${nota ? `<div class="g-nota">✍️ ${escC(nota)}</div>` : ""}</div><button class="btn" id="gAvanti">Avanti ▶</button>`;
       const pt = el("pt" + st.turno); pt.textContent = st.punti[st.turno]; pt.classList.remove("salta"); void pt.offsetWidth; pt.classList.add("salta");
       prossimo();
     } else if (!st.ruba) {
       SUONI.no();
       st.ruba = true; st.turno = 1 - st.turno;
-      esito.innerHTML = `<div class="g-no">${x === null ? "⏰ Tempo scaduto!" : "❌ Sbagliato!"} Palla a <b>${escC(st.nomi[st.turno])}</b> per rubare il punto…</div>`;
+      esito.innerHTML = `<div class="g-no">${x === null ? "⏰ Tempo scaduto!" : v.voto === "quasi" ? `🟡 Quasi! (${escC(v.perche || "manca un pezzo")})` : "❌ Sbagliato!"} Palla a <b>${escC(st.nomi[st.turno])}</b> per rubare il punto…</div>`;
       setTimeout(() => st && disegnaDomanda(), 1600);
       return;
     } else {
       SUONI.no();
-      esito.innerHTML = `<div class="g-no">${x === null ? "⏰ Tempo scaduto!" : "❌ Sbagliato!"} La risposta giusta era <b>${escC(st.q.mostra)}</b></div><button class="btn" id="gAvanti">Avanti ▶</button>`;
+      esito.innerHTML = `<div class="g-no">${x === null ? "⏰ Tempo scaduto!" : v.voto === "quasi" ? "🟡 Quasi!" : "❌ Sbagliato!"} La risposta giusta era <b>${escC(st.q.mostra)}</b></div><button class="btn" id="gAvanti">Avanti ▶</button>`;
       prossimo();
     }
   }

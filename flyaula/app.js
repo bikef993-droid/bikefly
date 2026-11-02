@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.22 · il programma
+//  FLY AULA v0.9.23 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -804,16 +804,21 @@ async function nuovoEsercizio(argomento = "") {
     let tentativi = 0;
     const verifica = async () => {
       if (!inp.value.trim()) return;
+      if (inp.disabled) return;
       tentativi++;
-      if (risultatoGiusto(inp.value, es)) {
+      inp.disabled = true; esito.className = "esito"; esito.textContent = "🤔 Controllo la risposta…";
+      const v = await valutaEsercizio(inp.value, es);
+      inp.disabled = false;
+      const nota = Quiz.commento(v, inp.value);
+      if (v.voto === "giusta") {
         punti.giuste++; punti.totali++;
         esito.className = "esito si";
-        esito.innerHTML = `<span class="applauso">🎉</span> Giusto! ${escape(soluzioneDi(es))} · punteggio ${punti.giuste}/${punti.totali}
+        esito.innerHTML = `<span class="applauso">🎉</span> Giusto! ${escape(soluzioneDi(es))} · punteggio ${punti.giuste}/${punti.totali}${nota ? `<div class="nota-s">✍️ ${escape(nota)}</div>` : ""}
           <div class="azioni"><button class="b-altro">✏️ Un altro esercizio</button></div>`;
         esito.querySelector(".b-altro").onclick = () => nuovoEsercizio(argomento);
         inp.disabled = true;
       } else if (tentativi < 2) {
-        esito.className = "esito no"; esito.textContent = "Quasi! Ricontrollate i passaggi e riprovate 💪";
+        esito.className = "esito no"; esito.textContent = v.voto === "quasi" ? `🟡 Quasi! ${v.perche ? v.perche[0].toUpperCase() + v.perche.slice(1) : "Manca un pezzo"}: riprovate 💪` : "Quasi! Ricontrollate i passaggi e riprovate 💪";
       } else {
         punti.totali++;
         esito.className = "esito no";

@@ -160,4 +160,9 @@ function risultatoGiusto(rispostaClasse, es) {
   const x = leggiNumero(String(rispostaClasse).replace(/[^\d.,\-]/g, ""));
   return isFinite(x) && Math.abs(x - r) <= Math.max(0.011, Math.abs(r) * 1e-6);
 }
+// ✍️ per la classe: una parola scritta male si capisce (refusi, inglese…), ma non si regala niente
+async function valutaEsercizio(rispostaClasse, es) {
+  if (es && typeof es === "object" && es.tipo === "parola") return Quiz.valutaIntelligente(rispostaClasse, { testo: es.testo, accettate: es.accettate });
+  return { voto: risultatoGiusto(rispostaClasse, es) ? "giusta" : "sbagliata", esatta: true };
+}
 const soluzioneDi = es => es.tipo === "parola" ? es.risposta : `${formatta(es.risultato)}${es.unita ? " " + es.unita : ""}`;

@@ -571,6 +571,133 @@ const Quiz = (() => {
     return accettate.some(a => { const n = norm(a); return n && (n === r || piega(n) === piega(r)); });
   }
   const numerica = a => /^\d+(?:[.,]\d+)?$/.test(String(a).trim());
+
+  // ------------- ✍️ RISPOSTE SCRITTE MALE: Fly Aula capisce i refusi, ma non regala niente -------------
+  //  giusta  = giusta anche se scritta con errori (refusi, parole in altro ordine, "di/delle" mancanti, plurale sbagliato)
+  //  quasi   = c'è una parte giusta ma manca o è sbagliato un pezzo (niente punto, ma si dice cosa manca)
+  //  sbagliata
+  //  Mai elastici con: numeri, date, simboli corti (Na, H2O), lingue straniere ("come si dice": l'ortografia è il punto).
+  const PICCOLE = new Set("di del dello della dei degli delle d da dal dalla dai dalle e ed il lo la i gli le l un uno una in nel nella nei nelle a al allo alla ai agli alle per con su sul sulla tra fra of the and a an de du des la le les el los las y der die das und von".split(" "));
+  const parole = t => String(t ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[’'`´]/g, " ").split(/[^a-z0-9一-鿿]+/).filter(Boolean);
+  const piene = t => parole(t).filter(w => !PICCOLE.has(w));
+  // distanza tra due parole (scambio di due lettere vicine = 1 errore solo)
+  function distanza(a, b) {
+    if (a === b) return 0;
+    const n = a.length, m = b.length; if (Math.abs(n - m) > 3) return 9;
+    let pp = null, p = Array.from({ length: m + 1 }, (_, j) => j);
+    for (let i = 1; i <= n; i++) {
+      const c = [i];
+      for (let j = 1; j <= m; j++) {
+        c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if (pp && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) c[j] = Math.min(c[j], pp[j - 2] + 1);
+      }
+      pp = p; p = c;
+    }
+    return p[m];
+  }
+  // quanti errori si perdonano (per ogni parola): niente fino a 4 lettere, 1 fino a 9, 2 da 10 in su; mai dentro i numeri
+  // (così "Austria" non diventa "Australia", "Iran" non diventa "Iraq")
+  const tolleranza = w => /\d/.test(w) ? 0 : w.length <= 4 ? 0 : w.length <= 9 ? 1 : 2;
+  const simili = (r, a) => r === a || (!/\d/.test(r + a) && distanza(r, a) <= tolleranza(a));
+  // tutte le risposte che Fly Aula conosce (capitali, nazioni, personaggi…): servono a NON scambiare una risposta sbagliata per un refuso
+  const banche = {};
+  function bancaDi(nomi) {
+    const chiave = nomi.join(","); if (banche[chiave]) return banche[chiave];
+    const tutti = new Set();
+    for (const n of nomi) for (const v of (GRUPPI[n] || { voci: [] }).voci) for (const k of [1, 2]) String(v[k] || "").split("|").forEach(w => { if (w && !numerica(w)) tutti.add(w); });
+    return (banche[chiave] = [...tutti]);
+  }
+  const bancaDiTutto = () => bancaDi(Object.keys(GRUPPI));
+  // le parole piccole che CAMBIANO il senso ("moto a luogo" ≠ "moto da luogo"): se la risposta ne ha una diversa, non è giusta
+  const CONTANO = new Set("a da di in su per con tra fra".split(" "));
+  // quanto la risposta somiglia a una voce: { tutte, prese, totale, extra, errori, ordine, piccole }
+  function confronta(risposta, voce, domanda = "") {
+    const A = piene(voce).length ? piene(voce) : parole(voce), R = piene(risposta).length ? piene(risposta) : parole(risposta);
+    const usate = [], pos = []; let prese = 0, errori = 0;
+    for (const a of A) {
+      let k = R.findIndex((r, i) => !usate.includes(i) && r === a);
+      if (k < 0) k = R.findIndex((r, i) => !usate.includes(i) && simili(r, a));
+      if (k < 0) continue;
+      usate.push(k); pos.push(k); prese++; if (R[k] !== a) errori += distanza(R[k], a);
+    }
+    // parole in più: va bene solo se sono nella domanda (es. "(ONU)") o sono parole piccole
+    const qd = new Set(piene(domanda));
+    const piccolaScrittaMale = r => r.length <= 6 && [...PICCOLE].some(p => p.length >= 3 && distanza(r, p) <= 1);   // "devla" = "della"
+    const extra = R.filter((r, i) => !usate.includes(i) && !qd.has(r) && !piccolaScrittaMale(r)).length;
+    const ordine = pos.every((x, i) => i === 0 || x > pos[i - 1]);
+    const pv = new Set(parole(voce).filter(w => CONTANO.has(w))), piccole = parole(risposta).filter(w => CONTANO.has(w)).every(w => pv.has(w));
+    let c = { tutte: prese === A.length, prese, totale: A.length, extra, errori, ordine, piccole };
+    // tutta attaccata o spezzata diversamente ("nazioniunite", "new york" → "newyork"): si confronta tutto insieme
+    if (!c.tutte && parole(risposta).length !== parole(voce).length) {
+      const nr = norm(risposta), nv = norm(voce), d = distanza(nr, nv);
+      if (!/\d/.test(nv) && nv.length >= 6 && d <= (nv.length <= 9 ? 1 : nv.length <= 20 ? 2 : 3)) c = { tutte: true, prese: A.length, totale: A.length, extra: 0, errori: d, ordine: true, piccole: true };
+    }
+    return c;
+  }
+  const severa = (q, a) => numerica(a) || /\d/.test(a) || norm(a).length <= 3;
+  const diLingua = q => !!(q && (q.lingua || /come si dice|tradu[cz]|past simple|participio|in (inglese|francese|spagnolo|tedesco|cinese)\b/i.test(q.testo || "")));
+  // la voce più vicina: prima quella con tutte le parole, poi meno parole in più, poi meno errori
+  const meglioDi = (x, y) => !y || (x.tutte !== y.tutte ? x.tutte : x.tutte ? (x.extra !== y.extra ? x.extra < y.extra : x.errori < y.errori) : x.prese / x.totale > y.prese / y.totale);
+  function valuta(risposta, q) {
+    const acc = (q && q.accettate) || [], sbagliate = ((q && q.sbagliate) || []).filter(Boolean), forma = acc[0] || "", dom = (q && q.testo) || "";
+    if (!norm(risposta)) return { voto: "sbagliata", forma };
+    if (stessa(risposta, acc)) return { voto: "giusta", forma, esatta: true };
+    // numeri, date, simboli: o è giusta o no
+    if (acc.length && acc.every(a => severa(q, a))) return { voto: "sbagliata", forma };
+    let meglio = null;
+    for (const a of acc.filter(a => !severa(q, a))) { const c = confronta(risposta, a, dom); if (meglioDi(c, meglio)) meglio = c; }
+    if (!meglio) return { voto: "sbagliata", forma };
+    // è proprio un'ALTRA risposta che Fly Aula conosce ("Austria" invece di "Australia")? allora è sbagliata
+    const nr = norm(risposta);
+    if (bancaDiTutto().some(w => norm(w) === nr && !stessa(w, acc))) return { voto: "sbagliata", forma };
+    // somiglia almeno quanto a una risposta sbagliata vicina (le opzioni sbagliate, le altre risposte dello stesso argomento)?
+    // allora non si capisce cosa voleva scrivere: niente punto ("quasi", e si mostra quella giusta)
+    const vicine = [...sbagliate, ...(q && q.gruppo ? bancaDi([q.gruppo]) : [])].filter(w => !stessa(w, acc));
+    const ambigua = vicine.some(w => {
+      if (Math.abs(norm(w).length - nr.length) > 4) return false;
+      const c = confronta(risposta, w, dom);
+      return c.tutte && c.piccole && c.extra <= meglio.extra && (!meglio.tutte ? c.errori <= 1 : c.errori <= meglio.errori);
+    });
+    if (ambigua) return meglio.prese ? { voto: "quasi", forma, perche: "così scritta si confonde con un'altra risposta" } : { voto: "sbagliata", forma };
+    const lingua = diLingua(q);
+    if (meglio.tutte && !meglio.extra && meglio.piccole) {
+      if (!meglio.ordine) return { voto: "quasi", forma, perche: "le parole sono in un altro ordine" };
+      return lingua && meglio.errori ? { voto: "quasi", forma, perche: "attenzione all'ortografia" } : { voto: "giusta", forma, refuso: meglio.errori > 0 };
+    }
+    if (meglio.tutte && !meglio.piccole) return { voto: "quasi", forma, perche: "attenzione alle parole piccole: cambiano il senso" };
+    if (meglio.tutte) return { voto: "quasi", forma, perche: "c'è qualche parola in più" };
+    if (meglio.totale >= 2 && meglio.prese / meglio.totale >= 0.5) return { voto: "quasi", forma, perche: "manca o è sbagliato un pezzo" };
+    return { voto: "sbagliata", forma };
+  }
+  // 🧠 più intelligente: se le regole non bastano, un cervello RISCRIVE la risposta in italiano corretto
+  // (traduce se è in un'altra lingua, corregge l'ortografia). Il cervello NON vede la domanda né la soluzione:
+  // non può "aggiustare" una risposta sbagliata. Poi decidono sempre le regole qui sopra.
+  async function valutaIntelligente(risposta, q, { ms = 6000 } = {}) {
+    const v = valuta(risposta, q);
+    if (v.voto === "giusta" || diLingua(q) || typeof cervello !== "function") return v;
+    const acc = (q && q.accettate) || [];
+    if (!acc.some(a => !severa(q, a)) || !/[a-z]{3}/i.test(String(risposta)) || String(risposta).length > 120) return v;
+    try {
+      const t = cervello(`Riscrivi in italiano corretto la risposta breve di uno studente. Se è in un'altra lingua (per esempio inglese) traducila in italiano.
+Correggi SOLO ortografia e grammatica. NON aggiungere parole, NON completare, NON cambiare il significato, NON correggere i fatti: se è sbagliata deve restare sbagliata.
+Rispondi SOLO con JSON: {"italiano": "la risposta riscritta"}`, String(risposta).slice(0, 120), { temperature: 0, format: "json" });
+      const out = await Promise.race([t, new Promise((_, no) => setTimeout(() => no(new Error("tempo")), ms))]);
+      let it = ""; try { it = String(JSON.parse(String(out).replace(/^[^{]*/, "").replace(/[^}]*$/, "")).italiano || ""); } catch (e) {}
+      // il cervello non deve allungare la risposta (niente parole aggiunte)
+      if (!it || piene(it).length > piene(risposta).length + 1) return v;
+      const v2 = valuta(it, q);
+      const peso = x => x.voto === "giusta" ? 2 : x.voto === "quasi" ? 1 : 0;
+      if (peso(v2) > peso(v)) return { ...v2, tradotta: it, refuso: true, esatta: false };
+    } catch (e) {}
+    return v;
+  }
+  // la frase da mostrare alla classe
+  function commento(v, risposta) {
+    if (v.voto === "giusta" && v.tradotta && norm(v.tradotta) !== norm(risposta) && /[a-z]/i.test(risposta) && v.esatta === false && v.tradotta) return `In italiano corretto: «${v.forma}»`;
+    if (v.voto === "giusta" && !v.esatta && v.refuso) return `Si scrive così: «${v.forma}»`;
+    if (v.voto === "quasi") return `Quasi! La risposta è «${v.forma}» (${v.perche || "manca un pezzo"})`;
+    return "";
+  }
   const formattaN = x => String(Math.round(x * 1000) / 1000).replace(".", ",");
 
   // ------------- scelta delle domande -------------
@@ -588,16 +715,16 @@ const Quiz = (() => {
     const p = PIANO[materia]; if (!p) return null;
     if (p.lingua) {
       const L = LINGUE[p.lingua], [it, en] = pesca(L.voci), acc = en.split("|");
-      return { testo: `Come si dice "${it}" in ${L.nome}?`, accettate: acc, mostra: mostraLingua(L, acc) };
+      return { testo: `Come si dice "${it}" in ${L.nome}?`, accettate: acc, mostra: mostraLingua(L, acc), lingua: true };
     }
     const fonti = [...gruppiDi(materia, livello).map(g => ["g", g]), ...(p.conti || []).filter(() => livello !== "elementari").map(c => ["c", c]),
       ...(p.categorie || []).filter(() => livello !== "elementari" && typeof CATEGORIE !== "undefined").map(c => ["k", c])];
     const [tipo, nome] = pesca(fonti);
     if (tipo === "c") { const e = CONTI[nome](); return e.testo ? { testo: e.d, accettate: e.accettate, mostra: e.mostra } : { testo: e.d, r: e.r, mostra: formattaN(e.r) }; }
     if (tipo === "k") { const e = CATEGORIE[nome](); return { testo: e.d, r: e.r, mostra: formattaN(e.r) }; }
-    const [d, r] = pesca(GRUPPI[nome].voci), acc = r.split("|");
+    const [d, r, sb] = pesca(GRUPPI[nome].voci), acc = r.split("|"), sbagliate = String(sb || "").split("|").filter(Boolean);
     if (acc.every(numerica)) return { testo: d, r: Number(acc[0].replace(",", ".")), mostra: acc[0], accettate: acc };
-    return { testo: d, accettate: acc, mostra: acc[0] };
+    return { testo: d, accettate: acc, mostra: acc[0], sbagliate, gruppo: nome };
   }
 
   // sbagliate credibili: per i numeri, numeri vicini; per le parole, altre risposte dello stesso gruppo
@@ -641,5 +768,5 @@ const Quiz = (() => {
     return { domanda: testo, opzioni: ordine.map(x => x[1]), giusta: ordine.findIndex(x => x[2] === 0), spiegazione: spieg, controllata: true };
   }
 
-  return { GRUPPI, LINGUE, CONTI, PIANO, norm, stessa, sa, domanda, sceltaMultipla, gruppiDi };
+  return { GRUPPI, LINGUE, CONTI, PIANO, norm, stessa, valuta, valutaIntelligente, commento, sa, domanda, sceltaMultipla, gruppiDi };
 })();

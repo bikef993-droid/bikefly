@@ -32,7 +32,7 @@ const Precisione = (() => {
   function domandaPer(k) {
     if (typeof Quiz !== "undefined" && Quiz.sa(k)) {
       const q = Quiz.domanda(k, "superiori");
-      return q.accettate ? { testo: q.testo, accettate: q.accettate, mostra: q.mostra } : { testo: q.testo, r: q.r, mostra: q.mostra };
+      return q.accettate ? { testo: q.testo, accettate: q.accettate, mostra: q.mostra, sbagliate: q.sbagliate, gruppo: q.gruppo, lingua: q.lingua } : { testo: q.testo, r: q.r, mostra: q.mostra };
     }
     if (k === "inglese") {
       if (Math.random() < .35) { const [inf, past] = scegli(VERBI_IRREGOLARI); return { testo: `Qual è il past simple di "to ${inf}"?`, accettate: past.split("|"), mostra: past.split("|")[0] }; }
