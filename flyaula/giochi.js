@@ -121,7 +121,7 @@ NON dire mai il nome. Rispondi SOLO con JSON: {"risposta": "sì" oppure "no" opp
       const r = el("giRisp").value.trim(); if (!r || provando) return;
       provando = true; el("giMsg").innerHTML = `<p class="at-msg">🔑 Provo la chiave…</p>`;
       const v = await giusta(x, r); provando = false;
-      if (!el("giMsg") || escape.l[escape.i] !== x) return;
+      if (!el("giMsg") || !escape || escape.l[escape.i] !== x) return;
       const nota = Quiz.commento(v, r);
       if (v.voto === "giusta") {
         escape.i++; puntiClasse(1); enigma();

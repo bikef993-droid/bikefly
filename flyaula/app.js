@@ -1,5 +1,5 @@
 // ===================================================================
-//  FLY AULA v0.9.23 · il programma
+//  FLY AULA v0.9.24 · il programma
 //  Il "cervello" gira sul computer (Ollama); questa è la lavagna.
 //  Niente internet: domande, risposte e voce restano sul computer.
 // ===================================================================
@@ -96,7 +96,7 @@ const LIMITI = {
 };
 // ⏱️ LEZIONE SENZA RALLENTAMENTI: in classe i controlli di una risposta hanno un tempo massimo.
 // Se un controllo non finisce in tempo, la risposta arriva lo stesso, con un timbro onesto. In classe niente "ragionamento lungo".
-let scadenzaControlli = 0; let revFuoriTempo = 0;
+let revFuoriTempo = 0;   // il tempo massimo vale SOLO per i controlli di quella risposta (opzione "scadenza"), non per la lavagna o i giochi
 const TEMPO_CONTROLLI = Number(leggi("flyaula_t_controlli")) || 25000;
 class FuoriTempo extends Error { constructor() { super("tempo dei controlli finito"); this.name = "FuoriTempo"; } }
 class CervelloLento extends Error { constructor(m) { super(`${m} non risponde in tempo`); this.name = "CervelloLento"; } }
@@ -167,13 +167,13 @@ async function unaChiamata(m, corpo, ms) {
 
 // risposta intera (per revisore, esercizi, esame, riassunti)
 // usa = quale cervello (se non si dice: il principale)
-async function cervello(sistema, utente, { temperature = 0.2, format, pensa = false, usa } = {}) {
-  if (scadenzaControlli) pensa = false;     // in classe niente ragionamento lungo: risposte in tempo
+async function cervello(sistema, utente, { temperature = 0.2, format, pensa = false, usa, scadenza = 0 } = {}) {
+  if (scadenza) pensa = false;              // in classe niente ragionamento lungo: risposte in tempo
   const m = usa && !tolti.has(usa) ? usa : modello;   // un cervello tolto dalla coppia (perché bloccato) non si usa più
   const corpo = m2 => ({ stream: false, keep_alive: riposo(), ...(format ? { format } : {}), _pensa: pensa,
     options: { temperature, num_ctx: contesto(), num_predict: tetto(m2, pensa, MAX_PAROLE_LAVORO) }, messages: [{ role: "system", content: sistema }, { role: "user", content: utente }] });
   let ms = pensa ? LIMITI.pensa : LIMITI.lavoro;
-  const conTempo = scadenzaControlli;
+  const conTempo = scadenza;
   if (conTempo) {
     const resto = conTempo - Date.now();
     if (resto < 1500) throw new FuoriTempo();
@@ -609,14 +609,15 @@ async function chiedi(domanda, speciale = {}) {
     if (modoProf === "spiega") ctx += " SCELTA DEL PROF: la risposta NON deve contenere il risultato finale, deve fermarsi prima dell'ultimo passaggio. Non è un errore.";
     if (modoProf === "guida") ctx += " SCELTA DEL PROF: la risposta deve essere UNA domanda guida con un indizio, senza risultato. Non è un errore.";
     if (Pagine.attive) ctx += "\n" + Pagine.fonte();
-    scadenzaControlli = Date.now() + TEMPO_CONTROLLI;
-    const es = await ricontrolloCompleto(cervelloDi(sq.autore), {
-      controllore: cervelloDi(sq.controllore),
+    const scadenza = Date.now() + TEMPO_CONTROLLI;
+    const conTempo = m => (si, ut, o = {}) => cervello(si, ut, { ...o, usa: m, scadenza });
+    const es = await ricontrolloCompleto(conTempo(sq.autore), {
+      controllore: conTempo(sq.controllore),
       domanda, testo, contesto: ctx, conto,
       speciale: !!speciale.esercizio || !MATERIE[materia].calcoli || !!prima.fine,
       risultatoObbligatorio: modoProf === "normale",
       ogniPasso: n => { const l = $("lavoroRev"); if (l) l.textContent = passi[n]; }
-    }).finally(() => { scadenzaControlli = 0; });
+    });
     // la coppia a turni misura i suoi tempi: se su QUESTO computer il controllo è troppo lento, si spegne da sola
     if (aTurni() && es.tempi && es.tempi.length) { if (es.tempi[0] > 20000 || es.fuoriTempo) turnoLento(); else scrivi("flyaula_turni_lenti", "0"); }
     // un controllore che per 3 domande di fila non finisce in tempo è bloccato davvero: esce dalla coppia (le prossime risposte non aspettano)
