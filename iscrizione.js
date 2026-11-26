@@ -42,10 +42,10 @@ export function numeroSalvato() {
 
 // il riquadro "Sei il Pioniere n° X" con il tasto per invitare gli amici
 export function mostraInvito(box, numero, link) {
-  const testo = `Qualcosa sta arrivando a Piacenza 👀 Sono già in lista${numero ? ` (Pioniere n° ${numero})` : ""}. Entra anche tu prima del 1 dicembre: ${link}`;
+  const testo = `Qualcosa sta arrivando a Piacenza 👀 Sono già in lista${numero ? ` (Pioniere n° ${numero})` : ""}. Entra anche tu prima del 20 marzo: ${link}`;
   box.innerHTML = `
     ${numero ? `<p class="invito-num">Sei il Pioniere<br><b>n° ${numero}</b><br>di Piacenza 🚀</p>` : `<p class="invito-num">Sei tra i <b>Pionieri</b> 🚀</p>`}
-    <p class="invito-sotto">Il 1 dicembre ti arriva il codice. Intanto porta un amico: chi entra prima, prende il codice prima.</p>
+    <p class="invito-sotto">Il 20 marzo ti arriva il codice. Intanto porta un amico: chi entra prima, prende il codice prima.</p>
     <a class="invito-wa" href="https://wa.me/?text=${encodeURIComponent(testo)}" target="_blank" rel="noopener">Invita un amico su WhatsApp</a>
     <button type="button" class="invito-altro">Condividi in un altro modo</button>
     <a class="invito-canale" href="https://whatsapp.com/channel/0029VbDlrMn6mYPEUjBGuz1I" target="_blank" rel="noopener">📢 Segui il canale WhatsApp: ti avvisiamo noi il giorno del lancio</a>
