@@ -6,7 +6,7 @@
 <title>Quanto vale la tua bici in cantina?</title>
 <meta name="description" content="Hai una bici ferma? Scopri quanto potresti guadagnarci ogni mese a Piacenza.">
 <meta property="og:title" content="Quanto vale la bici che hai in cantina?">
-<meta property="og:description" content="Scoprilo in 10 secondi. Piacenza, 1 dicembre.">
+<meta property="og:description" content="Scoprilo in 10 secondi. Piacenza, 20 marzo.">
 <meta name="theme-color" content="#04091A">
 <meta property="og:image" content="https://bikef993-droid.github.io/bikefly/anteprima.jpg">
 <meta property="og:image:width" content="1200">
@@ -127,7 +127,7 @@ footer a{color:var(--nebbia)}
 </head>
 <body>
 <main class="muro">
-  <p class="dove dopo"><b>Piacenza</b> · 01.12.2026</p>
+  <p class="dove dopo"><b>Piacenza</b> · 20.03.2027</p>
   <h1><span class="parola"><span>Quanto</span></span> <span class="parola"><span>vale</span></span> <span class="parola"><span>la</span></span> <span class="parola"><span>bici</span></span> <span class="parola"><span>che</span></span> <span class="parola"><span>hai</span></span> <span class="parola"><span><em>in cantina?</em></span></span></h1>
   <p class="sotto dopo">Ferma, impolverata, dimenticata? Rispondi a 4 domande e scopri quanto potrebbe farti guadagnare ogni mese. Non hai una bici? Scopri quanto ti costerebbe noleggiarla.</p>
 
@@ -219,7 +219,7 @@ footer a{color:var(--nebbia)}
   </section>
 
   <section class="chiamata">
-    <h3>Il 1 dicembre a Piacenza si potrà fare davvero.</h3>
+    <h3>Il 20 marzo a Piacenza si potrà fare davvero.</h3>
     <p>Lascia l'email: chi si iscrive prima diventa <b style="color:var(--latte)">🚀 Pioniere</b> e riceve il codice invito per primo.</p>
     <form id="f" novalidate>
       <label for="email" style="position:absolute;left:-9999px">La tua email</label>
@@ -228,7 +228,7 @@ footer a{color:var(--nebbia)}
     </form>
     <p class="esito" id="esito" role="status"></p>
   <div class="invito nascosto" id="invito" aria-live="polite"></div>
-    <a class="btn vetro" href="../presto/" style="text-decoration:none">👀 Cosa arriva il 1 dicembre?</a>
+    <a class="btn vetro" href="../presto/" style="text-decoration:none">👀 Cosa arriva il 20 marzo?</a>
   </section>
 
   <footer>Stima indicativa: dipende da quante persone chiedono la tua bici nella tua zona. Usiamo la tua email solo per avvisarti del lancio; per cancellarla scrivi a <a href="mailto:bikef993@gmail.com">bikef993@gmail.com</a>.</footer>
@@ -305,7 +305,7 @@ function calcolaNoleggio() {
   const dove = { quartieri: "nel tuo quartiere", provincia: "nel tuo paese", "Centro storico": "in centro storico", Stazione: "vicino alla stazione" }[cerco.dove];
   const quanto = { 5: "quasi ogni giorno", 2.5: "2-3 volte a settimana", 1: "una volta a settimana", 0.5: "ogni tanto" }[cerco.spesso];
   $("dettaglio").textContent = `${nomi[cerco.tipo][0].toUpperCase() + nomi[cerco.tipo].slice(1)} ${dove}, ${quanto}, per ${breve ? "2 ore" : "5 ore"} a ${uso} €. Niente bici da comprare, niente furti, niente riparazioni.` +
-    (cerco.spesso >= 5 ? " Se la usi tutti i giorni, chiedi il noleggio a settimana o a mese: costa ancora meno." : "") + " Fino al 28 febbraio zero commissioni.";
+    (cerco.spesso >= 5 ? " Se la usi tutti i giorni, chiedi il noleggio a settimana o a mese: costa ancora meno." : "") + " Fino al 9 giugno zero commissioni.";
   return Math.round(mese);
 }
 function calcola() {
@@ -314,7 +314,7 @@ function calcola() {
   const mese = netto * volte * SETTIMANE * bici;
   contaFino(mese);
   voluta = 0.05 + mese / 400;   // gradi al millisecondo
-  $("dettaglio").textContent = `${bici > 1 ? bici + " bici" : scelto.nome} a ${scelto.prezzo} € per 5 ore, ${bici > 1 ? "prestate" : "prestata"} ${volte} ${volte === 1 ? "volta" : "volte"} a settimana${bici > 1 ? " ciascuna" : ""}. Fino al 28 febbraio zero commissioni: tieni ancora di più. La cauzione la decidi tu e torna sempre indietro.`;
+  $("dettaglio").textContent = `${bici > 1 ? bici + " bici" : scelto.nome} a ${scelto.prezzo} € per 5 ore, ${bici > 1 ? "prestate" : "prestata"} ${volte} ${volte === 1 ? "volta" : "volte"} a settimana${bici > 1 ? " ciascuna" : ""}. Fino al 9 giugno zero commissioni: tieni ancora di più. La cauzione la decidi tu e torna sempre indietro.`;
   return Math.round(mese);
 }
 // quiz: una domanda alla volta, si va avanti toccando una risposta
@@ -386,7 +386,7 @@ function immagine(mese) {
   g.fillStyle = "#F3F6FB"; g.font = "800 260px 'Bricolage Grotesque', sans-serif"; g.fillText(euro(mese) + " €", 540, 1160);
   g.fillStyle = "#8496B3"; g.font = "700 56px Figtree, sans-serif"; g.fillText("al mese", 540, 1250);
   g.fillStyle = "#00D2A0"; g.font = "800 48px Figtree, sans-serif"; g.fillText(modo === "noleggio" ? "E tu quanto spenderesti? 👀" : "E la tua quanto vale? 👀", 540, 1480);
-  g.fillStyle = "#8496B3"; g.font = "600 36px Figtree, sans-serif"; g.fillText("Piacenza · 01.12.2026", 540, 1560);
+  g.fillStyle = "#8496B3"; g.font = "600 36px Figtree, sans-serif"; g.fillText("Piacenza · 20.03.2027", 540, 1560);
   g.fillText("bikef993-droid.github.io/bikefly/quanto", 540, 1720);
   return new Promise(ok => c.toBlob(ok, "image/png"));
 }

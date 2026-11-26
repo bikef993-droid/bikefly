@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Qualcosa sta arrivando a Piacenza</title>
-<meta name="description" content="1 dicembre. Piacenza. Su due ruote. Entra tra i primi.">
+<meta name="description" content="20 marzo. Piacenza. Su due ruote. Entra tra i primi.">
 <meta property="og:title" content="Qualcosa sta arrivando a Piacenza">
-<meta property="og:description" content="1 dicembre. Su due ruote. Entra tra i primi.">
+<meta property="og:description" content="20 marzo. Su due ruote. Entra tra i primi.">
 <meta name="theme-color" content="#04091A">
 <meta property="og:image" content="https://bikef993-droid.github.io/bikefly/anteprima.jpg">
 <meta property="og:image:width" content="1200">
@@ -153,7 +153,7 @@ footer a{color:var(--nebbia)}
     </g>
   </svg>
 
-  <p class="dove"><b>Piacenza</b> · 01.12.2026</p>
+  <p class="dove"><b>Piacenza</b> · 20.03.2027</p>
   <h1><span class="parola"><span>Qualcosa</span></span> <span class="parola"><span>sta</span></span> <span class="parola"><span><em>arrivando.</em></span></span></h1>
   <p class="sotto dopo">Su due ruote. E stavolta conviene anche a te.</p>
 
@@ -171,7 +171,7 @@ footer a{color:var(--nebbia)}
     <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="la-tua@email.it" required maxlength="100">
     <button id="vai" type="submit">Entra tra i primi</button>
   </form>
-  <p class="nota dopo">Chi si iscrive prima del 1 dicembre diventa <b style="color:var(--latte)">🚀 Pioniere</b>: un badge per sempre e il codice invito per primo. Una sola email, niente spam.</p>
+  <p class="nota dopo">Chi si iscrive prima del 20 marzo diventa <b style="color:var(--latte)">🚀 Pioniere</b>: un badge per sempre e il codice invito per primo. Una sola email, niente spam.</p>
   <p class="esito" id="esito" role="status"></p>
   <div class="invito nascosto" id="invito" aria-live="polite"></div>
   <button type="button" class="avvisami nascosto" id="avvisami">🔔 Avvisami quando esce</button>
@@ -198,8 +198,8 @@ footer a{color:var(--nebbia)}
 const calmo = matchMedia("(prefers-reduced-motion: reduce)").matches;
 if (!calmo) document.body.classList.add("arrivo");
 
-// 1 dicembre 2026, mezzanotte a Piacenza (UTC+1 in inverno)
-const LANCIO = Date.UTC(2026, 10, 30, 23, 0, 0);
+// 20 marzo 2027, mezzanotte a Piacenza (UTC+1, l'ora legale parte il 28 marzo)
+const LANCIO = Date.UTC(2027, 2, 19, 23, 0, 0);
 const due = n => String(n).padStart(2, "0");
 function metti(el, v) {
   if (el.textContent === v) return;
@@ -299,9 +299,9 @@ const scrivi = (t, ok) => { esito.textContent = t; esito.className = "esito " + 
 (() => {
   const btn = document.getElementById("avvisami");
   const ok = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-  if (!ok || new Date() > new Date(2026, 11, 1, 23, 59)) return;   // iPhone senza app sulla Home: niente pulsante, c'è il canale WhatsApp
+  if (!ok || new Date() > new Date(2027, 2, 20, 23, 59)) return;   // iPhone senza app sulla Home: niente pulsante, c'è il canale WhatsApp
   btn.classList.remove("nascosto");
-  const giaFatto = () => { btn.textContent = "✓ Ti avvisiamo il 1° dicembre 🔔"; btn.classList.add("fatto"); btn.disabled = true; };
+  const giaFatto = () => { btn.textContent = "✓ Ti avvisiamo il 20 marzo 🔔"; btn.classList.add("fatto"); btn.disabled = true; };
   try { if (localStorage.getItem("avvisami") === "1") giaFatto(); } catch (e) {}
   const b64aByte = s => { const p = "=".repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...b].map(c => c.charCodeAt(0))); };
   btn.onclick = async () => {
@@ -327,7 +327,7 @@ const scrivi = (t, ok) => { esito.textContent = t; esito.className = "esito " + 
 })();
 let fatto = false;
 try { fatto = localStorage.getItem("attesa_ok") === "1"; } catch (e) {}
-if (fatto) scrivi("✓ Sei già in lista. Ci vediamo il 1 dicembre.", true);
+if (fatto) scrivi("✓ Sei già in lista. Ci vediamo il 20 marzo.", true);
 
 const LINK = "https://bikef993-droid.github.io/bikefly/presto/?da=wa";
 f.addEventListener("submit", async ev => {

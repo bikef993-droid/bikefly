@@ -22,7 +22,7 @@ return exists(/databases/$(database)/documents/segnalati/$(io()))
 &amp;&amp; get(/databases/$(database)/documents/segnalati/$(io())).data.get(&#x27;riattivato&#x27;, false) != true;
 }
 function ammesso() {
-return admin() || request.time &gt;= timestamp.date(2026, 11, 30) + duration.value(23, &#x27;h&#x27;) || (exists(/databases/$(database)/documents/utenti/$(io()))
+return admin() || request.time &gt;= timestamp.date(2027, 3, 19) + duration.value(23, &#x27;h&#x27;) || (exists(/databases/$(database)/documents/utenti/$(io()))
 &amp;&amp; get(/databases/$(database)/documents/utenti/$(io())).data.get(&#x27;ammesso&#x27;, false) == true);
 }
 function scrittore() { return accesso() &amp;&amp; verificato() &amp;&amp; !bandito() &amp;&amp; ammesso(); }
@@ -186,7 +186,7 @@ allow create: if id.size() &lt;= 40
 &amp;&amp; nd().auth is string &amp;&amp; nd().auth.size() &lt;= 100
 &amp;&amp; nd().get(&#x27;da&#x27;, &#x27;altro&#x27;) in [&#x27;whatsapp&#x27;, &#x27;volantino&#x27;, &#x27;altro&#x27;, &#x27;tiktok&#x27;, &#x27;canale&#x27;]
 &amp;&amp; nd().creato == request.time
-&amp;&amp; request.time &lt; timestamp.date(2026, 12, 2);
+&amp;&amp; request.time &lt; timestamp.date(2027, 3, 21);
 }
 match /badge/{uid} {
 function soloBadge() {
@@ -230,7 +230,7 @@ allow create: if email.size() &lt;= 100
 &amp;&amp; nd().keys().hasOnly([&#x27;email&#x27;, &#x27;quando&#x27;])
 &amp;&amp; nd().email == email
 &amp;&amp; nd().quando == request.time
-&amp;&amp; request.time &lt; timestamp.date(2026, 12, 1);
+&amp;&amp; request.time &lt; timestamp.date(2027, 3, 20);
 allow read, delete: if admin();
 }
 match /foto_utenti/{uid} {
@@ -350,7 +350,7 @@ let ore = d.durataMs;
 let mese = b.get(&#x27;prezzoMese&#x27;, null);
 return d.prezzo is number &amp;&amp; d.prezzo &lt;= 1100
 &amp;&amp; d.commissione is number &amp;&amp; (d.commissione &gt;= 0.86
-|| (d.commissione &gt;= 0 &amp;&amp; request.time &lt; timestamp.date(2027, 3, 1) - duration.value(1, &#x27;h&#x27;)))
+|| (d.commissione &gt;= 0 &amp;&amp; request.time &lt; timestamp.date(2027, 6, 10) - duration.value(2, &#x27;h&#x27;)))
 &amp;&amp; (
 (ore == 18000000 &amp;&amp; d.prezzo &gt;= b.prezzo)
 || (ore == 3600000 &amp;&amp; b.get(&#x27;minimoOre&#x27;, 1) == 1 &amp;&amp; d.prezzo &gt;= 1.5 &amp;&amp; d.prezzo &gt;= b.prezzo * 0.4 - 0.26)
@@ -369,7 +369,7 @@ allow create: if scrittore() &amp;&amp; nd().clienteUid == io()
 &amp;&amp; nd().proprietarioUid == get(/databases/$(database)/documents/bici/$(nd().biciDoc)).data.proprietarioUid
 &amp;&amp; nd().proprietarioUid != io()
 &amp;&amp; testo(nd().clienteNome, 30)
-&amp;&amp; (request.time &lt; timestamp.date(2026, 11, 30) + duration.value(23, &#x27;h&#x27;)
+&amp;&amp; (request.time &lt; timestamp.date(2027, 3, 19) + duration.value(23, &#x27;h&#x27;)
 || (nd().get(&#x27;pi&#x27;, &#x27;&#x27;) is string &amp;&amp; nd().get(&#x27;pi&#x27;, &#x27;&#x27;).matches(&#x27;pi_[A-Za-z0-9]+&#x27;)))
 &amp;&amp; prezzoOnesto();
 allow update: if accesso() &amp;&amp; !bandito() &amp;&amp; partecipante()

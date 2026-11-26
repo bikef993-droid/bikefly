@@ -70,8 +70,8 @@ for (const m of messaggi) {
   }
   await segno.set({ quando: admin.firestore.FieldValue.serverTimestamp() });
 }
-// 4. il giorno del lancio (1 dicembre 2026, dalle 9:00 di Roma): avviso a chi ha toccato "Avvisami" sulla pagina dei Pionieri
-const LANCIO = Date.UTC(2026, 11, 1, 8, 0);
+// 4. il giorno del lancio (20 marzo 2027, dalle 9:00 di Roma): avviso a chi ha toccato "Avvisami" sulla pagina dei Pionieri
+const LANCIO = Date.UTC(2027, 2, 20, 8, 0);
 const rifLancio = db.doc("server/lancioInviato");
 if (Date.now() >= LANCIO && !(await rifLancio.get()).exists) {
   await rifLancio.set({ quando: admin.firestore.FieldValue.serverTimestamp() });   // prima segno, così non parte due volte
@@ -81,7 +81,7 @@ if (Date.now() >= LANCIO && !(await rifLancio.get()).exists) {
     const x = s.data();
     try {
       await webpush.sendNotification({ endpoint: x.endpoint, keys: { p256dh: x.p256dh, auth: x.auth } },
-        JSON.stringify({ titolo: "🚀 BikeFly è uscita!", testo: "Da oggi a Piacenza noleggi la bici dei vicini o guadagni con la tua. Zero commissioni fino al 28 febbraio 🎉", tag: "lancio", url: "https://bikef993-droid.github.io/bikefly/?da=lancio" }),
+        JSON.stringify({ titolo: "🚀 BikeFly è uscita!", testo: "Da oggi a Piacenza noleggi la bici dei vicini o guadagni con la tua. Zero commissioni fino al 9 giugno 🎉", tag: "lancio", url: "https://bikef993-droid.github.io/bikefly/?da=lancio" }),
         { TTL: 48 * 3600, urgency: "high" });
       ok++;
     } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { await s.ref.delete(); via++; } }
